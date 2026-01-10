@@ -1,18 +1,20 @@
 import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import { useState } from "react";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { ShareModal } from "@/components/share-modal";
 
 export default function TryOnScreen() {
   const colors = useColors();
   const router = useRouter();
   const [jewelrySize, setJewelrySize] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const handleSizeChange = (delta: number) => {
     if (Platform.OS !== "web") {
@@ -37,7 +39,7 @@ export default function TryOnScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    // TODO: Implement share
+    setShowShareModal(true);
   };
 
   const handleClose = () => {
@@ -124,6 +126,21 @@ export default function TryOnScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Action Buttons */}
+          <View className="flex-row gap-3 mb-4">
+            {/* Share Button */}
+            <TouchableOpacity
+              onPress={handleShare}
+              className="flex-1 py-3 px-4 rounded-full items-center flex-row justify-center active:opacity-80"
+              style={[styles.secondaryButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
+              <Text className="text-primary text-base font-semibold ml-2">
+                Partager
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Capture Button */}
           <TouchableOpacity
             onPress={handleCapture}
@@ -143,6 +160,14 @@ export default function TryOnScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Share Modal */}
+      <ShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title="Mon essayage Écrin Virtuel"
+        message="Regardez ce magnifique bijou que j'ai essayé virtuellement avec Écrin Virtuel ! 💍✨ Téléchargez l'app pour essayer vous aussi !"
+      />
     </ScreenContainer>
   );
 }
@@ -154,5 +179,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  secondaryButton: {
+    borderWidth: 1,
   },
 });

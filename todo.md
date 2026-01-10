@@ -30,3 +30,10 @@
 - [ ] Générer le build iOS
 - [ ] Préparer les métadonnées App Store
 - [ ] Soumettre pour review
+
+## Partage Réseaux Sociaux
+- [x] Installer expo-sharing
+- [x] Créer un composant de partage réutilisable
+- [x] Intégrer le partage dans l'écran d'essayage virtuel
+- [x] Intégrer le partage dans la galerie
+- [x] Ajouter les options de partage (Facebook, Instagram, WhatsApp, etc.)

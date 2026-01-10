@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { ShareModal } from "@/components/share-modal";
 
 // Mock data for demonstration
 const MOCK_TRYONS = [
@@ -18,6 +19,8 @@ const MOCK_TRYONS = [
 export default function GalleryScreen() {
   const colors = useColors();
   const [tryOns, setTryOns] = useState(MOCK_TRYONS);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<typeof MOCK_TRYONS[0] | null>(null);
 
   const handleDelete = (id: string) => {
     if (Platform.OS !== "web") {
@@ -26,11 +29,19 @@ export default function GalleryScreen() {
     setTryOns(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleShare = (id: string) => {
+  const handleShare = (item: typeof MOCK_TRYONS[0]) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    // TODO: Implement share functionality
+    setSelectedItem(item);
+    setShowShareModal(true);
+  };
+
+  const handleFavorite = (id: string) => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    // TODO: Implement favorite functionality
   };
 
   const renderItem = ({ item }: { item: typeof MOCK_TRYONS[0] }) => (
@@ -48,15 +59,24 @@ export default function GalleryScreen() {
         <View className="flex-1">
           <Text className="text-lg font-semibold text-foreground">{item.type}</Text>
           <Text className="text-sm text-muted mt-1">{item.date}</Text>
+          
+          {/* Quick share button */}
+          <TouchableOpacity
+            onPress={() => handleShare(item)}
+            className="flex-row items-center mt-2 active:opacity-70"
+          >
+            <IconSymbol name="square.and.arrow.up" size={14} color={colors.primary} />
+            <Text className="text-sm text-primary ml-1 font-medium">Partager</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Actions */}
         <View className="flex-row gap-2">
           <TouchableOpacity
-            onPress={() => handleShare(item.id)}
+            onPress={() => handleFavorite(item.id)}
             className="w-10 h-10 rounded-full bg-background items-center justify-center active:opacity-70"
           >
-            <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
+            <IconSymbol name="heart.fill" size={18} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleDelete(item.id)}
@@ -107,6 +127,20 @@ export default function GalleryScreen() {
           renderEmptyState()
         )}
       </View>
+
+      {/* Share Modal */}
+      <ShareModal
+        visible={showShareModal}
+        onClose={() => {
+          setShowShareModal(false);
+          setSelectedItem(null);
+        }}
+        title={selectedItem ? `Mon essayage ${selectedItem.type}` : "Mon essayage Écrin Virtuel"}
+        message={selectedItem 
+          ? `Regardez ce magnifique ${selectedItem.type.toLowerCase()} que j'ai essayé virtuellement avec Écrin Virtuel ! ${selectedItem.emoji}✨ Téléchargez l'app pour essayer vous aussi !`
+          : "Regardez ce magnifique bijou que j'ai essayé virtuellement avec Écrin Virtuel ! 💍✨"
+        }
+      />
     </ScreenContainer>
   );
 }
