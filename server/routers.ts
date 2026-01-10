@@ -166,25 +166,41 @@ export const appRouter = router({
       return db.getDemoBodyParts();
     }),
 
-    // Get body parts by type
+    // Get body parts by type (supports all types)
     byType: publicProcedure
       .input(z.object({ 
-        type: z.enum(["neck", "earrings", "ring", "wrist", "foot", "full"]) 
+        type: z.enum([
+          "face", "neck", "bust_with_hands", 
+          "left_ear_profile", "right_ear_profile",
+          "left_wrist", "right_wrist", 
+          "left_hand", "right_hand",
+          "left_ankle", "right_ankle", 
+          "full_body",
+          "earrings", "ring", "wrist", "foot", "full"
+        ]) 
       }))
       .query(async ({ input }) => {
         return db.getBodyPartsByType(input.type);
       }),
 
-    // Get user's custom body parts
+    // Get user's custom body parts (wardrobe)
     userParts: protectedProcedure.query(async ({ ctx }) => {
       return db.getUserBodyParts(ctx.user.id);
     }),
 
-    // Add custom body part (for premium users)
+    // Add custom body part (for wardrobe)
     add: protectedProcedure
       .input(z.object({
         name: z.string().min(1).max(255),
-        type: z.enum(["neck", "earrings", "ring", "wrist", "foot", "full"]),
+        type: z.enum([
+          "face", "neck", "bust_with_hands", 
+          "left_ear_profile", "right_ear_profile",
+          "left_wrist", "right_wrist", 
+          "left_hand", "right_hand",
+          "left_ankle", "right_ankle", 
+          "full_body",
+          "earrings", "ring", "wrist", "foot", "full"
+        ]),
         imageUrl: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -196,6 +212,14 @@ export const appRouter = router({
           isDemo: false,
         });
         return { id };
+      }),
+
+    // Delete user's body part
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.deleteUserBodyPart(input.id, ctx.user.id);
+        return { success: true };
       }),
   }),
 

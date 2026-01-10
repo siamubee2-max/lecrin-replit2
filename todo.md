@@ -79,3 +79,10 @@
 - [x] Mettre à jour le schéma creators avec les nouveaux champs (commission, tier, contract dates, contact email)
 - [x] Importer les données Moniattitude depuis le CSV (seed automatique)
 - [x] Mettre à jour l'écran Boutique pour afficher les informations complètes
+
+## Écran Garde-Robe (Wardrobe)
+- [x] Mettre à jour le schéma bodyParts avec tous les types (face, neck, bust_with_hands, left_ear_profile, right_ear_profile, left_wrist, right_wrist, left_hand, right_hand, left_ankle, right_ankle, full_body)
+- [x] Ajouter les routes API pour créer/supprimer des body parts utilisateur
+- [x] Créer l'écran Garde-Robe avec liste des photos
+- [x] Implémenter l'upload de photos avec sélection de type
+- [x] Intégrer avec le système d'abonnement (limite pour utilisateurs gratuits)

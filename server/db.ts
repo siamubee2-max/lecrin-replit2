@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, 
@@ -307,7 +307,10 @@ export async function getDemoBodyParts() {
   return db.select().from(bodyParts).where(eq(bodyParts.isDemo, true));
 }
 
-export async function getBodyPartsByType(type: "neck" | "earrings" | "ring" | "wrist" | "foot" | "full") {
+// All body part types
+type BodyPartType = "face" | "neck" | "bust_with_hands" | "left_ear_profile" | "right_ear_profile" | "left_wrist" | "right_wrist" | "left_hand" | "right_hand" | "left_ankle" | "right_ankle" | "full_body" | "earrings" | "ring" | "wrist" | "foot" | "full";
+
+export async function getBodyPartsByType(type: BodyPartType) {
   const db = await getDb();
   if (!db) return [];
 
@@ -327,6 +330,20 @@ export async function getUserBodyParts(userId: number) {
   if (!db) return [];
 
   return db.select().from(bodyParts).where(eq(bodyParts.userId, userId));
+}
+
+export async function deleteUserBodyPart(bodyPartId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Only delete if it belongs to the user (not a demo model)
+  await db.delete(bodyParts)
+    .where(
+      and(
+        eq(bodyParts.id, bodyPartId),
+        eq(bodyParts.userId, userId)
+      )
+    );
 }
 
 // ============================================

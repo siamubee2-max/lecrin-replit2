@@ -1,0 +1,1 @@
+ALTER TABLE `bodyParts` MODIFY COLUMN `type` enum('face','neck','bust_with_hands','left_ear_profile','right_ear_profile','left_wrist','right_wrist','left_hand','right_hand','left_ankle','right_ankle','full_body','earrings','ring','wrist','foot','full') NOT NULL;

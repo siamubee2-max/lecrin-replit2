@@ -35,7 +35,7 @@ interface BodyPart {
   id: number;
   externalId: string | null;
   name: string;
-  type: "neck" | "earrings" | "ring" | "wrist" | "foot" | "full";
+  type: "face" | "neck" | "bust_with_hands" | "left_ear_profile" | "right_ear_profile" | "left_wrist" | "right_wrist" | "left_hand" | "right_hand" | "left_ankle" | "right_ankle" | "full_body" | "earrings" | "ring" | "wrist" | "foot" | "full";
   imageUrl: string;
   userId: number | null;
   isDemo: boolean | null;

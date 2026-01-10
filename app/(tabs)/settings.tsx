@@ -220,6 +220,27 @@ export default function SettingsScreen() {
           )}
         </View>
 
+        {/* My Wardrobe Section */}
+        <View className="px-4 mb-4">
+          <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
+            Ma Garde-Robe
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/wardrobe")}
+            className="flex-row items-center justify-between p-4 rounded-2xl"
+            style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+          >
+            <View className="flex-row items-center">
+              <Text className="text-2xl mr-3">👗</Text>
+              <View>
+                <Text className="text-lg font-semibold text-foreground">Mes Photos</Text>
+                <Text className="text-sm text-muted">Gérez vos photos pour les essayages</Text>
+              </View>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.muted} />
+          </TouchableOpacity>
+        </View>
+
         {/* Preferences Section */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">

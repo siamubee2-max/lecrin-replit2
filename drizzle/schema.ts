@@ -173,8 +173,10 @@ export type CreatorJewelry = typeof creatorJewelry.$inferSelect;
 export type InsertCreatorJewelry = typeof creatorJewelry.$inferInsert;
 
 /**
- * Body parts for virtual try-on (demo models)
- * Types: neck (colliers), earrings (boucles d'oreilles), ring (bagues), wrist (bracelets), foot (chevillières), full (parure entière)
+ * Body parts for virtual try-on (demo models and user uploads)
+ * Types: face, neck, bust_with_hands, left_ear_profile, right_ear_profile, 
+ * left_wrist, right_wrist, left_hand, right_hand, left_ankle, right_ankle, full_body
+ * Legacy types kept for compatibility: earrings, ring, wrist, foot, full
  */
 export const bodyParts = mysqlTable("bodyParts", {
   id: int("id").autoincrement().primaryKey(),
@@ -182,11 +184,21 @@ export const bodyParts = mysqlTable("bodyParts", {
   externalId: varchar("externalId", { length: 64 }).unique(),
   /** Display name */
   name: varchar("name", { length: 255 }).notNull(),
-  /** Body part type: neck, earrings, ring, wrist, foot, full */
-  type: mysqlEnum("type", ["neck", "earrings", "ring", "wrist", "foot", "full"]).notNull(),
-  /** Image URL (Google Drive or other) */
+  /** Body part type - expanded to match Base44 wardrobe types */
+  type: mysqlEnum("type", [
+    // New types from Base44
+    "face", "neck", "bust_with_hands", 
+    "left_ear_profile", "right_ear_profile",
+    "left_wrist", "right_wrist", 
+    "left_hand", "right_hand",
+    "left_ankle", "right_ankle", 
+    "full_body",
+    // Legacy types kept for compatibility
+    "earrings", "ring", "wrist", "foot", "full"
+  ]).notNull(),
+  /** Image URL (Google Drive, S3, or other) */
   imageUrl: text("imageUrl").notNull(),
-  /** Optional user ID if user-uploaded */
+  /** Optional user ID if user-uploaded (null for demo models) */
   userId: int("userId"),
   /** Is this a demo model (available to all users) */
   isDemo: boolean("isDemo").default(true),
