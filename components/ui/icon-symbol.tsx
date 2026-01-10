@@ -66,6 +66,11 @@ const MAPPING = {
   "doc.on.doc": "content-copy",
   "arrow.counterclockwise": "replay",
   "arrow.clockwise": "rotate-right",
+  // Wardrobe icons
+  "tshirt.fill": "checkroom",
+  "hanger": "dry-cleaning",
+  "sparkle": "auto-awesome",
+  "wand.and.sparkles": "auto-fix-high",
 } as IconMapping;
 
 /**

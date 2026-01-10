@@ -5,6 +5,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
+import { storagePut } from "./storage";
+import { generateLookSuggestions, generateStylingTips, analyzeColorHarmony } from "./ai-stylist";
 
 export const appRouter = router({
   system: systemRouter,
@@ -350,6 +352,282 @@ export const appRouter = router({
         const { id, ...data } = input;
         await db.updateCollectionItem(id, data);
         return { success: true };
+      }),
+  }),
+
+  // ============================================
+  // WARDROBE ROUTES (Mon Dressing)
+  // ============================================
+  wardrobe: router({
+    // Get all user wardrobe items
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserWardrobeItems(ctx.user.id);
+    }),
+
+    // Get a single wardrobe item
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getWardrobeItemById(input.id, ctx.user.id);
+      }),
+
+    // Search wardrobe items with filters
+    search: protectedProcedure
+      .input(z.object({
+        category: z.string().optional(),
+        brand: z.string().optional(),
+        color: z.string().optional(),
+        minPrice: z.number().optional(),
+        maxPrice: z.number().optional(),
+        search: z.string().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        return db.searchWardrobeItems(ctx.user.id, input);
+      }),
+
+    // Add a new wardrobe item
+    add: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(255),
+        category: z.enum(["tops", "bottoms", "dresses", "outerwear", "shoes", "bags", "accessories", "other"]),
+        brand: z.string().max(128).optional(),
+        color: z.string().max(64).optional(),
+        secondaryColor: z.string().max(64).optional(),
+        material: z.string().max(128).optional(),
+        size: z.string().max(32).optional(),
+        price: z.number().optional(),
+        imageUrl: z.string().optional(),
+        season: z.enum(["spring", "summer", "fall", "winter", "all"]).optional(),
+        occasion: z.enum(["casual", "work", "formal", "sport", "party", "all"]).optional(),
+        tags: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return db.createWardrobeItem({
+          userId: ctx.user.id,
+          ...input,
+        });
+      }),
+
+    // Update a wardrobe item
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(255).optional(),
+        category: z.enum(["tops", "bottoms", "dresses", "outerwear", "shoes", "bags", "accessories", "other"]).optional(),
+        brand: z.string().max(128).optional(),
+        color: z.string().max(64).optional(),
+        secondaryColor: z.string().max(64).optional(),
+        material: z.string().max(128).optional(),
+        size: z.string().max(32).optional(),
+        price: z.number().optional(),
+        imageUrl: z.string().optional(),
+        season: z.enum(["spring", "summer", "fall", "winter", "all"]).optional(),
+        occasion: z.enum(["casual", "work", "formal", "sport", "party", "all"]).optional(),
+        isFavorite: z.boolean().optional(),
+        tags: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        return db.updateWardrobeItem(id, ctx.user.id, data);
+      }),
+
+    // Delete a wardrobe item
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const success = await db.deleteWardrobeItem(input.id, ctx.user.id);
+        return { success };
+      }),
+
+    // Upload wardrobe item image
+    uploadImage: protectedProcedure
+      .input(z.object({
+        base64Data: z.string(),
+        mimeType: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const timestamp = Date.now();
+        const ext = input.mimeType?.includes("png") ? "png" : "jpg";
+        const key = `wardrobe/${ctx.user.id}/${timestamp}.${ext}`;
+        
+        // Decode base64 and upload
+        const buffer = Buffer.from(input.base64Data, "base64");
+        const result = await storagePut(key, buffer, input.mimeType || "image/jpeg");
+        
+        return { url: result.url };
+      }),
+  }),
+
+  // ============================================
+  // SAVED LOOKS ROUTES (AI Stylist)
+  // ============================================
+  looks: router({
+    // Get all user saved looks
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserSavedLooks(ctx.user.id);
+    }),
+
+    // Get a single saved look
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getSavedLookById(input.id, ctx.user.id);
+      }),
+
+    // Create a new saved look
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(255),
+        description: z.string().optional(),
+        occasion: z.enum(["casual", "work", "formal", "sport", "party", "all"]).optional(),
+        season: z.enum(["spring", "summer", "fall", "winter", "all"]).optional(),
+        wardrobeItemIds: z.string().optional(), // JSON array
+        jewelryItemIds: z.string().optional(), // JSON array
+        previewImageUrl: z.string().optional(),
+        stylingTips: z.string().optional(),
+        isAiGenerated: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return db.createSavedLook({
+          userId: ctx.user.id,
+          ...input,
+        });
+      }),
+
+    // Update a saved look
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(255).optional(),
+        description: z.string().optional(),
+        occasion: z.enum(["casual", "work", "formal", "sport", "party", "all"]).optional(),
+        season: z.enum(["spring", "summer", "fall", "winter", "all"]).optional(),
+        wardrobeItemIds: z.string().optional(),
+        jewelryItemIds: z.string().optional(),
+        previewImageUrl: z.string().optional(),
+        stylingTips: z.string().optional(),
+        isFavorite: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        return db.updateSavedLook(id, ctx.user.id, data);
+      }),
+
+    // Delete a saved look
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const success = await db.deleteSavedLook(input.id, ctx.user.id);
+        return { success };
+      }),
+  }),
+
+  // ============================================
+  // AI STYLIST ROUTES
+  // ============================================
+  stylist: router({
+    // Generate look suggestions
+    generateLooks: protectedProcedure
+      .input(z.object({
+        occasion: z.string().optional(),
+        season: z.string().optional(),
+        style: z.string().optional(),
+        count: z.number().min(1).max(10).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Get user's wardrobe items
+        const wardrobeItems = await db.getUserWardrobeItems(ctx.user.id);
+        
+        // Get user's favorite jewelry (from favorites)
+        const favorites = await db.getUserFavorites(ctx.user.id);
+        const jewelryItems = favorites.map((f) => ({
+          id: f.id,
+          name: f.modelName || `${f.jewelryType} favori`,
+          type: f.jewelryType,
+          metal: null,
+          gem: null,
+          brand: null,
+          imageUrl: f.imageUri,
+        }));
+
+        const suggestions = await generateLookSuggestions({
+          wardrobeItems: wardrobeItems.map((item) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            brand: item.brand,
+            color: item.color,
+            material: item.material,
+            imageUrl: item.imageUrl,
+            season: item.season,
+            occasion: item.occasion,
+          })),
+          jewelryItems,
+          occasion: input.occasion,
+          season: input.season,
+          style: input.style,
+          count: input.count,
+        });
+
+        return { suggestions };
+      }),
+
+    // Get styling tips for specific items
+    getStylingTips: protectedProcedure
+      .input(z.object({
+        wardrobeItemIds: z.array(z.number()),
+        jewelryItemIds: z.array(z.number()).optional(),
+        occasion: z.string().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        // Get wardrobe items by IDs
+        const allWardrobeItems = await db.getUserWardrobeItems(ctx.user.id);
+        const wardrobeItems = allWardrobeItems.filter((item) => 
+          input.wardrobeItemIds.includes(item.id)
+        );
+
+        // Get jewelry items by IDs
+        const allFavorites = await db.getUserFavorites(ctx.user.id);
+        const jewelryItems = input.jewelryItemIds 
+          ? allFavorites.filter((f) => input.jewelryItemIds!.includes(f.id))
+          : [];
+
+        const tips = await generateStylingTips(
+          wardrobeItems.map((item) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            brand: item.brand,
+            color: item.color,
+            material: item.material,
+            imageUrl: item.imageUrl,
+            season: item.season,
+            occasion: item.occasion,
+          })),
+          jewelryItems.map((f) => ({
+            id: f.id,
+            name: f.modelName || `${f.jewelryType} favori`,
+            type: f.jewelryType,
+            metal: null,
+            gem: null,
+            brand: null,
+            imageUrl: f.imageUri,
+          })),
+          input.occasion
+        );
+
+        return { tips };
+      }),
+
+    // Analyze color harmony
+    analyzeColors: publicProcedure
+      .input(z.object({
+        colors: z.array(z.string()),
+      }))
+      .query(async ({ input }) => {
+        return analyzeColorHarmony(input.colors);
       }),
   }),
 });

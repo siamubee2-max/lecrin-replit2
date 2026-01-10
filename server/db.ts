@@ -14,7 +14,11 @@ import {
   jewelryCollection,
   InsertJewelryItem,
   bodyParts,
-  InsertBodyPart
+  InsertBodyPart,
+  wardrobeItems,
+  InsertWardrobeItem,
+  savedLooks,
+  InsertSavedLook
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -465,5 +469,251 @@ export async function seedBodyParts() {
       await db.insert(bodyParts).values(part);
     }
     console.log("[Database] Seeded 9 demo body parts");
+  }
+}
+
+
+// ============================================
+// WARDROBE ITEMS FUNCTIONS (Mon Dressing)
+// ============================================
+
+export async function createWardrobeItem(item: InsertWardrobeItem) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create wardrobe item: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(wardrobeItems).values(item);
+    return { id: Number(result[0].insertId), ...item };
+  } catch (error) {
+    console.error("[Database] Failed to create wardrobe item:", error);
+    throw error;
+  }
+}
+
+export async function getUserWardrobeItems(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get wardrobe items: database not available");
+    return [];
+  }
+
+  try {
+    return await db
+      .select()
+      .from(wardrobeItems)
+      .where(eq(wardrobeItems.userId, userId))
+      .orderBy(desc(wardrobeItems.createdAt));
+  } catch (error) {
+    console.error("[Database] Failed to get wardrobe items:", error);
+    return [];
+  }
+}
+
+export async function getWardrobeItemById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get wardrobe item: database not available");
+    return null;
+  }
+
+  try {
+    const results = await db
+      .select()
+      .from(wardrobeItems)
+      .where(and(eq(wardrobeItems.id, id), eq(wardrobeItems.userId, userId)));
+    return results[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get wardrobe item:", error);
+    return null;
+  }
+}
+
+export async function updateWardrobeItem(
+  id: number,
+  userId: number,
+  updates: Partial<InsertWardrobeItem>
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update wardrobe item: database not available");
+    return null;
+  }
+
+  try {
+    await db
+      .update(wardrobeItems)
+      .set(updates)
+      .where(and(eq(wardrobeItems.id, id), eq(wardrobeItems.userId, userId)));
+    return await getWardrobeItemById(id, userId);
+  } catch (error) {
+    console.error("[Database] Failed to update wardrobe item:", error);
+    throw error;
+  }
+}
+
+export async function deleteWardrobeItem(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete wardrobe item: database not available");
+    return false;
+  }
+
+  try {
+    await db
+      .delete(wardrobeItems)
+      .where(and(eq(wardrobeItems.id, id), eq(wardrobeItems.userId, userId)));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete wardrobe item:", error);
+    return false;
+  }
+}
+
+export async function searchWardrobeItems(
+  userId: number,
+  filters: {
+    category?: string;
+    brand?: string;
+    color?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    search?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot search wardrobe items: database not available");
+    return [];
+  }
+
+  try {
+    // Get all items for user first, then filter in memory
+    // (More complex SQL filtering can be added later)
+    const items = await db
+      .select()
+      .from(wardrobeItems)
+      .where(eq(wardrobeItems.userId, userId))
+      .orderBy(desc(wardrobeItems.createdAt));
+
+    return items.filter((item) => {
+      if (filters.category && item.category !== filters.category) return false;
+      if (filters.brand && item.brand !== filters.brand) return false;
+      if (filters.color && item.color !== filters.color) return false;
+      if (filters.minPrice && (item.price || 0) < filters.minPrice) return false;
+      if (filters.maxPrice && (item.price || 0) > filters.maxPrice) return false;
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const nameMatch = item.name.toLowerCase().includes(searchLower);
+        const brandMatch = item.brand?.toLowerCase().includes(searchLower);
+        const tagsMatch = item.tags?.toLowerCase().includes(searchLower);
+        if (!nameMatch && !brandMatch && !tagsMatch) return false;
+      }
+      return true;
+    });
+  } catch (error) {
+    console.error("[Database] Failed to search wardrobe items:", error);
+    return [];
+  }
+}
+
+// ============================================
+// SAVED LOOKS FUNCTIONS (AI Stylist)
+// ============================================
+
+export async function createSavedLook(look: InsertSavedLook) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create saved look: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(savedLooks).values(look);
+    return { id: Number(result[0].insertId), ...look };
+  } catch (error) {
+    console.error("[Database] Failed to create saved look:", error);
+    throw error;
+  }
+}
+
+export async function getUserSavedLooks(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get saved looks: database not available");
+    return [];
+  }
+
+  try {
+    return await db
+      .select()
+      .from(savedLooks)
+      .where(eq(savedLooks.userId, userId))
+      .orderBy(desc(savedLooks.createdAt));
+  } catch (error) {
+    console.error("[Database] Failed to get saved looks:", error);
+    return [];
+  }
+}
+
+export async function getSavedLookById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get saved look: database not available");
+    return null;
+  }
+
+  try {
+    const results = await db
+      .select()
+      .from(savedLooks)
+      .where(and(eq(savedLooks.id, id), eq(savedLooks.userId, userId)));
+    return results[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get saved look:", error);
+    return null;
+  }
+}
+
+export async function updateSavedLook(
+  id: number,
+  userId: number,
+  updates: Partial<InsertSavedLook>
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update saved look: database not available");
+    return null;
+  }
+
+  try {
+    await db
+      .update(savedLooks)
+      .set(updates)
+      .where(and(eq(savedLooks.id, id), eq(savedLooks.userId, userId)));
+    return await getSavedLookById(id, userId);
+  } catch (error) {
+    console.error("[Database] Failed to update saved look:", error);
+    throw error;
+  }
+}
+
+export async function deleteSavedLook(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete saved look: database not available");
+    return false;
+  }
+
+  try {
+    await db
+      .delete(savedLooks)
+      .where(and(eq(savedLooks.id, id), eq(savedLooks.userId, userId)));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete saved look:", error);
+    return false;
   }
 }

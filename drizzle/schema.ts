@@ -207,3 +207,84 @@ export const bodyParts = mysqlTable("bodyParts", {
 
 export type BodyPart = typeof bodyParts.$inferSelect;
 export type InsertBodyPart = typeof bodyParts.$inferInsert;
+
+/**
+ * Wardrobe items (Mon Dressing) - User's clothing collection
+ * For creating looks with jewelry
+ */
+export const wardrobeItems = mysqlTable("wardrobeItems", {
+  id: int("id").autoincrement().primaryKey(),
+  /** User who owns this item */
+  userId: int("userId").notNull(),
+  /** Item name */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Category: tops, bottoms, dresses, outerwear, shoes, accessories */
+  category: mysqlEnum("category", [
+    "tops", "bottoms", "dresses", "outerwear", 
+    "shoes", "bags", "accessories", "other"
+  ]).notNull(),
+  /** Brand name */
+  brand: varchar("brand", { length: 128 }),
+  /** Primary color */
+  color: varchar("color", { length: 64 }),
+  /** Secondary color */
+  secondaryColor: varchar("secondaryColor", { length: 64 }),
+  /** Material/fabric */
+  material: varchar("material", { length: 128 }),
+  /** Size */
+  size: varchar("size", { length: 32 }),
+  /** Price in cents (to avoid floating point issues) */
+  price: int("price"),
+  /** Image URL */
+  imageUrl: text("imageUrl"),
+  /** Season: spring, summer, fall, winter, all */
+  season: mysqlEnum("season", ["spring", "summer", "fall", "winter", "all"]).default("all"),
+  /** Occasion: casual, work, formal, sport, party */
+  occasion: mysqlEnum("occasion", ["casual", "work", "formal", "sport", "party", "all"]).default("all"),
+  /** Is favorite */
+  isFavorite: boolean("isFavorite").default(false),
+  /** Tags for search (comma-separated) */
+  tags: text("tags"),
+  /** Notes */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WardrobeItem = typeof wardrobeItems.$inferSelect;
+export type InsertWardrobeItem = typeof wardrobeItems.$inferInsert;
+
+/**
+ * Saved looks (AI Stylist suggestions)
+ * Combinations of wardrobe items and jewelry
+ */
+export const savedLooks = mysqlTable("savedLooks", {
+  id: int("id").autoincrement().primaryKey(),
+  /** User who created/saved this look */
+  userId: int("userId").notNull(),
+  /** Look name */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Description */
+  description: text("description"),
+  /** Occasion: casual, work, formal, sport, party */
+  occasion: mysqlEnum("occasion", ["casual", "work", "formal", "sport", "party", "all"]).default("all"),
+  /** Season: spring, summer, fall, winter, all */
+  season: mysqlEnum("season", ["spring", "summer", "fall", "winter", "all"]).default("all"),
+  /** JSON array of wardrobe item IDs */
+  wardrobeItemIds: text("wardrobeItemIds"),
+  /** JSON array of jewelry item IDs */
+  jewelryItemIds: text("jewelryItemIds"),
+  /** Preview image URL (generated composite) */
+  previewImageUrl: text("previewImageUrl"),
+  /** AI-generated styling tips */
+  stylingTips: text("stylingTips"),
+  /** Is AI-generated suggestion */
+  isAiGenerated: boolean("isAiGenerated").default(false),
+  /** Is favorite */
+  isFavorite: boolean("isFavorite").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SavedLook = typeof savedLooks.$inferSelect;
+export type InsertSavedLook = typeof savedLooks.$inferInsert;

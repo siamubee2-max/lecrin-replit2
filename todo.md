@@ -190,3 +190,24 @@
 - [x] Implémenter le positionnement automatique intelligent
 - [x] Intégrer dans le flux d'essayage virtuel (toggle IA/Manuel)
 - [x] Créer des tests unitaires pour la détection IA (34 tests)
+
+
+## Mon Dressing - Gestion des Vêtements
+- [x] Créer le schéma de base de données pour les vêtements (wardrobe_items)
+- [x] Ajouter les champs : nom, catégorie, marque, couleur, prix, image
+- [x] Créer les routes API CRUD pour les vêtements
+- [x] Créer l'écran Mon Dressing avec header et description
+- [x] Implémenter la barre de recherche
+- [x] Ajouter les filtres (catégories, marques, couleurs, prix min/max)
+- [x] Créer la grille d'affichage des vêtements
+- [x] Implémenter le modal d'ajout de vêtement
+- [x] Ajouter l'upload de photo pour les vêtements (galerie + caméra)
+- [x] Afficher l'état vide avec icône et message
+
+## AI Stylist - Création de Looks
+- [x] Créer le service AI Stylist avec LLM
+- [x] Analyser les vêtements et bijoux de l'utilisateur
+- [x] Générer des suggestions de looks (vêtement + bijou)
+- [x] Créer l'écran AI Stylist avec suggestions visuelles
+- [x] Ajouter la possibilité de sauvegarder les looks
+- [x] Créer des tests unitaires pour Mon Dressing et AI Stylist (40 tests)
