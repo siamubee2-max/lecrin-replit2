@@ -26,7 +26,7 @@
 - [ ] Images de démonstration
 
 ## Déploiement iOS
-- [ ] Configurer EAS Build
+- [x] Configurer EAS Build (app.config.ts prêt)
 - [ ] Générer le build iOS
 - [ ] Préparer les métadonnées App Store
 - [ ] Soumettre pour review
