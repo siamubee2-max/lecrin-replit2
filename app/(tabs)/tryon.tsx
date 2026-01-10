@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, Modal } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Dimensions } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import ViewShot from "react-native-view-shot";
 import { useRouter } from "expo-router";
@@ -16,6 +16,16 @@ import { trpc } from "@/lib/trpc";
 import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/photo-editor";
 import { ImageCropper, type TransformOptions } from "@/components/image-cropper";
 
+// Import jewelry images
+const JEWELRY_IMAGES = {
+  necklace: require("@/assets/images/jewelry/necklace.png"),
+  earrings: require("@/assets/images/jewelry/earrings.png"),
+  ring: require("@/assets/images/jewelry/ring.png"),
+  bracelet: require("@/assets/images/jewelry/bracelet.png"),
+  anklet: require("@/assets/images/jewelry/anklet.png"),
+  brooch: require("@/assets/images/jewelry/necklace.png"), // Use necklace for full set
+};
+
 // Mapping between jewelry types and body part types
 const JEWELRY_TO_BODY_PART: Record<string, string> = {
   necklace: "neck",
@@ -24,6 +34,16 @@ const JEWELRY_TO_BODY_PART: Record<string, string> = {
   bracelet: "wrist",
   brooch: "full",
   anklet: "foot",
+};
+
+// Jewelry positioning configuration for each type (percentages as decimals)
+const JEWELRY_POSITIONS: Record<string, { topPercent: number; size: number; offsetX: number }> = {
+  necklace: { topPercent: 0.35, size: 180, offsetX: 0 },
+  earrings: { topPercent: 0.20, size: 120, offsetX: 0 },
+  ring: { topPercent: 0.55, size: 80, offsetX: 0 },
+  bracelet: { topPercent: 0.45, size: 140, offsetX: 0 },
+  anklet: { topPercent: 0.65, size: 120, offsetX: 0 },
+  brooch: { topPercent: 0.40, size: 200, offsetX: 0 },
 };
 
 const JEWELRY_TYPES = [
@@ -48,6 +68,8 @@ interface BodyPart {
 
 // Edit flow steps
 type EditStep = "none" | "crop" | "filter";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function TryOnScreen() {
   const colors = useColors();
@@ -226,6 +248,8 @@ export default function TryOnScreen() {
   };
 
   const selectedTypeData = JEWELRY_TYPES.find(t => t.id === selectedType);
+  const jewelryPosition = JEWELRY_POSITIONS[selectedType] || JEWELRY_POSITIONS.necklace;
+  const jewelryImage = JEWELRY_IMAGES[selectedType as keyof typeof JEWELRY_IMAGES];
 
   // Step 3: AR Try-on View
   if (currentStep === 3 && selectedModel) {
@@ -279,29 +303,39 @@ export default function TryOnScreen() {
                   transition={300}
                 />
                 
-                {/* Jewelry Overlay */}
+                {/* Jewelry Overlay - Now using PNG images */}
                 <View 
                   className="absolute items-center justify-center"
                   style={{ 
-                    transform: [{ scale: jewelrySize }], 
-                    top: selectedModel.type === 'earrings' ? '25%' : 
-                         selectedModel.type === 'neck' ? '40%' : 
-                         selectedModel.type === 'ring' ? '60%' : 
-                         selectedModel.type === 'wrist' ? '50%' : 
-                         selectedModel.type === 'foot' ? '70%' : '45%',
-                    left: '50%',
-                    marginLeft: -30,
+                    top: `${jewelryPosition.topPercent * 100}%` as any,
+                    left: '50%' as any,
+                    transform: [
+                      { translateX: -jewelryPosition.size * jewelrySize / 2 + jewelryPosition.offsetX },
+                      { scale: jewelrySize },
+                    ],
                   }}
                 >
-                  <Text className="text-6xl">{selectedTypeData?.icon || "💍"}</Text>
+                  <Image
+                    source={jewelryImage}
+                    style={{
+                      width: jewelryPosition.size,
+                      height: jewelryPosition.size,
+                    }}
+                    contentFit="contain"
+                    transition={200}
+                  />
                 </View>
 
                 {/* Info Overlay */}
                 <View className="absolute bottom-4 left-4 right-4">
                   <View className="bg-background/90 rounded-xl px-4 py-3">
                     <View className="flex-row items-center">
-                      <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3">
-                        <Text className="text-2xl">{selectedTypeData?.icon}</Text>
+                      <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3 overflow-hidden">
+                        <Image
+                          source={jewelryImage}
+                          style={{ width: 40, height: 40 }}
+                          contentFit="contain"
+                        />
                       </View>
                       <View className="flex-1">
                         <Text className="text-xs text-muted">SUR :</Text>
@@ -408,7 +442,7 @@ export default function TryOnScreen() {
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
           title="Mon essayage Écrin Virtuel"
-          message={`Regardez ${selectedTypeData?.name || 'ce bijou'} que j'ai essayé virtuellement avec Écrin Virtuel ! ${selectedTypeData?.icon || '💍'}✨`}
+          message={`Regardez ${selectedTypeData?.name || 'ce bijou'} que j'ai essayé virtuellement avec Écrin Virtuel ! ✨`}
         />
       </ScreenContainer>
     );
@@ -483,7 +517,7 @@ export default function TryOnScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Jewelry Types Grid */}
+              {/* Jewelry Types Grid - Now with PNG images */}
               <View className="px-4 mt-6">
                 <Text className="text-sm font-semibold text-foreground mb-3">Catégories</Text>
                 <View className="flex-row flex-wrap gap-3">
@@ -501,7 +535,13 @@ export default function TryOnScreen() {
                         }
                       ]}
                     >
-                      <Text className="text-3xl mb-2">{type.icon}</Text>
+                      <View className="w-12 h-12 items-center justify-center mb-2">
+                        <Image
+                          source={JEWELRY_IMAGES[type.id as keyof typeof JEWELRY_IMAGES]}
+                          style={{ width: 40, height: 40 }}
+                          contentFit="contain"
+                        />
+                      </View>
                       <Text 
                         className="text-xs text-center"
                         style={{ color: selectedType === type.id ? colors.primary : colors.foreground }}

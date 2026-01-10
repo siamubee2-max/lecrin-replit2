@@ -154,3 +154,14 @@
 - [x] Intégrer comme étape préalable aux filtres dans le flux d'édition
 - [x] Ajouter la prévisualisation en temps réel avec grille de recadrage
 - [x] Créer des tests unitaires pour le recadrage (54 tests)
+
+
+## Images PNG de Bijoux Professionnels
+- [x] Générer des images PNG de colliers avec fond transparent
+- [x] Générer des images PNG de boucles d'oreilles avec fond transparent
+- [x] Générer des images PNG de bagues avec fond transparent
+- [x] Générer des images PNG de bracelets avec fond transparent
+- [x] Générer des images PNG de chevillières avec fond transparent
+- [x] Intégrer les images dans le composant d'essayage virtuel
+- [x] Ajouter le positionnement dynamique selon le type de bijou
+- [x] Créer des tests unitaires pour les overlays de bijoux (44 tests)
