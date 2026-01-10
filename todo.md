@@ -86,3 +86,10 @@
 - [x] Créer l'écran Garde-Robe avec liste des photos
 - [x] Implémenter l'upload de photos avec sélection de type
 - [x] Intégrer avec le système d'abonnement (limite pour utilisateurs gratuits)
+
+## Deep Linking et ASO
+- [x] Configurer expo-linking pour les deep links
+- [x] Créer une page web de redirection avec métadonnées Open Graph
+- [x] Configurer les Universal Links (iOS) et App Links (Android)
+- [x] Préparer les métadonnées App Store (titre, sous-titre, mots-clés, description)
+- [x] Créer le fichier de configuration ASO avec les textes optimisés

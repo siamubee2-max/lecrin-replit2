@@ -2,24 +2,27 @@
 import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
 
-// Bundle ID format: space.manus.<project_name_dots>.<timestamp>
-// e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
+// Bundle ID for App Store
 const bundleId = "com.ecrin.jewelry";
-// Extract timestamp from bundle ID and prefix with "manus" for deep link scheme
-// e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
-const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
-const schemeFromBundleId = `manus${timestamp}`;
+
+// Deep link configuration
+const DEEP_LINK_CONFIG = {
+  // Custom URL scheme for the app (ecrinvirtuel://...)
+  scheme: "ecrinvirtuel",
+  // Associated domain for Universal Links (iOS) and App Links (Android)
+  // This should be your website domain that hosts the apple-app-site-association file
+  associatedDomain: "ecrinvirtuel.app",
+};
 
 const env = {
-  // App branding - update these values directly (do not use env vars)
+  // App branding
   appName: "Ecrin Virtuel",
   appSlug: "ecrin-mobile-app",
-  // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
-  // Leave empty to use the default icon from assets/images/icon.png
+  // S3 URL of the app logo
   logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/VejyhYwxBjsBsYcG.png",
-  scheme: schemeFromBundleId,
-  iosBundleId: "com.ecrin.jewelry",
-  androidPackage: "com.ecrin.jewelry",
+  scheme: DEEP_LINK_CONFIG.scheme,
+  iosBundleId: bundleId,
+  androidPackage: bundleId,
 };
 
 const config: ExpoConfig = {
@@ -31,15 +34,31 @@ const config: ExpoConfig = {
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
+  
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
+    // Associated domains for Universal Links
+    associatedDomains: [
+      `applinks:${DEEP_LINK_CONFIG.associatedDomain}`,
+      `webcredentials:${DEEP_LINK_CONFIG.associatedDomain}`,
+    ],
     infoPlist: {
       NSCameraUsageDescription: "Écrin Virtuel utilise la caméra pour l'essayage virtuel de bijoux en réalité augmentée.",
       NSPhotoLibraryUsageDescription: "Écrin Virtuel accède à vos photos pour sauvegarder vos essayages virtuels.",
       NSPhotoLibraryAddUsageDescription: "Écrin Virtuel sauvegarde vos essayages virtuels dans votre galerie.",
+      // App Transport Security for deep link redirects
+      NSAppTransportSecurity: {
+        NSAllowsArbitraryLoads: false,
+        NSAllowsArbitraryLoadsInWebContent: true,
+      },
+    },
+    // App Store configuration
+    config: {
+      usesNonExemptEncryption: false,
     },
   },
+  
   android: {
     adaptiveIcon: {
       backgroundColor: "#0A1A3B",
@@ -50,8 +69,9 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS"],
+    permissions: ["POST_NOTIFICATIONS", "CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
     intentFilters: [
+      // Custom URL scheme (ecrinvirtuel://...)
       {
         action: "VIEW",
         autoVerify: true,
@@ -63,13 +83,28 @@ const config: ExpoConfig = {
         ],
         category: ["BROWSABLE", "DEFAULT"],
       },
+      // App Links (https://ecrinvirtuel.app/...)
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: "https",
+            host: DEEP_LINK_CONFIG.associatedDomain,
+            pathPrefix: "/",
+          },
+        ],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
     ],
   },
+  
   web: {
     bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
+  
   plugins: [
     "expo-router",
     [
@@ -106,9 +141,19 @@ const config: ExpoConfig = {
       },
     ],
   ],
+  
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+  },
+  
+  // Extra configuration for runtime access
+  extra: {
+    // Deep link base URL for sharing
+    deepLinkBaseUrl: `https://${DEEP_LINK_CONFIG.associatedDomain}`,
+    // App Store URLs (to be updated after app submission)
+    appStoreUrl: "https://apps.apple.com/app/ecrin-virtuel/id000000000",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.ecrin.jewelry",
   },
 };
 

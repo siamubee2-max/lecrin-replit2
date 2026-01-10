@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Primary Meta Tags -->
+  <title id="page-title">L'Écrin Virtuel - Essayage Virtuel de Bijoux</title>
+  <meta name="title" id="meta-title" content="L'Écrin Virtuel - Essayage Virtuel de Bijoux">
+  <meta name="description" id="meta-description" content="Découvrez L'Écrin Virtuel, votre destination luxe pour l'essayage de bijoux en réalité augmentée. Essayez virtuellement des bijoux avant d'acheter.">
+  <meta name="author" content="L'Écrin Virtuel">
+  <meta name="keywords" content="bijoux, essayage virtuel, réalité augmentée, joaillerie, bagues, colliers, boucles d'oreilles, bracelets, luxe, mode">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" id="og-url" content="https://ecrinvirtuel.app">
+  <meta property="og:title" id="og-title" content="L'Écrin Virtuel - Essayage Virtuel de Bijoux">
+  <meta property="og:description" id="og-description" content="Découvrez L'Écrin Virtuel, votre destination luxe pour l'essayage de bijoux en réalité augmentée. Essayez virtuellement des bijoux avant d'acheter.">
+  <meta property="og:image" id="og-image" content="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6942ff9b2efb59336aebfa58/a0c7900de_ElegantLogowithAbstractGemIcon.png">
+  <meta property="og:site_name" content="L'Écrin Virtuel">
+  <meta property="og:locale" content="fr_FR">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" id="twitter-url" content="https://ecrinvirtuel.app">
+  <meta name="twitter:title" id="twitter-title" content="L'Écrin Virtuel - Essayage Virtuel de Bijoux">
+  <meta name="twitter:description" id="twitter-description" content="Découvrez L'Écrin Virtuel, votre destination luxe pour l'essayage de bijoux en réalité augmentée. Essayez virtuellement des bijoux avant d'acheter.">
+  <meta name="twitter:image" id="twitter-image" content="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6942ff9b2efb59336aebfa58/a0c7900de_ElegantLogowithAbstractGemIcon.png">
+  <meta name="twitter:site" content="@ecrinvirtuel">
+  
+  <!-- App Links -->
+  <meta property="al:ios:url" id="al-ios-url" content="ecrinvirtuel://">
+  <meta property="al:ios:app_store_id" content="000000000">
+  <meta property="al:ios:app_name" content="Écrin Virtuel">
+  <meta property="al:android:url" id="al-android-url" content="ecrinvirtuel://">
+  <meta property="al:android:package" content="com.ecrin.jewelry">
+  <meta property="al:android:app_name" content="Écrin Virtuel">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6942ff9b2efb59336aebfa58/a0c7900de_ElegantLogowithAbstractGemIcon.png">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #0A1A3B 0%, #1a2f5a 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    
+    .container {
+      text-align: center;
+      padding: 40px 20px;
+      max-width: 400px;
+    }
+    
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 24px;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #D4AF37;
+    }
+    
+    .subtitle {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 32px;
+    }
+    
+    .message {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 24px;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(212, 175, 55, 0.3);
+      border-top-color: #D4AF37;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 14px 28px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    
+    .btn:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-primary {
+      background: #D4AF37;
+      color: #0A1A3B;
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img 
+      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6942ff9b2efb59336aebfa58/a0c7900de_ElegantLogowithAbstractGemIcon.png" 
+      alt="Écrin Virtuel" 
+      class="logo"
+    >
+    
+    <h1>L'Écrin Virtuel</h1>
+    <p class="subtitle">Essayage Virtuel de Bijoux</p>
+    
+    <div class="spinner"></div>
+    <p class="message">Ouverture de l'application...</p>
+    
+    <div class="buttons">
+      <a href="#" id="app-link" class="btn btn-primary">Ouvrir l'application</a>
+      <a href="#" id="store-link" class="btn btn-secondary">Télécharger l'application</a>
+    </div>
+    
+    <p class="footer">
+      © 2025 L'Écrin Virtuel — Luxe & Technologie<br>
+      Powered by Inferencevision.store
+    </p>
+  </div>
+  
+  <script>
+    (function() {
+      // Parse URL parameters
+      const params = new URLSearchParams(window.location.search);
+      const path = window.location.pathname;
+      
+      // Get metadata from URL params
+      const title = params.get('title');
+      const desc = params.get('desc');
+      const img = params.get('img');
+      
+      // Update meta tags if custom values provided
+      if (title) {
+        const fullTitle = title + " | L'Écrin Virtuel";
+        document.getElementById('page-title').textContent = fullTitle;
+        document.getElementById('meta-title').content = fullTitle;
+        document.getElementById('og-title').content = fullTitle;
+        document.getElementById('twitter-title').content = fullTitle;
+      }
+      
+      if (desc) {
+        document.getElementById('meta-description').content = desc;
+        document.getElementById('og-description').content = desc;
+        document.getElementById('twitter-description').content = desc;
+      }
+      
+      if (img) {
+        document.getElementById('og-image').content = img;
+        document.getElementById('twitter-image').content = img;
+      }
+      
+      // Update URL meta tags
+      const currentUrl = window.location.href;
+      document.getElementById('og-url').content = currentUrl;
+      document.getElementById('twitter-url').content = currentUrl;
+      
+      // Build deep link URL
+      const deepLinkPath = path.replace(/^\//, '');
+      const appScheme = 'ecrinvirtuel://' + deepLinkPath;
+      
+      // Update app links
+      document.getElementById('al-ios-url').content = appScheme;
+      document.getElementById('al-android-url').content = appScheme;
+      document.getElementById('app-link').href = appScheme;
+      
+      // Detect platform and set store link
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      const appStoreUrl = 'https://apps.apple.com/app/ecrin-virtuel/id000000000';
+      const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.ecrin.jewelry';
+      
+      const storeLink = document.getElementById('store-link');
+      if (isIOS) {
+        storeLink.href = appStoreUrl;
+        storeLink.textContent = 'Télécharger sur l\'App Store';
+      } else if (isAndroid) {
+        storeLink.href = playStoreUrl;
+        storeLink.textContent = 'Télécharger sur Google Play';
+      } else {
+        storeLink.href = appStoreUrl;
+        storeLink.textContent = 'Télécharger l\'application';
+      }
+      
+      // Try to open the app automatically
+      setTimeout(function() {
+        window.location.href = appScheme;
+      }, 500);
+      
+      // If app doesn't open after 2 seconds, redirect to store
+      setTimeout(function() {
+        if (document.visibilityState !== 'hidden') {
+          // App didn't open, show buttons
+          document.querySelector('.spinner').style.display = 'none';
+          document.querySelector('.message').textContent = 'L\'application n\'est pas installée';
+        }
+      }, 2500);
+    })();
+  </script>
+</body>
+</html>
