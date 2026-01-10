@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
+import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
 
 export const appRouter = router({
   system: systemRouter,
@@ -226,6 +227,75 @@ export const appRouter = router({
   // ============================================
   // USER COLLECTION ROUTES (Mon Écrin)
   // ============================================
+  // ============================================
+  // AI FACE DETECTION ROUTES
+  // ============================================
+  ai: router({
+    // Upload image and get S3 URL for analysis
+    uploadImage: publicProcedure
+      .input(z.object({
+        base64Data: z.string(),
+        mimeType: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const url = await uploadImageForAnalysis(
+          input.base64Data,
+          input.mimeType || "image/jpeg"
+        );
+        return { url };
+      }),
+
+    // Detect face landmarks from image URL
+    detectFace: publicProcedure
+      .input(z.object({
+        imageUrl: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const detection = await detectFaceLandmarks(input.imageUrl);
+        return detection;
+      }),
+
+    // Full analysis: detect and calculate jewelry positions
+    analyzeForJewelry: publicProcedure
+      .input(z.object({
+        imageUrl: z.string(),
+        jewelryType: z.enum(["necklace", "earrings", "ring", "bracelet", "anklet"]),
+      }))
+      .query(async ({ input }) => {
+        const result = await analyzeImageForJewelry(
+          input.imageUrl,
+          input.jewelryType
+        );
+        return result;
+      }),
+
+    // Combined: upload + analyze in one call
+    uploadAndAnalyze: publicProcedure
+      .input(z.object({
+        base64Data: z.string(),
+        mimeType: z.string().optional(),
+        jewelryType: z.enum(["necklace", "earrings", "ring", "bracelet", "anklet"]),
+      }))
+      .mutation(async ({ input }) => {
+        // Upload image first
+        const imageUrl = await uploadImageForAnalysis(
+          input.base64Data,
+          input.mimeType || "image/jpeg"
+        );
+        
+        // Then analyze
+        const result = await analyzeImageForJewelry(
+          imageUrl,
+          input.jewelryType
+        );
+        
+        return {
+          imageUrl,
+          ...result,
+        };
+      }),
+  }),
+
   collection: router({
     // Get user's jewelry collection
     list: protectedProcedure.query(async ({ ctx }) => {

@@ -15,6 +15,8 @@ import { useScreenshot } from "@/hooks/use-screenshot";
 import { trpc } from "@/lib/trpc";
 import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/photo-editor";
 import { ImageCropper, type TransformOptions } from "@/components/image-cropper";
+import { AIPositionedJewelry } from "@/components/ai-positioned-jewelry";
+import { type JewelryType as AIJewelryType, type JewelryPosition } from "@/hooks/use-ai-positioning";
 
 // Jewelry styles (metal types)
 type JewelryStyle = "gold" | "silver" | "rosegold";
@@ -119,6 +121,9 @@ export default function TryOnScreen() {
   const [jewelrySize, setJewelrySize] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [useAIPositioning, setUseAIPositioning] = useState(true);
+  const [aiPosition, setAiPosition] = useState<JewelryPosition | null>(null);
+  const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
   
   // Photo Editor state
   const [editStep, setEditStep] = useState<EditStep>("none");
@@ -401,58 +406,83 @@ export default function TryOnScreen() {
           {/* AR View with Real Model Image - Wrapped in ViewShot for capture */}
           <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={{ flex: 1, marginHorizontal: 16, marginVertical: 8 }}>
             <View className="flex-1 rounded-3xl overflow-hidden bg-surface border border-border">
-              <View className="flex-1">
-                {/* Model Image */}
-                <Image
-                  source={{ uri: selectedModel.imageUrl }}
-                  style={StyleSheet.absoluteFillObject}
-                  contentFit="cover"
-                  transition={300}
-                />
-                
-                {/* Jewelry Overlay - Now using PNG images with style */}
-                <View 
-                  className="absolute items-center justify-center"
-                  style={{ 
-                    top: `${jewelryPosition.topPercent * 100}%` as any,
-                    left: '50%' as any,
-                    transform: [
-                      { translateX: -jewelryPosition.size * jewelrySize / 2 + jewelryPosition.offsetX },
-                      { scale: jewelrySize },
-                    ],
+              {useAIPositioning ? (
+                /* AI-Powered Positioning */
+                <AIPositionedJewelry
+                  modelImageUrl={selectedModel.imageUrl}
+                  jewelryImage={jewelryImage}
+                  jewelryType={selectedType as AIJewelryType}
+                  manualSize={jewelrySize}
+                  onAnalysisComplete={(success, position) => {
+                    setIsAIAnalyzing(false);
+                    setAiPosition(position);
                   }}
-                >
+                  showDebugOverlay={false}
+                />
+              ) : (
+                /* Manual/Static Positioning (Fallback) */
+                <View className="flex-1">
+                  {/* Model Image */}
                   <Image
-                    source={jewelryImage}
-                    style={{
-                      width: jewelryPosition.size,
-                      height: jewelryPosition.size,
-                    }}
-                    contentFit="contain"
-                    transition={200}
+                    source={{ uri: selectedModel.imageUrl }}
+                    style={StyleSheet.absoluteFillObject}
+                    contentFit="cover"
+                    transition={300}
                   />
+                  
+                  {/* Jewelry Overlay - Static positioning */}
+                  <View 
+                    className="absolute items-center justify-center"
+                    style={{ 
+                      top: `${jewelryPosition.topPercent * 100}%` as any,
+                      left: '50%' as any,
+                      transform: [
+                        { translateX: -jewelryPosition.size * jewelrySize / 2 + jewelryPosition.offsetX },
+                        { scale: jewelrySize },
+                      ],
+                    }}
+                  >
+                    <Image
+                      source={jewelryImage}
+                      style={{
+                        width: jewelryPosition.size,
+                        height: jewelryPosition.size,
+                      }}
+                      contentFit="contain"
+                      transition={200}
+                    />
+                  </View>
                 </View>
+              )}
 
-                {/* Info Overlay */}
-                <View className="absolute bottom-4 left-4 right-4">
-                  <View className="bg-background/90 rounded-xl px-4 py-3">
-                    <View className="flex-row items-center">
-                      <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3 overflow-hidden">
-                        <Image
-                          source={jewelryImage}
-                          style={{ width: 40, height: 40 }}
-                          contentFit="contain"
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-xs text-muted">
-                          {JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name.toUpperCase()} SUR :
-                        </Text>
-                        <Text className="text-sm font-semibold text-foreground">
-                          {selectedModel.name}
-                        </Text>
-                      </View>
+              {/* Info Overlay */}
+              <View className="absolute bottom-4 left-4 right-4">
+                <View className="bg-background/90 rounded-xl px-4 py-3">
+                  <View className="flex-row items-center">
+                    <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3 overflow-hidden">
+                      <Image
+                        source={jewelryImage}
+                        style={{ width: 40, height: 40 }}
+                        contentFit="contain"
+                      />
                     </View>
+                    <View className="flex-1">
+                      <Text className="text-xs text-muted">
+                        {JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name.toUpperCase()} SUR :
+                      </Text>
+                      <Text className="text-sm font-semibold text-foreground">
+                        {selectedModel.name}
+                      </Text>
+                    </View>
+                    {/* AI Toggle */}
+                    <TouchableOpacity
+                      onPress={() => setUseAIPositioning(!useAIPositioning)}
+                      className={`px-3 py-1.5 rounded-full ${useAIPositioning ? 'bg-primary' : 'bg-surface border border-border'}`}
+                    >
+                      <Text className={`text-xs font-medium ${useAIPositioning ? 'text-background' : 'text-muted'}`}>
+                        {useAIPositioning ? 'IA ✓' : 'IA'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>

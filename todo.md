@@ -176,3 +176,17 @@
 - [x] Créer le sélecteur de style dans l'interface d'essayage
 - [x] Intégrer les styles dans le flux d'essayage virtuel (étapes 1, 2 et 3)
 - [x] Créer des tests unitaires pour les styles de bijoux (28 tests)
+
+
+## Détection IA pour Positionnement Intelligent des Bijoux
+- [x] Rechercher et configurer une solution de détection faciale/corporelle (LLM Vision)
+- [x] Créer le service de détection des points clés (landmarks) du visage
+- [x] Détecter les oreilles pour les boucles d'oreilles
+- [x] Détecter le cou/décolleté pour les colliers
+- [x] Détecter les poignets pour les bracelets
+- [x] Détecter les doigts pour les bagues
+- [x] Calculer l'inclinaison de la tête pour adapter l'angle du bijou
+- [x] Calculer la proportion/échelle selon la distance du sujet
+- [x] Implémenter le positionnement automatique intelligent
+- [x] Intégrer dans le flux d'essayage virtuel (toggle IA/Manuel)
+- [x] Créer des tests unitaires pour la détection IA (34 tests)
