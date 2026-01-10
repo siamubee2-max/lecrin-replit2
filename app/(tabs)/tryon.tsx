@@ -17,6 +17,7 @@ import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/
 import { ImageCropper, type TransformOptions } from "@/components/image-cropper";
 import { AIPositionedJewelry } from "@/components/ai-positioned-jewelry";
 import { type JewelryType as AIJewelryType, type JewelryPosition } from "@/hooks/use-ai-positioning";
+import { WatermarkFull } from "@/components/watermark";
 
 // Jewelry styles (metal types)
 type JewelryStyle = "gold" | "silver" | "rosegold";
@@ -454,6 +455,9 @@ export default function TryOnScreen() {
                   </View>
                 </View>
               )}
+
+              {/* Watermark */}
+              <WatermarkFull position="top-right" opacity={0.6} theme="light" />
 
               {/* Info Overlay */}
               <View className="absolute bottom-4 left-4 right-4">

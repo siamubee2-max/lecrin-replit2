@@ -249,3 +249,13 @@
 - [x] Ajouter le bouton "Essayer virtuellement" pour lancer l'essayage avec le bijou
 - [x] Intégrer les favoris (cœur) sur les cartes de bijoux
 - [x] Créer des tests unitaires pour la Boutique Partenaires (50 tests)
+
+
+## Filigrane sur les Captures d'Écran
+- [x] Créer le composant Watermark avec le logo L'Écrin Virtuel
+- [x] Positionner le filigrane de manière discrète (5 positions disponibles)
+- [x] Ajouter une légère opacité configurable (0-1)
+- [x] Intégrer le filigrane dans les captures d'écran d'essayage virtuel
+- [x] Intégrer le filigrane dans les cartes de partage de looks
+- [x] Permettre de personnaliser la position, l'opacité et le thème (light/dark)
+- [x] Créer des tests unitaires pour le filigrane (47 tests)

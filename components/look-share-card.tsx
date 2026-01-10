@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import ViewShot from "react-native-view-shot";
 
 import { useColors } from "@/hooks/use-colors";
+import { WatermarkMinimal } from "@/components/watermark";
 
 // Types
 interface WardrobeItem {
@@ -201,6 +202,9 @@ export const LookShareCard = forwardRef<ViewShot, LookShareCardProps>(
             Créé avec L'Écrin Virtuel • ecrin-virtuel.app
           </Text>
         </View>
+
+        {/* Watermark */}
+        <WatermarkMinimal position="bottom-right" opacity={0.5} theme="dark" />
       </ViewShot>
     );
   }
