@@ -14,6 +14,7 @@ import { useFavorites } from "@/lib/favorites-context";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { trpc } from "@/lib/trpc";
 import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/photo-editor";
+import { ImageCropper, type TransformOptions } from "@/components/image-cropper";
 
 // Mapping between jewelry types and body part types
 const JEWELRY_TO_BODY_PART: Record<string, string> = {
@@ -45,6 +46,9 @@ interface BodyPart {
   createdAt: Date;
 }
 
+// Edit flow steps
+type EditStep = "none" | "crop" | "filter";
+
 export default function TryOnScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -57,10 +61,12 @@ export default function TryOnScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   
   // Photo Editor state
-  const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+  const [editStep, setEditStep] = useState<EditStep>("none");
   const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
+  const [croppedImageUri, setCroppedImageUri] = useState<string | null>(null);
   const [appliedFilter, setAppliedFilter] = useState<FilterType>("original");
   const [appliedRetouch, setAppliedRetouch] = useState<RetouchOptions | null>(null);
+  const [appliedTransform, setAppliedTransform] = useState<TransformOptions | null>(null);
   
   const { addFavorite, incrementTryOnCount } = useFavorites();
   const { viewShotRef, isCapturing, capture, shareCapture, saveToGallery, lastCaptureUri } = useScreenshot({ format: 'png', quality: 1 });
@@ -112,7 +118,7 @@ export default function TryOnScreen() {
     setJewelrySize(prev => Math.max(0.5, Math.min(2, prev + delta)));
   };
 
-  // Capture and open photo editor
+  // Capture and start edit flow (crop first, then filter)
   const handleCaptureForEdit = async () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -122,13 +128,28 @@ export default function TryOnScreen() {
     
     if (capturedUri) {
       setCapturedImageUri(capturedUri);
-      setShowPhotoEditor(true);
+      setCroppedImageUri(null);
+      setEditStep("crop"); // Start with cropping
     }
   };
 
-  // Save edited photo
+  // After cropping, move to filter step
+  const handleCropApply = (transformedUri: string, options: TransformOptions) => {
+    setCroppedImageUri(transformedUri);
+    setAppliedTransform(options);
+    setEditStep("filter"); // Move to filter step
+  };
+
+  // Cancel cropping
+  const handleCropCancel = () => {
+    setEditStep("none");
+    setCapturedImageUri(null);
+    setCroppedImageUri(null);
+  };
+
+  // Save edited photo (after filtering)
   const handleSaveEditedPhoto = async (editedUri: string, options: RetouchOptions, filter: FilterType) => {
-    setShowPhotoEditor(false);
+    setEditStep("none");
     setIsSaving(true);
     setAppliedFilter(filter);
     setAppliedRetouch(options);
@@ -144,14 +165,17 @@ export default function TryOnScreen() {
     
     setTimeout(() => {
       setIsSaving(false);
+      setCapturedImageUri(null);
+      setCroppedImageUri(null);
       router.push("/(tabs)/gallery");
     }, 1000);
   };
 
-  // Cancel photo editing
-  const handleCancelEdit = () => {
-    setShowPhotoEditor(false);
-    setCapturedImageUri(null);
+  // Cancel photo editing (from filter step)
+  const handleFilterCancel = () => {
+    // Go back to crop step
+    setEditStep("crop");
+    setCroppedImageUri(null);
   };
 
   // Direct save without editing
@@ -327,7 +351,7 @@ export default function TryOnScreen() {
                 className="flex-1 py-4 px-6 rounded-full items-center flex-row justify-center"
                 style={[styles.captureButton, { backgroundColor: colors.primary, opacity: isSaving ? 0.7 : 1 }]}
               >
-                <IconSymbol name="slider.horizontal.3" size={20} color="#0A1A3B" />
+                <IconSymbol name="wand.and.stars" size={20} color="#0A1A3B" />
                 <Text className="text-base font-bold ml-2" style={{ color: '#0A1A3B' }}>
                   Éditer & Sauvegarder
                 </Text>
@@ -348,18 +372,34 @@ export default function TryOnScreen() {
           </View>
         </View>
 
-        {/* Photo Editor Modal */}
+        {/* Image Cropper Modal (Step 1 of edit flow) */}
         <Modal
-          visible={showPhotoEditor}
+          visible={editStep === "crop"}
           animationType="slide"
           presentationStyle="fullScreen"
         >
           {capturedImageUri && (
-            <PhotoEditor
+            <ImageCropper
               imageUri={capturedImageUri}
+              onApply={handleCropApply}
+              onCancel={handleCropCancel}
+              visible={editStep === "crop"}
+            />
+          )}
+        </Modal>
+
+        {/* Photo Editor Modal (Step 2 of edit flow) */}
+        <Modal
+          visible={editStep === "filter"}
+          animationType="slide"
+          presentationStyle="fullScreen"
+        >
+          {(croppedImageUri || capturedImageUri) && (
+            <PhotoEditor
+              imageUri={croppedImageUri || capturedImageUri!}
               onSave={handleSaveEditedPhoto}
-              onCancel={handleCancelEdit}
-              visible={showPhotoEditor}
+              onCancel={handleFilterCancel}
+              visible={editStep === "filter"}
             />
           )}
         </Modal>

@@ -145,3 +145,12 @@
 - [x] Intégrer l'éditeur dans le flux de capture après la prise de photo
 - [x] Ajouter boutons Annuler/Appliquer avec preview avant/après
 - [x] Créer des tests unitaires pour les filtres (48 tests)
+
+## Recadrage et Rotation d'Image
+- [x] Créer le composant ImageCropper avec gestes tactiles (pinch-to-zoom, pan)
+- [x] Implémenter le recadrage avec ratios prédéfinis (Libre, 1:1, 4:3, 3:4, 16:9, 9:16)
+- [x] Ajouter les contrôles de rotation (-90°, +90°)
+- [x] Implémenter le retournement horizontal/vertical
+- [x] Intégrer comme étape préalable aux filtres dans le flux d'édition
+- [x] Ajouter la prévisualisation en temps réel avec grille de recadrage
+- [x] Créer des tests unitaires pour le recadrage (54 tests)

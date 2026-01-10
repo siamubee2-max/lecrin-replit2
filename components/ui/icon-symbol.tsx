@@ -48,7 +48,6 @@ const MAPPING = {
   "star.fill": "star",
   "lock.fill": "lock",
   "creditcard.fill": "credit-card",
-  "arrow.clockwise": "refresh",
   "doc.text.fill": "description",
   "shield.fill": "security",
   "info.circle.fill": "info",
@@ -66,6 +65,7 @@ const MAPPING = {
   "arrow.triangle.2.circlepath": "sync",
   "doc.on.doc": "content-copy",
   "arrow.counterclockwise": "replay",
+  "arrow.clockwise": "rotate-right",
 } as IconMapping;
 
 /**
