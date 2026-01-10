@@ -37,3 +37,7 @@
 - [x] Intégrer le partage dans l'écran d'essayage virtuel
 - [x] Intégrer le partage dans la galerie
 - [x] Ajouter les options de partage (Facebook, Instagram, WhatsApp, etc.)
+
+## Changement de Logo
+- [x] Remplacer le logo par le nouveau logo fourni
+- [x] Mettre à jour l'URL du logo dans app.config.ts
