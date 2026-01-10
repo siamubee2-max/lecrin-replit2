@@ -315,3 +315,17 @@
 - [x] Mettre à jour l'écran de notifications pour afficher la ville
 - [x] Ajouter les traductions pour la localisation (6 langues)
 - [x] Créer des tests unitaires pour l'API météo (688 tests passent)
+
+## Widgets iOS et Android - Suggestion du Jour
+- [x] Rechercher et configurer @bittingz/expo-widgets
+- [x] Créer le service de données partagées pour les widgets (widget-data-service.ts)
+- [x] Développer le widget iOS avec WidgetKit (widgets/ios/EcrinWidget.swift)
+- [x] Développer le widget Android avec AppWidget (widgets/android/)
+- [x] Configurer les 3 tailles de widgets (small, medium, large)
+- [x] Afficher la météo, l'événement et les bijoux recommandés
+- [x] Créer les tests unitaires pour le service de widgets (33 tests)
+- [x] Configurer app.config.ts avec le plugin @bittingz/expo-widgets
+- [x] Total: 721 tests passent
+- [ ] Implémenter la mise à jour automatique des widgets
+- [ ] Ajouter les traductions pour les widgets
+- [ ] Créer des tests unitaires pour le service de widgets

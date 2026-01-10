@@ -140,6 +140,32 @@ const config: ExpoConfig = {
         },
       },
     ],
+    // Widget configuration for iOS and Android
+    [
+      "@bittingz/expo-widgets",
+      {
+        ios: {
+          src: "./widgets/ios",
+          devTeamId: "TEAM_ID", // Replace with your Apple Developer Team ID
+          mode: "production",
+          moduleDependencies: [],
+          useLiveActivities: false,
+          frequentUpdates: false,
+          entitlements: {
+            "com.apple.security.application-groups": ["group.com.ecrin.jewelry.widget"],
+          },
+        },
+        android: {
+          src: "./widgets/android",
+          widgets: [
+            {
+              name: "DailySuggestionWidget",
+              resourceName: "@xml/daily_suggestion_widget_info",
+            },
+          ],
+        },
+      },
+    ],
   ],
   
   experiments: {
