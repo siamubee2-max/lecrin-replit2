@@ -38,10 +38,8 @@ interface PartnerJewelry {
 
 // Helper functions
 function formatPrice(priceInCents: number | null, currency: string | null): string {
-  if (priceInCents === null) return "Prix sur demande";
-  const price = priceInCents / 100;
-  const currencySymbol = currency === "EUR" ? "€" : currency === "USD" ? "$" : currency || "€";
-  return `${price.toFixed(0)}${currencySymbol}`;
+  // Prix non affichés - redirection vers moniattitude.com
+  return "Voir sur moniattitude.com";
 }
 
 function parseTags(tags: string | null): string[] {
@@ -100,10 +98,10 @@ const DEMO_BRAND: PartnerBrand = {
   slug: "moniattitude",
   description: "Bijoux artisanaux en résine, pièces uniques faites main avec amour.",
   logoUrl: null,
-  websiteUrl: "https://moniattitude.fr",
+  websiteUrl: "https://moniattitude.com",
   isPremium: true,
   isFeatured: true,
-  specialty: "Bijoux artisanaux! Pièce unique",
+  specialty: "Bijoux artisanaux - Pièces uniques",
   country: "France",
 };
 
@@ -114,10 +112,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Boucles d'oreilles en résine",
     type: "earrings",
     description: "Magnifiques boucles d'oreilles artisanales en résine avec motifs géométriques uniques.",
-    priceInCents: 1800,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://example.com/earrings1.jpg",
-    productUrl: "https://moniattitude.fr/boucles-resine",
+    productUrl: "https://moniattitude.com",
     metalType: "resin",
     gemType: "none",
     collection: "Géométrique",
@@ -131,10 +129,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Boucles d'oreilles camel & reflets",
     type: "earrings",
     description: "Boucles d'oreilles en polymère couleur camel avec reflets dorés.",
-    priceInCents: 1800,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://example.com/earrings2.jpg",
-    productUrl: "https://moniattitude.fr/boucles-camel",
+    productUrl: "https://moniattitude.com",
     metalType: "polymer",
     gemType: "none",
     collection: "Reflets",
@@ -148,10 +146,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Collier en résine bleu",
     type: "necklace",
     description: "Collier artisanal en résine bleue avec pendentif géométrique.",
-    priceInCents: 2500,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://example.com/necklace1.jpg",
-    productUrl: "https://moniattitude.fr/collier-bleu",
+    productUrl: "https://moniattitude.com",
     metalType: "resin",
     gemType: "none",
     collection: "Géométrique",
@@ -165,10 +163,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Bague fleur dorée",
     type: "ring",
     description: "Bague en forme de fleur avec finition dorée naturelle.",
-    priceInCents: 1600,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://example.com/ring1.jpg",
-    productUrl: "https://moniattitude.fr/bague-fleur",
+    productUrl: "https://moniattitude.com",
     metalType: "gold",
     gemType: "none",
     collection: "Nature",
@@ -184,7 +182,7 @@ describe("Boutique Partenaires", () => {
       expect(DEMO_BRAND.id).toBeDefined();
       expect(DEMO_BRAND.name).toBe("Moni'attitude");
       expect(DEMO_BRAND.slug).toBe("moniattitude");
-      expect(DEMO_BRAND.websiteUrl).toBe("https://moniattitude.fr");
+      expect(DEMO_BRAND.websiteUrl).toBe("https://moniattitude.com");
     });
 
     it("should identify premium brands", () => {
@@ -196,7 +194,7 @@ describe("Boutique Partenaires", () => {
     });
 
     it("should have specialty description", () => {
-      expect(DEMO_BRAND.specialty).toBe("Bijoux artisanaux! Pièce unique");
+      expect(DEMO_BRAND.specialty).toBe("Bijoux artisanaux - Pièces uniques");
     });
 
     it("should have country of origin", () => {
@@ -213,15 +211,15 @@ describe("Boutique Partenaires", () => {
       expect(jewelry.type).toBe("earrings");
     });
 
-    it("should have price in cents", () => {
+    it("should have null price (prices shown on moniattitude.com)", () => {
       const jewelry = DEMO_JEWELRY[0];
-      expect(jewelry.priceInCents).toBe(1800);
-      expect(jewelry.currency).toBe("EUR");
+      expect(jewelry.priceInCents).toBeNull();
+      expect(jewelry.currency).toBeNull();
     });
 
     it("should have product URL for external link", () => {
       const jewelry = DEMO_JEWELRY[0];
-      expect(jewelry.productUrl).toContain("moniattitude.fr");
+      expect(jewelry.productUrl).toBe("https://moniattitude.com");
     });
 
     it("should have metal type", () => {
@@ -241,25 +239,10 @@ describe("Boutique Partenaires", () => {
   });
 
   describe("Price Formatting", () => {
-    it("should format EUR price correctly", () => {
-      expect(formatPrice(1800, "EUR")).toBe("18€");
-      expect(formatPrice(2500, "EUR")).toBe("25€");
-    });
-
-    it("should format USD price correctly", () => {
-      expect(formatPrice(1999, "USD")).toBe("20$");
-    });
-
-    it("should handle null price", () => {
-      expect(formatPrice(null, "EUR")).toBe("Prix sur demande");
-    });
-
-    it("should handle null currency", () => {
-      expect(formatPrice(1000, null)).toBe("10€");
-    });
-
-    it("should handle unknown currency", () => {
-      expect(formatPrice(1500, "GBP")).toBe("15GBP");
+    it("should always redirect to moniattitude.com", () => {
+      expect(formatPrice(1800, "EUR")).toBe("Voir sur moniattitude.com");
+      expect(formatPrice(null, "EUR")).toBe("Voir sur moniattitude.com");
+      expect(formatPrice(null, null)).toBe("Voir sur moniattitude.com");
     });
   });
 

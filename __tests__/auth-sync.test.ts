@@ -149,7 +149,7 @@ describe("API Routes Structure", () => {
       type: "Bague",
       metal: "Or",
       gem: "Diamant",
-      brand: "Cartier",
+      brand: "Moni'attitude",
       price: 5000,
     };
 

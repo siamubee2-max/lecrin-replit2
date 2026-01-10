@@ -412,7 +412,7 @@ describe("Wishlist", () => {
         notes: "Pour mon anniversaire",
         externalUrl: "https://example.com/ring",
         imageUri: "https://example.com/ring.jpg",
-        brandName: "Cartier",
+        brandName: "Moni'attitude",
         brandId: "cartier-123",
         stone: "sapphire",
       };
@@ -421,7 +421,7 @@ describe("Wishlist", () => {
       expect(item.currency).toBe("EUR");
       expect(item.notes).toBe("Pour mon anniversaire");
       expect(item.externalUrl).toContain("example.com");
-      expect(item.brandName).toBe("Cartier");
+      expect(item.brandName).toBe("Moni'attitude");
       expect(item.stone).toBe("sapphire");
     });
 

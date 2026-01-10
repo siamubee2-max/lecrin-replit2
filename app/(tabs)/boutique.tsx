@@ -91,17 +91,17 @@ const GEM_TYPES: { value: GemType | "all"; label: string }[] = [
   { value: "none", label: "Sans pierre" },
 ];
 
-// Demo data for Moni'attitude
+// Partenaire exclusif: Moni'attitude
 const DEMO_BRAND: PartnerBrand = {
   id: 1,
   name: "Moni'attitude",
   slug: "moniattitude",
   description: "Bijoux artisanaux en résine, pièces uniques faites main avec amour.",
   logoUrl: null,
-  websiteUrl: "https://moniattitude.fr",
+  websiteUrl: "https://moniattitude.com",
   isPremium: true,
   isFeatured: true,
-  specialty: "Bijoux artisanaux! Pièce unique",
+  specialty: "Bijoux artisanaux - Pièces uniques",
   country: "France",
 };
 
@@ -112,10 +112,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Boucles d'oreilles en résine",
     type: "earrings",
     description: "Magnifiques boucles d'oreilles artisanales en résine avec motifs géométriques uniques.",
-    priceInCents: 1800,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400",
-    productUrl: "https://moniattitude.fr/boucles-resine",
+    productUrl: "https://moniattitude.com",
     metalType: "resin",
     gemType: "none",
     collection: "Géométrique",
@@ -129,10 +129,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Boucles d'oreilles camel & reflets",
     type: "earrings",
     description: "Boucles d'oreilles en polymère couleur camel avec reflets dorés.",
-    priceInCents: 1800,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=400",
-    productUrl: "https://moniattitude.fr/boucles-camel",
+    productUrl: "https://moniattitude.com",
     metalType: "polymer",
     gemType: "none",
     collection: "Reflets",
@@ -146,10 +146,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Boucles d'oreilles bleu géométrique",
     type: "earrings",
     description: "Élégantes boucles d'oreilles bleues avec design géométrique moderne.",
-    priceInCents: 2500,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=400",
-    productUrl: "https://moniattitude.fr/boucles-bleu",
+    productUrl: "https://moniattitude.com",
     metalType: "resin",
     gemType: "none",
     collection: "Géométrique",
@@ -163,10 +163,10 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     name: "Boucles d'oreilles fleur dorée",
     type: "earrings",
     description: "Boucles d'oreilles en forme de fleur avec finition dorée naturelle.",
-    priceInCents: 1600,
-    currency: "EUR",
+    priceInCents: null,
+    currency: null,
     imageUrl: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400",
-    productUrl: "https://moniattitude.fr/boucles-fleur",
+    productUrl: "https://moniattitude.com",
     metalType: "polymer",
     gemType: "none",
     collection: "Nature",
@@ -178,10 +178,8 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
 
 // Format price
 function formatPrice(priceInCents: number | null, currency: string | null): string {
-  if (priceInCents === null) return "Prix sur demande";
-  const price = priceInCents / 100;
-  const currencySymbol = currency === "EUR" ? "€" : currency === "USD" ? "$" : currency || "€";
-  return `${price.toFixed(0)}${currencySymbol}`;
+  // Prix non affichés - redirection vers moniattitude.com
+  return "Voir sur moniattitude.com";
 }
 
 // Parse tags

@@ -360,3 +360,11 @@
   - [x] Capture 3: Mon Écrin
   - [x] Capture 4: Boutique
   - [x] Capture 5: Abonnements
+
+## Partenariat Moniattitude - Suppression Grandes Marques
+- [x] Supprimer toutes les références aux grandes marques (Cartier, Bvlgari, Tiffany, etc.)
+- [x] Supprimer les prix des bijoux dans la boutique (affiche "Voir sur moniattitude.com")
+- [x] Mettre à jour la boutique avec Moniattitude comme partenaire exclusif
+- [x] Ajouter un lien vers moniattitude.com pour les commandes
+- [x] Régénérer les captures d'écran boutique sans marques ni prix
+- [x] Mettre à jour les tests unitaires (749 tests passent)
