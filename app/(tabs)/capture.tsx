@@ -113,7 +113,7 @@ export default function CaptureScreen() {
 
 const styles = StyleSheet.create({
   captureButton: {
-    shadowColor: "#D4AF37",
+    shadowColor: "#D4AF37",  // Gold shadow for luxury feel
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

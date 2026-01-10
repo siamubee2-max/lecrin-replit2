@@ -41,3 +41,8 @@
 ## Changement de Logo
 - [x] Remplacer le logo par le nouveau logo fourni
 - [x] Mettre à jour l'URL du logo dans app.config.ts
+
+## Adaptation du Thème Bleu Marine / Doré
+- [x] Mettre à jour theme.config.js avec les nouvelles couleurs
+- [x] Adapter le splash screen au nouveau thème
+- [x] Vérifier la cohérence visuelle sur tous les écrans

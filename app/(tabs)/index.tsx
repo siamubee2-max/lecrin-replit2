@@ -1,10 +1,9 @@
-import { ScrollView, Text, View, TouchableOpacity, Image } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 
 export default function HomeScreen() {
@@ -34,9 +33,11 @@ export default function HomeScreen() {
         <View className="flex-1 px-6 py-8">
           {/* Logo Section */}
           <View className="items-center mb-8">
-            <View className="w-20 h-20 rounded-full bg-primary items-center justify-center mb-4">
-              <Text className="text-4xl">💎</Text>
-            </View>
+            <Image
+              source={require("@/assets/images/icon.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text className="text-3xl font-bold text-foreground text-center">
               Écrin Virtuel
             </Text>
@@ -46,10 +47,23 @@ export default function HomeScreen() {
           </View>
 
           {/* Hero Section */}
-          <View className="bg-surface rounded-3xl p-6 mb-8 border border-border">
-            <Text className="text-2xl font-bold text-foreground text-center mb-4">
-              Essayez Virtuellement les Bijoux que Vous Aimez
-            </Text>
+          <View 
+            className="rounded-3xl p-6 mb-8"
+            style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <View className="flex-row items-center justify-center mb-3">
+              <View 
+                className="w-1 h-6 rounded-full mr-3"
+                style={{ backgroundColor: colors.primary }}
+              />
+              <Text className="text-2xl font-bold text-foreground text-center">
+                Essayez Virtuellement les Bijoux que Vous Aimez
+              </Text>
+              <View 
+                className="w-1 h-6 rounded-full ml-3"
+                style={{ backgroundColor: colors.primary }}
+              />
+            </View>
             <Text className="text-base text-muted text-center leading-relaxed">
               Photographiez un bijou en vitrine ou dans un magazine, et essayez-le sur vous instantanément grâce à la réalité augmentée.
             </Text>
@@ -61,21 +75,25 @@ export default function HomeScreen() {
               icon="📸"
               title="Photographiez"
               description="Capturez n'importe quel bijou"
+              accentColor={colors.primary}
             />
             <FeatureCard
               icon="✨"
               title="Analysez"
               description="L'IA détecte le bijou"
+              accentColor={colors.primary}
             />
             <FeatureCard
               icon="👤"
               title="Essayez"
               description="Visualisez sur vous"
+              accentColor={colors.primary}
             />
             <FeatureCard
               icon="💾"
               title="Sauvegardez"
               description="Gardez vos favoris"
+              accentColor={colors.primary}
             />
           </View>
 
@@ -83,17 +101,18 @@ export default function HomeScreen() {
           <View className="gap-4">
             <TouchableOpacity
               onPress={handleStartTryOn}
-              className="bg-primary py-4 px-8 rounded-full items-center active:opacity-80"
-              style={{ shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }}
+              className="py-4 px-8 rounded-full items-center active:opacity-80"
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             >
-              <Text className="text-background text-lg font-bold">
+              <Text className="text-lg font-bold" style={{ color: '#0A1A3B' }}>
                 Commencer l'Essayage
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleViewGallery}
-              className="border-2 border-primary py-4 px-8 rounded-full items-center active:opacity-80"
+              className="py-4 px-8 rounded-full items-center active:opacity-80"
+              style={[styles.secondaryButton, { borderColor: colors.primary }]}
             >
               <Text className="text-primary text-lg font-semibold">
                 Voir mes Essayages
@@ -113,12 +132,63 @@ export default function HomeScreen() {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
+function FeatureCard({ 
+  icon, 
+  title, 
+  description,
+  accentColor 
+}: { 
+  icon: string; 
+  title: string; 
+  description: string;
+  accentColor: string;
+}) {
   return (
-    <View className="w-[48%] bg-surface rounded-2xl p-4 mb-4 border border-border">
-      <Text className="text-3xl mb-2">{icon}</Text>
+    <View 
+      className="w-[48%] rounded-2xl p-4 mb-4"
+      style={styles.featureCard}
+    >
+      <View 
+        className="w-12 h-12 rounded-xl items-center justify-center mb-3"
+        style={{ backgroundColor: accentColor + '20' }}
+      >
+        <Text className="text-2xl">{icon}</Text>
+      </View>
       <Text className="text-base font-semibold text-foreground mb-1">{title}</Text>
       <Text className="text-sm text-muted">{description}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 16,
+    borderRadius: 20,
+  },
+  heroCard: {
+    borderWidth: 1,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  featureCard: {
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.2)',
+  },
+  primaryButton: {
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  secondaryButton: {
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+});
