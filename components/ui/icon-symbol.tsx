@@ -71,6 +71,8 @@ const MAPPING = {
   "hanger": "dry-cleaning",
   "sparkle": "auto-awesome",
   "wand.and.sparkles": "auto-fix-high",
+  "arrow.up.arrow.down": "swap-vert",
+  "eye.fill": "visibility",
 } as IconMapping;
 
 /**

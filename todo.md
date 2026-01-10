@@ -211,3 +211,15 @@
 - [x] Créer l'écran AI Stylist avec suggestions visuelles
 - [x] Ajouter la possibilité de sauvegarder les looks
 - [x] Créer des tests unitaires pour Mon Dressing et AI Stylist (40 tests)
+
+## Mes Looks - Galerie des Looks Sauvegardés
+- [x] Créer l'écran Mes Looks avec liste des looks sauvegardés
+- [x] Afficher les miniatures des vêtements et bijoux de chaque look
+- [x] Ajouter les filtres par occasion (Casual, Travail, Soirée, Sport, Fête)
+- [x] Ajouter les filtres par saison (Printemps, Été, Automne, Hiver)
+- [x] Implémenter le tri (date, nom, favoris)
+- [x] Ajouter la fonctionnalité favoris avec toggle
+- [x] Créer le modal de détails du look avec conseils de style
+- [x] Implémenter la suppression de looks
+- [x] Ajouter la navigation depuis AI Stylist (bouton dans header)
+- [x] Créer des tests unitaires pour Mes Looks (38 tests)
