@@ -66,3 +66,11 @@
 - [x] Intégrer le flux OAuth dans l'app
 - [x] Synchroniser les favoris avec le serveur (API tRPC)
 - [x] Mettre à jour le profil avec les infos utilisateur
+
+
+## Intégration des Modèles de Corps (body_parts)
+- [x] Ajouter la table body_parts au schéma de base de données
+- [x] Importer les 9 modèles de parties du corps (seed automatique)
+- [x] Créer une route API pour récupérer les modèles (bodyParts.list, bodyParts.byType)
+- [x] Mettre à jour l'écran d'essayage pour afficher les vrais modèles
+- [x] Mapper les types de bijoux aux parties du corps correspondantes

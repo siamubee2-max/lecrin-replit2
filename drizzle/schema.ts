@@ -155,3 +155,27 @@ export const creatorJewelry = mysqlTable("creatorJewelry", {
 
 export type CreatorJewelry = typeof creatorJewelry.$inferSelect;
 export type InsertCreatorJewelry = typeof creatorJewelry.$inferInsert;
+
+/**
+ * Body parts for virtual try-on (demo models)
+ * Types: neck (colliers), earrings (boucles d'oreilles), ring (bagues), wrist (bracelets), foot (chevillières), full (parure entière)
+ */
+export const bodyParts = mysqlTable("bodyParts", {
+  id: int("id").autoincrement().primaryKey(),
+  /** UUID from Supabase import */
+  externalId: varchar("externalId", { length: 64 }).unique(),
+  /** Display name */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Body part type: neck, earrings, ring, wrist, foot, full */
+  type: mysqlEnum("type", ["neck", "earrings", "ring", "wrist", "foot", "full"]).notNull(),
+  /** Image URL (Google Drive or other) */
+  imageUrl: text("imageUrl").notNull(),
+  /** Optional user ID if user-uploaded */
+  userId: int("userId"),
+  /** Is this a demo model (available to all users) */
+  isDemo: boolean("isDemo").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type BodyPart = typeof bodyParts.$inferSelect;
+export type InsertBodyPart = typeof bodyParts.$inferInsert;

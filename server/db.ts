@@ -12,7 +12,9 @@ import {
   creatorJewelry,
   InsertCreatorJewelry,
   jewelryCollection,
-  InsertJewelryItem
+  InsertJewelryItem,
+  bodyParts,
+  InsertBodyPart
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -294,6 +296,43 @@ export async function updateCollectionItem(itemId: number, data: Partial<InsertJ
 // SEED DATA FUNCTION
 // ============================================
 
+// ============================================
+// BODY PARTS FUNCTIONS
+// ============================================
+
+export async function getDemoBodyParts() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(bodyParts).where(eq(bodyParts.isDemo, true));
+}
+
+export async function getBodyPartsByType(type: "neck" | "earrings" | "ring" | "wrist" | "foot" | "full") {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(bodyParts).where(eq(bodyParts.type, type));
+}
+
+export async function addBodyPart(data: InsertBodyPart) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(bodyParts).values(data);
+  return (result as any)[0]?.insertId ?? 0;
+}
+
+export async function getUserBodyParts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(bodyParts).where(eq(bodyParts.userId, userId));
+}
+
+// ============================================
+// SEED DATA FUNCTIONS
+// ============================================
+
 export async function seedMoniattitude() {
   const db = await getDb();
   if (!db) return;
@@ -310,5 +349,86 @@ export async function seedMoniattitude() {
       isActive: true,
     });
     console.log("[Database] Seeded Moniattitude creator");
+  }
+}
+
+export async function seedBodyParts() {
+  const db = await getDb();
+  if (!db) return;
+
+  // Check if body parts already exist
+  const existing = await db.select().from(bodyParts).limit(1);
+  
+  if (existing.length === 0) {
+    const demoBodyParts: InsertBodyPart[] = [
+      {
+        externalId: "02286db2-5174-4979-9035-0c8653e3a75f",
+        name: "Modèle Cou 1",
+        type: "neck",
+        imageUrl: "https://drive.google.com/uc?export=view&id=",
+        isDemo: true,
+      },
+      {
+        externalId: "0b9f801c-ef00-42bf-adcb-b396f9084a0f",
+        name: "Bague Gauche",
+        type: "ring",
+        imageUrl: "https://drive.google.com/uc?export=view&id=13O0T-bzBDjYDmuTUbDapOgnFVAyIKe6H",
+        isDemo: true,
+      },
+      {
+        externalId: "1dacaea1-1bd2-4c04-b36c-97e127bf65a3",
+        name: "Poignet Gauche",
+        type: "wrist",
+        imageUrl: "https://drive.google.com/uc?export=view&id=1IGdrDuEVNY5gBjoxqDtT0DRNu3nNZMRb",
+        isDemo: true,
+      },
+      {
+        externalId: "2d759e34-c04c-4d06-80f5-03911b0bb6c6",
+        name: "Poignet Droit",
+        type: "wrist",
+        imageUrl: "https://drive.google.com/uc?export=view&id=1tdvr_EB22GdAHZfqpzOifclsNjsK5Yd4",
+        isDemo: true,
+      },
+      {
+        externalId: "3ccb7bb9-dd70-47b6-862b-be6d8e1c30d7",
+        name: "Boucles d'oreilles 2",
+        type: "earrings",
+        imageUrl: "https://drive.google.com/uc?export=view&id=1B4DQFtmgRYucdG-YLPmrHFF6LmR075A6",
+        isDemo: true,
+      },
+      {
+        externalId: "5f87b140-69ee-4d09-835d-b60e73626ff5",
+        name: "Parure Entière",
+        type: "full",
+        imageUrl: "https://drive.google.com/uc?export=view&id=12JHKy5atX8UEjsAFGgpzMCMx0iYFb4fa",
+        isDemo: true,
+      },
+      {
+        externalId: "6852d56d-5e39-42a4-b1b5-5a4e4f652e47",
+        name: "Boucles d'oreilles 1",
+        type: "earrings",
+        imageUrl: "https://drive.google.com/uc?export=view&id=14s7VkHMk3GIkuwD1o1okdkSqNwiKFG_3",
+        isDemo: true,
+      },
+      {
+        externalId: "6890ba14-4507-4d33-a85d-aa9fffbd8e9b",
+        name: "Bague Droite",
+        type: "ring",
+        imageUrl: "https://drive.google.com/uc?export=view&id=1joQw1bS_orF9EyQ5KieQwRPopPuHv_mG",
+        isDemo: true,
+      },
+      {
+        externalId: "f536ef8f-96aa-4b27-848a-e70767c7da46",
+        name: "Chevillière",
+        type: "foot",
+        imageUrl: "https://drive.google.com/uc?export=view&id=1pTdVr2wgClGMZUH9PfLl-VBuhXSZ673m",
+        isDemo: true,
+      },
+    ];
+
+    for (const part of demoBodyParts) {
+      await db.insert(bodyParts).values(part);
+    }
+    console.log("[Database] Seeded 9 demo body parts");
   }
 }

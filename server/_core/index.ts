@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { seedMoniattitude, seedBodyParts } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -75,8 +76,16 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
+  server.listen(port, async () => {
     console.log(`[api] server listening on port ${port}`);
+    
+    // Seed initial data
+    try {
+      await seedMoniattitude();
+      await seedBodyParts();
+    } catch (error) {
+      console.warn("[Database] Seed failed (database may not be available):", error);
+    }
   });
 }
 

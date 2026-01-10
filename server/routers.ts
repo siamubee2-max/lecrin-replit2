@@ -158,6 +158,48 @@ export const appRouter = router({
   }),
 
   // ============================================
+  // BODY PARTS ROUTES (Demo Models)
+  // ============================================
+  bodyParts: router({
+    // Get all demo body parts
+    list: publicProcedure.query(async () => {
+      return db.getDemoBodyParts();
+    }),
+
+    // Get body parts by type
+    byType: publicProcedure
+      .input(z.object({ 
+        type: z.enum(["neck", "earrings", "ring", "wrist", "foot", "full"]) 
+      }))
+      .query(async ({ input }) => {
+        return db.getBodyPartsByType(input.type);
+      }),
+
+    // Get user's custom body parts
+    userParts: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserBodyParts(ctx.user.id);
+    }),
+
+    // Add custom body part (for premium users)
+    add: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(255),
+        type: z.enum(["neck", "earrings", "ring", "wrist", "foot", "full"]),
+        imageUrl: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.addBodyPart({
+          name: input.name,
+          type: input.type,
+          imageUrl: input.imageUrl,
+          userId: ctx.user.id,
+          isDemo: false,
+        });
+        return { id };
+      }),
+  }),
+
+  // ============================================
   // USER COLLECTION ROUTES (Mon Écrin)
   // ============================================
   collection: router({

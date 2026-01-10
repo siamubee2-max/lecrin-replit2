@@ -15,6 +15,13 @@
       "when": 1768065201651,
       "tag": "0001_concerned_night_thrasher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1768071268445,
+      "tag": "0002_fluffy_quasimodo",
+      "breakpoints": true
     }
   ]
 }

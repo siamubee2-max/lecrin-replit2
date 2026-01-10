@@ -1,36 +1,52 @@
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet } from "react-native";
-import { useState } from "react";
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import { Image } from "expo-image";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { ShareModal } from "@/components/share-modal";
 import { useFavorites } from "@/lib/favorites-context";
+import { trpc } from "@/lib/trpc";
+
+// Mapping between jewelry types and body part types
+const JEWELRY_TO_BODY_PART: Record<string, string> = {
+  necklace: "neck",
+  earrings: "earrings",
+  ring: "ring",
+  bracelet: "wrist",
+  brooch: "full",
+  anklet: "foot",
+};
 
 const JEWELRY_TYPES = [
-  { id: "necklace", name: "Collier / Pendentif", icon: "📿" },
-  { id: "earrings", name: "Boucles d'oreilles", icon: "💎" },
-  { id: "ring", name: "Bague", icon: "💍" },
-  { id: "bracelet", name: "Bracelet", icon: "⌚" },
-  { id: "brooch", name: "Broche", icon: "🎀" },
+  { id: "necklace", name: "Collier / Pendentif", icon: "📿", bodyType: "neck" },
+  { id: "earrings", name: "Boucles d'oreilles", icon: "💎", bodyType: "earrings" },
+  { id: "ring", name: "Bague", icon: "💍", bodyType: "ring" },
+  { id: "bracelet", name: "Bracelet", icon: "⌚", bodyType: "wrist" },
+  { id: "anklet", name: "Chevillière", icon: "🦶", bodyType: "foot" },
+  { id: "brooch", name: "Parure complète", icon: "✨", bodyType: "full" },
 ];
 
-// Demo models for virtual try-on
-const DEMO_MODELS = [
-  { id: "1", name: "Sophie", description: "Classique", available: true },
-  { id: "2", name: "Emma", description: "Moderne", available: true },
-  { id: "3", name: "Marie", description: "Élégante", available: true },
-  { id: "4", name: "Léa", description: "Naturelle", available: false },
-];
+interface BodyPart {
+  id: number;
+  externalId: string | null;
+  name: string;
+  type: "neck" | "earrings" | "ring" | "wrist" | "foot" | "full";
+  imageUrl: string;
+  userId: number | null;
+  isDemo: boolean | null;
+  createdAt: Date;
+}
 
 export default function TryOnScreen() {
   const colors = useColors();
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<string>("necklace");
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<BodyPart | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [jewelrySize, setJewelrySize] = useState(1);
@@ -38,18 +54,27 @@ export default function TryOnScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   const { addFavorite, incrementTryOnCount } = useFavorites();
 
+  // Fetch body parts from API
+  const { data: allBodyParts, isLoading: isLoadingBodyParts } = trpc.bodyParts.list.useQuery();
+
+  // Filter body parts by selected jewelry type
+  const filteredModels = allBodyParts?.filter(
+    (part) => part.type === JEWELRY_TO_BODY_PART[selectedType]
+  ) || [];
+
   const handleTypeSelect = (typeId: string) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     setSelectedType(typeId);
+    setSelectedModel(null); // Reset model when type changes
   };
 
-  const handleModelSelect = (modelId: string) => {
+  const handleModelSelect = (model: BodyPart) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setSelectedModel(modelId);
+    setSelectedModel(model);
   };
 
   const handleNext = () => {
@@ -84,7 +109,7 @@ export default function TryOnScreen() {
     await incrementTryOnCount();
     setTimeout(() => {
       setIsSaving(false);
-      router.push("/gallery");
+      router.push("/(tabs)/gallery");
     }, 1500);
   };
 
@@ -95,7 +120,7 @@ export default function TryOnScreen() {
     await addFavorite({
       jewelryType: selectedTypeData?.name || "Bijou",
       jewelryIcon: selectedTypeData?.icon || "💍",
-      modelName: selectedModelData?.name || "Modèle",
+      modelName: selectedModel?.name || "Modèle",
     });
     setIsFavorited(true);
   };
@@ -108,10 +133,9 @@ export default function TryOnScreen() {
   };
 
   const selectedTypeData = JEWELRY_TYPES.find(t => t.id === selectedType);
-  const selectedModelData = DEMO_MODELS.find(m => m.id === selectedModel);
 
   // Step 3: AR Try-on View
-  if (currentStep === 3) {
+  if (currentStep === 3 && selectedModel) {
     return (
       <ScreenContainer edges={["top", "left", "right", "bottom"]} className="bg-background">
         <View className="flex-1">
@@ -128,50 +152,67 @@ export default function TryOnScreen() {
               Essayage Virtuel
             </Text>
             
-            <TouchableOpacity
-              onPress={handleAddToFavorites}
-              className="w-10 h-10 rounded-full items-center justify-center active:opacity-70"
-              style={{ backgroundColor: isFavorited ? '#EF4444' : colors.surface }}
-            >
-              <IconSymbol 
-                name={isFavorited ? "heart.fill" : "heart"} 
-                size={20} 
-                color={isFavorited ? "#FFFFFF" : colors.foreground} 
-              />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              onPress={handleShare}
-              className="w-10 h-10 rounded-full bg-surface items-center justify-center active:opacity-70"
-            >
-              <IconSymbol name="square.and.arrow.up" size={20} color={colors.foreground} />
-            </TouchableOpacity>
+            <View className="flex-row">
+              <TouchableOpacity
+                onPress={handleAddToFavorites}
+                className="w-10 h-10 rounded-full items-center justify-center active:opacity-70 mr-2"
+                style={{ backgroundColor: isFavorited ? '#EF4444' : colors.surface }}
+              >
+                <IconSymbol 
+                  name={isFavorited ? "heart.fill" : "heart"} 
+                  size={20} 
+                  color={isFavorited ? "#FFFFFF" : colors.foreground} 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={handleShare}
+                className="w-10 h-10 rounded-full bg-surface items-center justify-center active:opacity-70"
+              >
+                <IconSymbol name="square.and.arrow.up" size={20} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* AR View */}
+          {/* AR View with Real Model Image */}
           <View className="flex-1 mx-4 my-4 rounded-3xl overflow-hidden bg-surface border border-border">
-            <View className="flex-1 items-center justify-center">
-              <View className="w-48 h-48 rounded-full bg-background/50 items-center justify-center mb-4">
-                <Text className="text-6xl">👩</Text>
-              </View>
+            <View className="flex-1">
+              {/* Model Image */}
+              <Image
+                source={{ uri: selectedModel.imageUrl }}
+                style={StyleSheet.absoluteFillObject}
+                contentFit="cover"
+                transition={300}
+              />
               
+              {/* Jewelry Overlay */}
               <View 
                 className="absolute items-center justify-center"
-                style={{ transform: [{ scale: jewelrySize }], top: '35%' }}
+                style={{ 
+                  transform: [{ scale: jewelrySize }], 
+                  top: selectedModel.type === 'earrings' ? '25%' : 
+                       selectedModel.type === 'neck' ? '40%' : 
+                       selectedModel.type === 'ring' ? '60%' : 
+                       selectedModel.type === 'wrist' ? '50%' : 
+                       selectedModel.type === 'foot' ? '70%' : '45%',
+                  left: '50%',
+                  marginLeft: -30,
+                }}
               >
-                <Text className="text-5xl">{selectedTypeData?.icon || "💍"}</Text>
+                <Text className="text-6xl">{selectedTypeData?.icon || "💍"}</Text>
               </View>
 
+              {/* Info Overlay */}
               <View className="absolute bottom-4 left-4 right-4">
                 <View className="bg-background/90 rounded-xl px-4 py-3">
-                  <View className="flex-row items-center justify-center">
-                    <View className="w-16 h-16 rounded-lg bg-surface items-center justify-center mr-3">
+                  <View className="flex-row items-center">
+                    <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3">
                       <Text className="text-2xl">{selectedTypeData?.icon}</Text>
                     </View>
-                    <View>
+                    <View className="flex-1">
                       <Text className="text-xs text-muted">SUR :</Text>
                       <Text className="text-sm font-semibold text-foreground">
-                        {selectedModelData?.name || "Modèle"}
+                        {selectedModel.name}
                       </Text>
                     </View>
                   </View>
@@ -276,7 +317,7 @@ export default function TryOnScreen() {
               {/* Action Buttons */}
               <View className="flex-row px-4 mt-4 gap-3">
                 <TouchableOpacity
-                  onPress={() => router.push("/capture")}
+                  onPress={() => router.push("/(tabs)/capture")}
                   className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
                   style={{ backgroundColor: colors.foreground }}
                 >
@@ -287,7 +328,7 @@ export default function TryOnScreen() {
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                  onPress={() => router.push("/ecrin")}
+                  onPress={() => router.push("/(tabs)/ecrin")}
                   className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
                   style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
                 >
@@ -301,7 +342,7 @@ export default function TryOnScreen() {
               {/* Upload Zone */}
               <View className="px-4 mt-6">
                 <TouchableOpacity
-                  onPress={() => router.push("/capture")}
+                  onPress={() => router.push("/(tabs)/capture")}
                   className="rounded-2xl p-8 items-center"
                   style={[styles.uploadZone, { borderColor: colors.border }]}
                 >
@@ -344,47 +385,68 @@ export default function TryOnScreen() {
             </>
           ) : (
             <>
-              {/* Model Selection */}
+              {/* Model Selection from Database */}
               <View className="px-4 mt-4">
                 <Text className="text-sm font-semibold text-foreground mb-3">
-                  Modèles de démonstration
+                  Modèles de démonstration pour {selectedTypeData?.name}
                 </Text>
-                <View className="flex-row flex-wrap">
-                  {DEMO_MODELS.map((model) => (
-                    <TouchableOpacity
-                      key={model.id}
-                      onPress={() => model.available && handleModelSelect(model.id)}
-                      disabled={!model.available}
-                      className="w-[48%] mr-[2%] mb-3 rounded-xl overflow-hidden"
-                      style={[
-                        { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-                        selectedModel === model.id && { borderColor: colors.primary, borderWidth: 2 },
-                        !model.available && { opacity: 0.5 }
-                      ]}
-                    >
-                      <View 
-                        className="aspect-[3/4] items-center justify-center"
-                        style={{ backgroundColor: colors.background }}
+                
+                {isLoadingBodyParts ? (
+                  <View className="py-8 items-center">
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text className="text-sm text-muted mt-2">Chargement des modèles...</Text>
+                  </View>
+                ) : filteredModels.length > 0 ? (
+                  <View className="flex-row flex-wrap">
+                    {filteredModels.map((model) => (
+                      <TouchableOpacity
+                        key={model.id}
+                        onPress={() => handleModelSelect(model)}
+                        className="w-[48%] mr-[2%] mb-3 rounded-xl overflow-hidden"
+                        style={[
+                          { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+                          selectedModel?.id === model.id && { borderColor: colors.primary, borderWidth: 2 },
+                        ]}
                       >
-                        <Text className="text-4xl">👩</Text>
-                        {!model.available && (
-                          <View 
-                            className="absolute top-2 right-2 px-2 py-1 rounded-full"
-                            style={{ backgroundColor: colors.primary }}
-                          >
-                            <Text className="text-xs font-semibold" style={{ color: '#0A1A3B' }}>
-                              Premium
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <View className="p-3">
-                        <Text className="text-sm font-semibold text-foreground">{model.name}</Text>
-                        <Text className="text-xs text-muted">{model.description}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <View 
+                          className="aspect-[3/4] items-center justify-center overflow-hidden"
+                          style={{ backgroundColor: colors.background }}
+                        >
+                          {model.imageUrl && model.imageUrl.length > 50 ? (
+                            <Image
+                              source={{ uri: model.imageUrl }}
+                              style={StyleSheet.absoluteFillObject}
+                              contentFit="cover"
+                              transition={200}
+                            />
+                          ) : (
+                            <View className="flex-1 items-center justify-center">
+                              <Text className="text-4xl">👩</Text>
+                              <Text className="text-xs text-muted mt-2">Image à venir</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View className="p-3">
+                          <Text className="text-sm font-semibold text-foreground">{model.name}</Text>
+                          <Text className="text-xs text-muted capitalize">{model.type}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <View 
+                    className="py-8 items-center rounded-xl"
+                    style={{ backgroundColor: colors.surface }}
+                  >
+                    <Text className="text-4xl mb-2">🔍</Text>
+                    <Text className="text-base font-semibold text-foreground">
+                      Aucun modèle disponible
+                    </Text>
+                    <Text className="text-sm text-muted text-center mt-1 px-4">
+                      Pas de modèle pour ce type de bijou. Utilisez votre propre photo.
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Or Upload Own Photo */}
@@ -393,13 +455,16 @@ export default function TryOnScreen() {
                   Ou utilisez votre photo
                 </Text>
                 <TouchableOpacity
-                  onPress={() => router.push("/capture")}
+                  onPress={() => router.push("/(tabs)/capture")}
                   className="rounded-2xl p-6 items-center"
                   style={[styles.uploadZone, { borderColor: colors.border }]}
                 >
                   <IconSymbol name="photo.fill" size={28} color={colors.muted} />
-                  <Text className="text-sm font-semibold text-foreground mt-3">
+                  <Text className="text-base font-semibold text-foreground mt-3">
                     Importer ma photo
+                  </Text>
+                  <Text className="text-xs text-muted mt-1">
+                    Prenez ou importez votre propre photo
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -407,41 +472,27 @@ export default function TryOnScreen() {
           )}
         </ScrollView>
 
-        {/* Bottom Action */}
+        {/* Bottom Button */}
         <View 
-          className="absolute bottom-0 left-0 right-0 px-4 py-4"
+          className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-4"
           style={{ backgroundColor: colors.background }}
         >
           <TouchableOpacity
             onPress={handleNext}
-            disabled={currentStep === 2 && !selectedModel}
-            className="flex-row items-center justify-center py-4 rounded-full"
+            disabled={(currentStep === 1 && !selectedType) || (currentStep === 2 && !selectedModel)}
+            className="py-4 rounded-full items-center flex-row justify-center"
             style={[
-              { backgroundColor: colors.muted },
-              (currentStep === 1 || (currentStep === 2 && selectedModel)) && { backgroundColor: colors.primary }
+              { backgroundColor: colors.primary },
+              ((currentStep === 1 && !selectedType) || (currentStep === 2 && !selectedModel)) && { opacity: 0.5 }
             ]}
           >
-            <Text 
-              className="text-base font-semibold mr-2"
-              style={{ color: (currentStep === 1 || (currentStep === 2 && selectedModel)) ? '#0A1A3B' : colors.background }}
-            >
+            <Text className="text-base font-bold mr-2" style={{ color: '#0A1A3B' }}>
               Suivant
             </Text>
-            <IconSymbol 
-              name="chevron.right" 
-              size={18} 
-              color={(currentStep === 1 || (currentStep === 2 && selectedModel)) ? '#0A1A3B' : colors.background} 
-            />
+            <IconSymbol name="chevron.right" size={18} color="#0A1A3B" />
           </TouchableOpacity>
         </View>
       </View>
-
-      <ShareModal
-        visible={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        title="Mon essayage Écrin Virtuel"
-        message="Découvrez mon essayage virtuel avec Écrin Virtuel ! 💍✨"
-      />
     </ScreenContainer>
   );
 }
@@ -450,13 +501,13 @@ const styles = StyleSheet.create({
   uploadZone: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderRadius: 16,
+    backgroundColor: 'transparent',
   },
   captureButton: {
-    shadowColor: "#D4AF37",
+    shadowColor: '#D4AF37',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 4,
   },
 });
