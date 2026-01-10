@@ -50,3 +50,10 @@
 - [x] Pages légales (Privacy + Terms)
 - [x] Multi-langue (6 langues)
 - [x] Système d'abonnement UI
+
+## Page Profil Utilisateur
+- [x] Créer l'écran de profil utilisateur
+- [x] Ajouter la section des essayages favoris
+- [x] Implémenter la sauvegarde des favoris (AsyncStorage)
+- [x] Ajouter les statistiques d'utilisation
+- [x] Intégrer la navigation vers le profil

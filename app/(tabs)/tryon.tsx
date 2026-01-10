@@ -8,6 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { ShareModal } from "@/components/share-modal";
+import { useFavorites } from "@/lib/favorites-context";
 
 const JEWELRY_TYPES = [
   { id: "necklace", name: "Collier / Pendentif", icon: "📿" },
@@ -34,6 +35,8 @@ export default function TryOnScreen() {
   const [currentStep, setCurrentStep] = useState(1);
   const [jewelrySize, setJewelrySize] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const { addFavorite, incrementTryOnCount } = useFavorites();
 
   const handleTypeSelect = (typeId: string) => {
     if (Platform.OS !== "web") {
@@ -78,10 +81,23 @@ export default function TryOnScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setIsSaving(true);
+    await incrementTryOnCount();
     setTimeout(() => {
       setIsSaving(false);
       router.push("/gallery");
     }, 1500);
+  };
+
+  const handleAddToFavorites = async () => {
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    await addFavorite({
+      jewelryType: selectedTypeData?.name || "Bijou",
+      jewelryIcon: selectedTypeData?.icon || "💍",
+      modelName: selectedModelData?.name || "Modèle",
+    });
+    setIsFavorited(true);
   };
 
   const handleShare = () => {
@@ -111,6 +127,18 @@ export default function TryOnScreen() {
             <Text className="text-lg font-semibold text-foreground">
               Essayage Virtuel
             </Text>
+            
+            <TouchableOpacity
+              onPress={handleAddToFavorites}
+              className="w-10 h-10 rounded-full items-center justify-center active:opacity-70"
+              style={{ backgroundColor: isFavorited ? '#EF4444' : colors.surface }}
+            >
+              <IconSymbol 
+                name={isFavorited ? "heart.fill" : "heart"} 
+                size={20} 
+                color={isFavorited ? "#FFFFFF" : colors.foreground} 
+              />
+            </TouchableOpacity>
             
             <TouchableOpacity
               onPress={handleShare}

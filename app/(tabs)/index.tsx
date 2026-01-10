@@ -60,15 +60,26 @@ export default function HomeScreen() {
               </Text>
             </View>
             
-            {/* Language Selector */}
-            <TouchableOpacity
-              onPress={() => setShowLangPicker(!showLangPicker)}
-              className="flex-row items-center px-3 py-2 rounded-full"
-              style={{ backgroundColor: colors.surface }}
-            >
-              <Text className="text-lg mr-1">{currentLanguage?.flag}</Text>
-              <IconSymbol name="chevron.down" size={16} color={colors.muted} />
-            </TouchableOpacity>
+            <View className="flex-row items-center">
+              {/* Language Selector */}
+              <TouchableOpacity
+                onPress={() => setShowLangPicker(!showLangPicker)}
+                className="flex-row items-center px-3 py-2 rounded-full mr-2"
+                style={{ backgroundColor: colors.surface }}
+              >
+                <Text className="text-lg mr-1">{currentLanguage?.flag}</Text>
+                <IconSymbol name="chevron.down" size={16} color={colors.muted} />
+              </TouchableOpacity>
+              
+              {/* Profile Button */}
+              <TouchableOpacity
+                onPress={() => router.push("/profile")}
+                className="w-10 h-10 rounded-full items-center justify-center"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <IconSymbol name="person.fill" size={20} color="#0A1A3B" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Language Picker Dropdown */}
