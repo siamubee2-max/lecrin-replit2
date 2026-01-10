@@ -73,6 +73,14 @@ const MAPPING = {
   "wand.and.sparkles": "auto-fix-high",
   "arrow.up.arrow.down": "swap-vert",
   "eye.fill": "visibility",
+  // Boutique icons
+  "cart.fill": "shopping-cart",
+  "gift.fill": "card-giftcard",
+  "arrow.up.right": "open-in-new",
+  "crown": "workspace-premium",
+  "building.2.fill": "business",
+  "map.fill": "map",
+  "phone.fill": "phone",
 } as IconMapping;
 
 /**

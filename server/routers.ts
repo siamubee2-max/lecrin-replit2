@@ -630,6 +630,160 @@ export const appRouter = router({
         return analyzeColorHarmony(input.colors);
       }),
   }),
+
+  // ============================================
+  // PARTNER BRANDS ROUTES
+  // ============================================
+  partnerBrands: router({
+    // List all partner brands
+    list: publicProcedure.query(async () => {
+      return db.getPartnerBrands();
+    }),
+
+    // Get featured partner brands
+    featured: publicProcedure.query(async () => {
+      return db.getFeaturedPartnerBrands();
+    }),
+
+    // Get brand by ID
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return db.getPartnerBrandById(input.id);
+      }),
+
+    // Get brand by slug
+    getBySlug: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        return db.getPartnerBrandBySlug(input.slug);
+      }),
+
+    // Create a new partner brand (admin only in production)
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(255),
+        slug: z.string().min(1).max(128),
+        description: z.string().optional(),
+        logoUrl: z.string().optional(),
+        websiteUrl: z.string().optional(),
+        isPremium: z.boolean().optional(),
+        isFeatured: z.boolean().optional(),
+        specialty: z.string().optional(),
+        country: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return db.createPartnerBrand(input);
+      }),
+  }),
+
+  // ============================================
+  // PARTNER JEWELRY ROUTES
+  // ============================================
+  partnerJewelry: router({
+    // List partner jewelry with filters
+    list: publicProcedure
+      .input(z.object({
+        brandId: z.number().optional(),
+        type: z.string().optional(),
+        metalType: z.string().optional(),
+        gemType: z.string().optional(),
+        collection: z.string().optional(),
+        minPrice: z.number().optional(),
+        maxPrice: z.number().optional(),
+        search: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return db.getPartnerJewelry(input);
+      }),
+
+    // Get jewelry by ID
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return db.getPartnerJewelryById(input.id);
+      }),
+
+    // Get jewelry by brand
+    getByBrand: publicProcedure
+      .input(z.object({ brandId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getPartnerJewelryByBrand(input.brandId);
+      }),
+
+    // Create partner jewelry (admin only in production)
+    create: protectedProcedure
+      .input(z.object({
+        brandId: z.number(),
+        name: z.string().min(1).max(255),
+        type: z.enum(["necklace", "earrings", "ring", "bracelet", "anklet", "brooch", "set"]),
+        description: z.string().optional(),
+        priceInCents: z.number().optional(),
+        currency: z.string().optional(),
+        imageUrl: z.string().optional(),
+        additionalImages: z.string().optional(),
+        productUrl: z.string().optional(),
+        metalType: z.enum(["gold", "silver", "rose_gold", "platinum", "brass", "copper", "resin", "polymer", "other"]).optional(),
+        gemType: z.enum(["diamond", "ruby", "sapphire", "emerald", "pearl", "crystal", "none", "other"]).optional(),
+        collection: z.string().optional(),
+        tags: z.string().optional(),
+        isTryOnEnabled: z.boolean().optional(),
+        tryOnImageUrl: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return db.createPartnerJewelry(input);
+      }),
+
+    // Track view
+    trackView: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.incrementPartnerJewelryStats(input.id, 'viewCount');
+        return { success: true };
+      }),
+
+    // Track try-on
+    trackTryOn: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.incrementPartnerJewelryStats(input.id, 'tryOnCount');
+        return { success: true };
+      }),
+
+    // Track click to product page
+    trackClick: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.incrementPartnerJewelryStats(input.id, 'clickCount');
+        return { success: true };
+      }),
+
+    // Get user favorites
+    favorites: protectedProcedure.query(async ({ ctx }) => {
+      return db.getPartnerJewelryFavorites(ctx.user.id);
+    }),
+
+    // Add to favorites
+    addFavorite: protectedProcedure
+      .input(z.object({ jewelryId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return db.addPartnerJewelryFavorite(ctx.user.id, input.jewelryId);
+      }),
+
+    // Remove from favorites
+    removeFavorite: protectedProcedure
+      .input(z.object({ jewelryId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return db.removePartnerJewelryFavorite(ctx.user.id, input.jewelryId);
+      }),
+
+    // Check if favorited
+    isFavorited: protectedProcedure
+      .input(z.object({ jewelryId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.isPartnerJewelryFavorited(ctx.user.id, input.jewelryId);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

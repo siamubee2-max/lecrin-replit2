@@ -18,7 +18,13 @@ import {
   wardrobeItems,
   InsertWardrobeItem,
   savedLooks,
-  InsertSavedLook
+  InsertSavedLook,
+  partnerBrands,
+  InsertPartnerBrand,
+  partnerJewelry,
+  InsertPartnerJewelry,
+  partnerJewelryFavorites,
+  InsertPartnerJewelryFavorite
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -714,6 +720,315 @@ export async function deleteSavedLook(id: number, userId: number) {
     return true;
   } catch (error) {
     console.error("[Database] Failed to delete saved look:", error);
+    return false;
+  }
+}
+
+// ============================================
+// PARTNER BRANDS FUNCTIONS
+// ============================================
+
+export async function getPartnerBrands() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get partner brands: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(partnerBrands).orderBy(desc(partnerBrands.isFeatured));
+  } catch (error) {
+    console.error("[Database] Failed to get partner brands:", error);
+    return [];
+  }
+}
+
+export async function getFeaturedPartnerBrands() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get featured brands: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(partnerBrands).where(eq(partnerBrands.isFeatured, true));
+  } catch (error) {
+    console.error("[Database] Failed to get featured brands:", error);
+    return [];
+  }
+}
+
+export async function getPartnerBrandById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get partner brand: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(partnerBrands).where(eq(partnerBrands.id, id)).limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get partner brand:", error);
+    return null;
+  }
+}
+
+export async function getPartnerBrandBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get partner brand: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(partnerBrands).where(eq(partnerBrands.slug, slug)).limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get partner brand:", error);
+    return null;
+  }
+}
+
+export async function createPartnerBrand(brand: InsertPartnerBrand) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create partner brand: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(partnerBrands).values(brand);
+    const insertId = result[0].insertId;
+    return await getPartnerBrandById(insertId);
+  } catch (error) {
+    console.error("[Database] Failed to create partner brand:", error);
+    return null;
+  }
+}
+
+// ============================================
+// PARTNER JEWELRY FUNCTIONS
+// ============================================
+
+export async function getPartnerJewelry(filters?: {
+  brandId?: number;
+  type?: string;
+  metalType?: string;
+  gemType?: string;
+  collection?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  search?: string;
+}) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get partner jewelry: database not available");
+    return [];
+  }
+
+  try {
+    let query = db.select().from(partnerJewelry).where(eq(partnerJewelry.isAvailable, true));
+    
+    // Note: Complex filtering would need to be done in application layer
+    // This is a simplified version
+    const results = await query.orderBy(desc(partnerJewelry.createdAt));
+    
+    // Apply filters in memory for now
+    let filtered = results;
+    
+    if (filters?.brandId) {
+      filtered = filtered.filter(j => j.brandId === filters.brandId);
+    }
+    if (filters?.type) {
+      filtered = filtered.filter(j => j.type === filters.type);
+    }
+    if (filters?.metalType) {
+      filtered = filtered.filter(j => j.metalType === filters.metalType);
+    }
+    if (filters?.gemType) {
+      filtered = filtered.filter(j => j.gemType === filters.gemType);
+    }
+    if (filters?.collection) {
+      filtered = filtered.filter(j => j.collection === filters.collection);
+    }
+    if (filters?.minPrice !== undefined) {
+      filtered = filtered.filter(j => (j.priceInCents || 0) >= filters.minPrice!);
+    }
+    if (filters?.maxPrice !== undefined) {
+      filtered = filtered.filter(j => (j.priceInCents || 0) <= filters.maxPrice!);
+    }
+    if (filters?.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(j => 
+        j.name.toLowerCase().includes(searchLower) ||
+        j.description?.toLowerCase().includes(searchLower) ||
+        j.tags?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
+  } catch (error) {
+    console.error("[Database] Failed to get partner jewelry:", error);
+    return [];
+  }
+}
+
+export async function getPartnerJewelryById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get partner jewelry: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(partnerJewelry).where(eq(partnerJewelry.id, id)).limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get partner jewelry:", error);
+    return null;
+  }
+}
+
+export async function getPartnerJewelryByBrand(brandId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get partner jewelry: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(partnerJewelry)
+      .where(and(eq(partnerJewelry.brandId, brandId), eq(partnerJewelry.isAvailable, true)))
+      .orderBy(desc(partnerJewelry.createdAt));
+  } catch (error) {
+    console.error("[Database] Failed to get partner jewelry by brand:", error);
+    return [];
+  }
+}
+
+export async function createPartnerJewelry(jewelry: InsertPartnerJewelry) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create partner jewelry: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(partnerJewelry).values(jewelry);
+    const insertId = result[0].insertId;
+    return await getPartnerJewelryById(insertId);
+  } catch (error) {
+    console.error("[Database] Failed to create partner jewelry:", error);
+    return null;
+  }
+}
+
+export async function incrementPartnerJewelryStats(id: number, field: 'viewCount' | 'tryOnCount' | 'clickCount') {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update partner jewelry stats: database not available");
+    return;
+  }
+
+  try {
+    const jewelry = await getPartnerJewelryById(id);
+    if (jewelry) {
+      const currentValue = jewelry[field] || 0;
+      await db.update(partnerJewelry)
+        .set({ [field]: currentValue + 1 })
+        .where(eq(partnerJewelry.id, id));
+    }
+  } catch (error) {
+    console.error("[Database] Failed to update partner jewelry stats:", error);
+  }
+}
+
+// ============================================
+// PARTNER JEWELRY FAVORITES FUNCTIONS
+// ============================================
+
+export async function getPartnerJewelryFavorites(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get partner jewelry favorites: database not available");
+    return [];
+  }
+
+  try {
+    return await db.select().from(partnerJewelryFavorites)
+      .where(eq(partnerJewelryFavorites.userId, userId))
+      .orderBy(desc(partnerJewelryFavorites.createdAt));
+  } catch (error) {
+    console.error("[Database] Failed to get partner jewelry favorites:", error);
+    return [];
+  }
+}
+
+export async function addPartnerJewelryFavorite(userId: number, jewelryId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot add partner jewelry favorite: database not available");
+    return null;
+  }
+
+  try {
+    // Check if already favorited
+    const existing = await db.select().from(partnerJewelryFavorites)
+      .where(and(
+        eq(partnerJewelryFavorites.userId, userId),
+        eq(partnerJewelryFavorites.jewelryId, jewelryId)
+      ))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      return existing[0];
+    }
+    
+    const result = await db.insert(partnerJewelryFavorites).values({ userId, jewelryId });
+    return { id: result[0].insertId, userId, jewelryId, createdAt: new Date() };
+  } catch (error) {
+    console.error("[Database] Failed to add partner jewelry favorite:", error);
+    return null;
+  }
+}
+
+export async function removePartnerJewelryFavorite(userId: number, jewelryId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot remove partner jewelry favorite: database not available");
+    return false;
+  }
+
+  try {
+    await db.delete(partnerJewelryFavorites)
+      .where(and(
+        eq(partnerJewelryFavorites.userId, userId),
+        eq(partnerJewelryFavorites.jewelryId, jewelryId)
+      ));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to remove partner jewelry favorite:", error);
+    return false;
+  }
+}
+
+export async function isPartnerJewelryFavorited(userId: number, jewelryId: number) {
+  const db = await getDb();
+  if (!db) {
+    return false;
+  }
+
+  try {
+    const result = await db.select().from(partnerJewelryFavorites)
+      .where(and(
+        eq(partnerJewelryFavorites.userId, userId),
+        eq(partnerJewelryFavorites.jewelryId, jewelryId)
+      ))
+      .limit(1);
+    return result.length > 0;
+  } catch (error) {
+    console.error("[Database] Failed to check partner jewelry favorite:", error);
     return false;
   }
 }

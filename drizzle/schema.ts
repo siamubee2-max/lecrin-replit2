@@ -288,3 +288,96 @@ export const savedLooks = mysqlTable("savedLooks", {
 
 export type SavedLook = typeof savedLooks.$inferSelect;
 export type InsertSavedLook = typeof savedLooks.$inferInsert;
+
+/**
+ * Partner brands - stores brand information for the boutique
+ */
+export const partnerBrands = mysqlTable("partnerBrands", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Brand name */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Brand slug for URLs */
+  slug: varchar("slug", { length: 128 }).notNull().unique(),
+  /** Brand description */
+  description: text("description"),
+  /** Brand logo URL */
+  logoUrl: text("logoUrl"),
+  /** Brand website URL */
+  websiteUrl: varchar("websiteUrl", { length: 512 }),
+  /** Is premium partner */
+  isPremium: boolean("isPremium").default(false),
+  /** Is featured on homepage */
+  isFeatured: boolean("isFeatured").default(false),
+  /** Brand specialty (e.g., "bijoux artisanaux", "haute joaillerie") */
+  specialty: varchar("specialty", { length: 255 }),
+  /** Country of origin */
+  country: varchar("country", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PartnerBrand = typeof partnerBrands.$inferSelect;
+export type InsertPartnerBrand = typeof partnerBrands.$inferInsert;
+
+/**
+ * Partner jewelry items - bijoux from partner brands
+ */
+export const partnerJewelry = mysqlTable("partnerJewelry", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Brand ID */
+  brandId: int("brandId").notNull(),
+  /** Jewelry name */
+  name: varchar("name", { length: 255 }).notNull(),
+  /** Type of jewelry (necklace, earrings, ring, bracelet, anklet, brooch, set) */
+  type: mysqlEnum("type", ["necklace", "earrings", "ring", "bracelet", "anklet", "brooch", "set"]).notNull(),
+  /** Description */
+  description: text("description"),
+  /** Price in cents (e.g., 1800 = 18.00€) */
+  priceInCents: int("priceInCents"),
+  /** Currency code */
+  currency: varchar("currency", { length: 3 }).default("EUR"),
+  /** Main image URL */
+  imageUrl: text("imageUrl"),
+  /** Additional images (JSON array of URLs) */
+  additionalImages: text("additionalImages"),
+  /** Product URL on brand's website */
+  productUrl: varchar("productUrl", { length: 512 }),
+  /** Metal type (gold, silver, rose_gold, platinum, other) */
+  metalType: mysqlEnum("metalType", ["gold", "silver", "rose_gold", "platinum", "brass", "copper", "resin", "polymer", "other"]),
+  /** Gem type (diamond, ruby, sapphire, emerald, pearl, none, other) */
+  gemType: mysqlEnum("gemType", ["diamond", "ruby", "sapphire", "emerald", "pearl", "crystal", "none", "other"]),
+  /** Collection name */
+  collection: varchar("collection", { length: 128 }),
+  /** Tags (JSON array of strings) */
+  tags: text("tags"),
+  /** Is available for purchase */
+  isAvailable: boolean("isAvailable").default(true),
+  /** Is available for virtual try-on */
+  isTryOnEnabled: boolean("isTryOnEnabled").default(true),
+  /** Try-on overlay image URL (PNG with transparency) */
+  tryOnImageUrl: text("tryOnImageUrl"),
+  /** Number of views */
+  viewCount: int("viewCount").default(0),
+  /** Number of try-ons */
+  tryOnCount: int("tryOnCount").default(0),
+  /** Number of clicks to product page */
+  clickCount: int("clickCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PartnerJewelry = typeof partnerJewelry.$inferSelect;
+export type InsertPartnerJewelry = typeof partnerJewelry.$inferInsert;
+
+/**
+ * Partner jewelry favorites - tracks user favorites for partner jewelry
+ */
+export const partnerJewelryFavorites = mysqlTable("partnerJewelryFavorites", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  jewelryId: int("jewelryId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PartnerJewelryFavorite = typeof partnerJewelryFavorites.$inferSelect;
+export type InsertPartnerJewelryFavorite = typeof partnerJewelryFavorites.$inferInsert;

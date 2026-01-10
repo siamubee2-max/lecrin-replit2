@@ -234,3 +234,18 @@
 - [x] Ajouter le bouton de partage dans le modal de détails du look
 - [x] Permettre le partage sur Instagram, WhatsApp, Twitter, Facebook, Pinterest
 - [x] Créer des tests unitaires pour le partage de looks (41 tests)
+
+
+## Boutique Partenaires - Bijoux de Marques
+- [x] Créer le schéma de données pour les marques partenaires (partnerBrands)
+- [x] Créer le schéma pour les bijoux partenaires (partnerJewelry) avec prix, tags, lien externe
+- [x] Ajouter les données de démonstration pour Moni'attitude (bijoux en résine)
+- [x] Créer l'écran Boutique avec header "Boutique Style Sélectionné"
+- [x] Afficher la section "Partenaires Vedettes" avec carte marque et badge premium
+- [x] Créer la grille de bijoux avec images, noms, marque, tags et prix
+- [x] Ajouter les filtres (type, métal, gemmes, marque, collection, prix)
+- [x] Implémenter la barre de recherche
+- [x] Créer le modal de détail du bijou avec bouton "Visiter la Marque" (lien externe)
+- [x] Ajouter le bouton "Essayer virtuellement" pour lancer l'essayage avec le bijou
+- [x] Intégrer les favoris (cœur) sur les cartes de bijoux
+- [x] Créer des tests unitaires pour la Boutique Partenaires (50 tests)
