@@ -105,3 +105,16 @@
 - [x] Générer capture iPad 3 - Mon Écrin (2048x2732)
 - [x] Générer capture iPad 4 - Boutique créateurs (2048x2732)
 - [x] Générer capture iPad 5 - Abonnements (2048x2732)
+
+## Analyse Concurrentielle des Prix
+- [x] Rechercher les applications d'essayage virtuel de bijoux concurrentes
+- [x] Analyser leurs modèles tarifaires (freemium, abonnement, achat unique)
+- [x] Comparer les fonctionnalités par niveau de prix
+- [x] Formuler des recommandations tarifaires pour L'Écrin Virtuel
+
+## Mise à jour des Tarifs
+- [x] Ajouter le plan Découverte gratuit (3 essayages/mois)
+- [x] Mettre à jour Essentiel de 9,99€ à 14,99€/mois
+- [x] Mettre à jour Premium de 12,99€ à 24,99€/mois
+- [x] Mettre à jour Annuel de 100€ à 199€/an
+- [x] Mettre à jour les identifiants StoreKit correspondants

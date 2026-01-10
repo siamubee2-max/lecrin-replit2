@@ -10,27 +10,36 @@ import { useColors } from "@/hooks/use-colors";
 
 const SUBSCRIPTION_PLANS = [
   {
+    id: "free",
+    name: "Découverte",
+    price: "Gratuit",
+    period: "",
+    features: ["3 essayages/mois", "Modèles de base", "Aperçu des fonctionnalités"],
+    popular: false,
+    isFree: true,
+  },
+  {
     id: "monthly_basic",
     name: "Essentiel",
-    price: "9,99€",
+    price: "14,99€",
     period: "/mois",
-    features: ["10 essayages/mois", "Modèles de base", "Sauvegarde illimitée"],
+    features: ["Essayages illimités", "Tous les modèles", "Sauvegarde illimitée", "Support email"],
     popular: false,
   },
   {
     id: "monthly_premium",
     name: "Premium",
-    price: "12,99€",
+    price: "24,99€",
     period: "/mois",
-    features: ["Essayages illimités", "Tous les modèles", "Garde-robe virtuelle", "Support prioritaire"],
+    features: ["Essayages illimités", "Garde-robe virtuelle", "Accès créateurs partenaires", "Support prioritaire"],
     popular: true,
   },
   {
     id: "yearly",
-    name: "Annuel",
-    price: "100€",
+    name: "Annuel Premium",
+    price: "199€",
     period: "/an",
-    features: ["Tout inclus", "Économisez 56€", "Accès anticipé nouveautés", "Badge VIP"],
+    features: ["Tout Premium inclus", "Économisez 100€ (33%)", "Accès anticipé nouveautés", "Badge VIP exclusif"],
     popular: false,
   },
 ];
@@ -120,14 +129,16 @@ export default function SettingsScreen() {
 
           {showSubscription && (
             <View className="mt-4">
-              {SUBSCRIPTION_PLANS.map((plan) => (
+              {SUBSCRIPTION_PLANS.map((plan: any) => (
                 <TouchableOpacity
                   key={plan.id}
-                  onPress={() => handleSubscribe(plan.id)}
+                  onPress={() => plan.isFree ? null : handleSubscribe(plan.id)}
+                  activeOpacity={plan.isFree ? 1 : 0.7}
                   className="p-4 rounded-2xl mb-3"
                   style={[
                     { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-                    plan.popular && { borderColor: colors.primary, borderWidth: 2 }
+                    plan.popular && { borderColor: colors.primary, borderWidth: 2 },
+                    plan.isFree && { borderStyle: 'dashed' as const }
                   ]}
                 >
                   {plan.popular && (
@@ -140,6 +151,16 @@ export default function SettingsScreen() {
                       </Text>
                     </View>
                   )}
+                  {plan.isFree && (
+                    <View 
+                      className="absolute -top-3 right-4 px-3 py-1 rounded-full"
+                      style={{ backgroundColor: colors.success }}
+                    >
+                      <Text className="text-xs font-bold" style={{ color: '#FFFFFF' }}>
+                        ACTUEL
+                      </Text>
+                    </View>
+                  )}
                   
                   <View className="flex-row items-baseline mb-2">
                     <Text className="text-2xl font-bold text-foreground">{plan.price}</Text>
@@ -148,12 +169,26 @@ export default function SettingsScreen() {
                   
                   <Text className="text-lg font-semibold text-foreground mb-2">{plan.name}</Text>
                   
-                  {plan.features.map((feature, index) => (
+                  {plan.features.map((feature: string, index: number) => (
                     <View key={index} className="flex-row items-center mb-1">
-                      <IconSymbol name="checkmark" size={16} color={colors.primary} />
+                      <IconSymbol name="checkmark" size={16} color={plan.isFree ? colors.success : colors.primary} />
                       <Text className="text-sm text-muted ml-2">{feature}</Text>
                     </View>
                   ))}
+                  
+                  {!plan.isFree && (
+                    <View 
+                      className="mt-3 py-2 rounded-xl items-center"
+                      style={{ backgroundColor: plan.popular ? colors.primary : colors.primary + '20' }}
+                    >
+                      <Text 
+                        className="font-semibold"
+                        style={{ color: plan.popular ? '#0A1A3B' : colors.primary }}
+                      >
+                        S'abonner
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
 
