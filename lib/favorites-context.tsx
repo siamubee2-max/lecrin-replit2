@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/use-auth";
 
 export interface FavoriteTryOn {
   id: string;
@@ -21,6 +23,8 @@ interface FavoritesContextType {
   removeFavorite: (id: string) => Promise<void>;
   isFavorite: (id: string) => boolean;
   incrementTryOnCount: () => Promise<void>;
+  syncWithServer: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -35,14 +39,52 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     favoritesCount: 0,
     lastTryOnDate: null as string | null,
   });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const { isAuthenticated, user } = useAuth();
+  
+  // tRPC mutations
+  const addFavoriteMutation = trpc.favorites.add.useMutation();
+  const removeFavoriteMutation = trpc.favorites.remove.useMutation();
+  const syncFavoritesMutation = trpc.favorites.sync.useMutation();
+  const incrementTryOnMutation = trpc.stats.incrementTryOn.useMutation();
+  
+  // tRPC queries (only fetch when authenticated)
+  const { data: serverFavorites, refetch: refetchFavorites } = trpc.favorites.list.useQuery(
+    undefined,
+    { enabled: isAuthenticated }
+  );
+  const { data: serverStats, refetch: refetchStats } = trpc.stats.get.useQuery(
+    undefined,
+    { enabled: isAuthenticated }
+  );
 
-  // Load favorites and stats on mount
+  // Load local data on mount
   useEffect(() => {
-    loadData();
+    loadLocalData();
   }, []);
 
-  const loadData = async () => {
+  // Sync with server when user logs in
+  useEffect(() => {
+    if (isAuthenticated && serverFavorites) {
+      mergeServerFavorites(serverFavorites);
+    }
+  }, [isAuthenticated, serverFavorites]);
+
+  // Update stats from server
+  useEffect(() => {
+    if (isAuthenticated && serverStats) {
+      setStats(prev => ({
+        totalTryOns: Math.max(prev.totalTryOns, serverStats.totalTryOns || 0),
+        favoritesCount: Math.max(prev.favoritesCount, serverStats.favoritesCount || 0),
+        lastTryOnDate: serverStats.lastTryOnDate?.toString() || prev.lastTryOnDate,
+      }));
+    }
+  }, [isAuthenticated, serverStats]);
+
+  const loadLocalData = async () => {
     try {
+      setIsLoading(true);
       const [favoritesData, statsData] = await Promise.all([
         AsyncStorage.getItem(FAVORITES_KEY),
         AsyncStorage.getItem(STATS_KEY),
@@ -59,7 +101,32 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error loading favorites:", error);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const mergeServerFavorites = (serverFavs: any[]) => {
+    // Convert server favorites to local format
+    const serverFormatted: FavoriteTryOn[] = serverFavs.map(f => ({
+      id: f.id.toString(),
+      jewelryType: f.jewelryType,
+      jewelryIcon: f.jewelryIcon || "",
+      modelName: f.modelName || "",
+      createdAt: f.createdAt?.toString() || new Date().toISOString(),
+      imageUri: f.imageUri,
+    }));
+
+    // Merge with local favorites (avoid duplicates)
+    setFavorites(prev => {
+      const localIds = new Set(prev.map(f => `${f.jewelryType}-${f.modelName}-${f.jewelryIcon}`));
+      const newFromServer = serverFormatted.filter(
+        f => !localIds.has(`${f.jewelryType}-${f.modelName}-${f.jewelryIcon}`)
+      );
+      const merged = [...prev, ...newFromServer];
+      saveFavorites(merged);
+      return merged;
+    });
   };
 
   const saveFavorites = async (newFavorites: FavoriteTryOn[]) => {
@@ -95,6 +162,20 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     };
     setStats(newStats);
     await saveStats(newStats);
+
+    // Sync to server if authenticated
+    if (isAuthenticated) {
+      try {
+        await addFavoriteMutation.mutateAsync({
+          jewelryType: tryOn.jewelryType,
+          jewelryIcon: tryOn.jewelryIcon,
+          modelName: tryOn.modelName,
+          imageUri: tryOn.imageUri,
+        });
+      } catch (error) {
+        console.error("Error syncing favorite to server:", error);
+      }
+    }
   };
 
   const removeFavorite = async (id: string) => {
@@ -108,6 +189,18 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     };
     setStats(newStats);
     await saveStats(newStats);
+
+    // Sync to server if authenticated
+    if (isAuthenticated) {
+      try {
+        const numericId = parseInt(id, 10);
+        if (!isNaN(numericId)) {
+          await removeFavoriteMutation.mutateAsync({ id: numericId });
+        }
+      } catch (error) {
+        console.error("Error removing favorite from server:", error);
+      }
+    }
   };
 
   const isFavorite = (id: string) => {
@@ -122,7 +215,39 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     };
     setStats(newStats);
     await saveStats(newStats);
+
+    // Sync to server if authenticated
+    if (isAuthenticated) {
+      try {
+        await incrementTryOnMutation.mutateAsync();
+      } catch (error) {
+        console.error("Error syncing try-on count to server:", error);
+      }
+    }
   };
+
+  const syncWithServer = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      // Upload local favorites to server
+      await syncFavoritesMutation.mutateAsync(
+        favorites.map(f => ({
+          jewelryType: f.jewelryType,
+          jewelryIcon: f.jewelryIcon,
+          modelName: f.modelName,
+          imageUri: f.imageUri,
+          createdAt: f.createdAt,
+        }))
+      );
+
+      // Refresh from server
+      await refetchFavorites();
+      await refetchStats();
+    } catch (error) {
+      console.error("Error syncing with server:", error);
+    }
+  }, [isAuthenticated, favorites, syncFavoritesMutation, refetchFavorites, refetchStats]);
 
   return (
     <FavoritesContext.Provider
@@ -133,6 +258,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         removeFavorite,
         isFavorite,
         incrementTryOnCount,
+        syncWithServer,
+        isLoading,
       }}
     >
       {children}

@@ -1,11 +1,16 @@
+import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import * as db from "./db";
 
 export const appRouter = router({
-  // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+  
+  // ============================================
+  // AUTH ROUTES
+  // ============================================
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -17,12 +22,200 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // ============================================
+  // FAVORITES ROUTES
+  // ============================================
+  favorites: router({
+    // Get all user favorites
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserFavorites(ctx.user.id);
+    }),
+
+    // Add a new favorite
+    add: protectedProcedure
+      .input(z.object({
+        jewelryType: z.string().min(1).max(64),
+        jewelryIcon: z.string().max(16).optional(),
+        modelName: z.string().max(128).optional(),
+        imageUri: z.string().optional(),
+        jewelryItemId: z.number().optional(),
+        creatorId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.addFavorite({
+          userId: ctx.user.id,
+          jewelryType: input.jewelryType,
+          jewelryIcon: input.jewelryIcon,
+          modelName: input.modelName,
+          imageUri: input.imageUri,
+          jewelryItemId: input.jewelryItemId,
+          creatorId: input.creatorId,
+        });
+        return { id };
+      }),
+
+    // Remove a favorite
+    remove: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await db.removeFavorite(input.id, ctx.user.id);
+        return { success: true };
+      }),
+
+    // Sync favorites from local storage (bulk import)
+    sync: protectedProcedure
+      .input(z.array(z.object({
+        jewelryType: z.string(),
+        jewelryIcon: z.string().optional(),
+        modelName: z.string().optional(),
+        imageUri: z.string().optional(),
+        createdAt: z.string().optional(),
+      })))
+      .mutation(async ({ ctx, input }) => {
+        // Get existing favorites to avoid duplicates
+        const existing = await db.getUserFavorites(ctx.user.id);
+        const existingKeys = new Set(
+          existing.map(f => `${f.jewelryType}-${f.modelName}-${f.jewelryIcon}`)
+        );
+
+        let imported = 0;
+        for (const fav of input) {
+          const key = `${fav.jewelryType}-${fav.modelName}-${fav.jewelryIcon}`;
+          if (!existingKeys.has(key)) {
+            await db.addFavorite({
+              userId: ctx.user.id,
+              jewelryType: fav.jewelryType,
+              jewelryIcon: fav.jewelryIcon,
+              modelName: fav.modelName,
+              imageUri: fav.imageUri,
+            });
+            imported++;
+          }
+        }
+
+        return { imported, total: existing.length + imported };
+      }),
+  }),
+
+  // ============================================
+  // USER STATS ROUTES
+  // ============================================
+  stats: router({
+    // Get user stats
+    get: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserStats(ctx.user.id);
+    }),
+
+    // Increment try-on count
+    incrementTryOn: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.incrementTryOnCount(ctx.user.id);
+      return { success: true };
+    }),
+
+    // Sync stats from local storage
+    sync: protectedProcedure
+      .input(z.object({
+        totalTryOns: z.number(),
+        favoritesCount: z.number(),
+        lastTryOnDate: z.string().nullable(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const stats = await db.getUserStats(ctx.user.id);
+        // Keep the higher value between local and server
+        if (stats) {
+          const newTryOns = Math.max(stats.totalTryOns || 0, input.totalTryOns);
+          const newFavorites = Math.max(stats.favoritesCount || 0, input.favoritesCount);
+          // Update would need to be implemented
+        }
+        return { success: true };
+      }),
+  }),
+
+  // ============================================
+  // CREATORS ROUTES
+  // ============================================
+  creators: router({
+    // Get all active creators
+    list: publicProcedure.query(async () => {
+      return db.getActiveCreators();
+    }),
+
+    // Get creator by ID with their jewelry
+    get: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const creator = await db.getCreatorById(input.id);
+        if (!creator) return null;
+        
+        const jewelry = await db.getCreatorJewelry(input.id);
+        return { ...creator, jewelry };
+      }),
+
+    // Get all available jewelry for try-on
+    jewelry: publicProcedure.query(async () => {
+      return db.getAvailableJewelry();
+    }),
+  }),
+
+  // ============================================
+  // USER COLLECTION ROUTES (Mon Écrin)
+  // ============================================
+  collection: router({
+    // Get user's jewelry collection
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserCollection(ctx.user.id);
+    }),
+
+    // Add item to collection
+    add: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(255),
+        type: z.string().min(1).max(64),
+        metal: z.string().max(64).optional(),
+        gem: z.string().max(64).optional(),
+        brand: z.string().max(128).optional(),
+        collection: z.string().max(128).optional(),
+        price: z.number().optional(),
+        imageUri: z.string().optional(),
+        tags: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await db.addToCollection({
+          userId: ctx.user.id,
+          ...input,
+        });
+        return { id };
+      }),
+
+    // Remove item from collection
+    remove: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.removeFromCollection(input.id);
+        return { success: true };
+      }),
+
+    // Update item in collection
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(255).optional(),
+        type: z.string().min(1).max(64).optional(),
+        metal: z.string().max(64).optional(),
+        gem: z.string().max(64).optional(),
+        brand: z.string().max(128).optional(),
+        collection: z.string().max(128).optional(),
+        price: z.number().optional(),
+        imageUri: z.string().optional(),
+        tags: z.string().optional(),
+        isFavorite: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateCollectionItem(id, data);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

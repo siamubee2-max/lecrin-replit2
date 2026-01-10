@@ -57,3 +57,12 @@
 - [x] Implémenter la sauvegarde des favoris (AsyncStorage)
 - [x] Ajouter les statistiques d'utilisation
 - [x] Intégrer la navigation vers le profil
+
+## Authentification Apple/Google
+- [x] Lire la documentation du backend pour l'authentification
+- [x] Configurer l'authentification Apple Sign In (via Manus OAuth)
+- [x] Configurer l'authentification Google Sign In (via Manus OAuth)
+- [x] Créer l'écran de connexion
+- [x] Intégrer le flux OAuth dans l'app
+- [x] Synchroniser les favoris avec le serveur (API tRPC)
+- [x] Mettre à jour le profil avec les infos utilisateur

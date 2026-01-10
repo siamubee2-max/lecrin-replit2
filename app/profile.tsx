@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -8,12 +8,15 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useFavorites, FavoriteTryOn } from "@/lib/favorites-context";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { favorites, stats, removeFavorite } = useFavorites();
+  const { favorites, stats, removeFavorite, syncWithServer, isLoading: favoritesLoading } = useFavorites();
+  const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"favorites" | "history">("favorites");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const handleRemoveFavorite = (id: string) => {
     if (Platform.OS !== "web") {
@@ -28,6 +31,39 @@ export default function ProfileScreen() {
           text: "Supprimer", 
           style: "destructive",
           onPress: () => removeFavorite(id)
+        },
+      ]
+    );
+  };
+
+  const handleSync = async () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsSyncing(true);
+    try {
+      await syncWithServer();
+      Alert.alert("Synchronisation", "Vos favoris ont été synchronisés avec succès !");
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de synchroniser vos favoris.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Déconnexion",
+      "Voulez-vous vraiment vous déconnecter ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        { 
+          text: "Déconnexion", 
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+            router.back();
+          }
         },
       ]
     );
@@ -83,14 +119,40 @@ export default function ProfileScreen() {
     </View>
   );
 
+  if (authLoading) {
+    return (
+      <ScreenContainer edges={["top", "left", "right", "bottom"]} className="bg-background">
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} className="bg-background">
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-          <IconSymbol name="chevron.left" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-foreground ml-2">Mon Profil</Text>
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+        <View className="flex-row items-center">
+          <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
+            <IconSymbol name="chevron.left" size={24} color={colors.foreground} />
+          </TouchableOpacity>
+          <Text className="text-xl font-bold text-foreground ml-2">Mon Profil</Text>
+        </View>
+        
+        {isAuthenticated && (
+          <TouchableOpacity 
+            onPress={handleSync}
+            disabled={isSyncing}
+            className="p-2"
+          >
+            {isSyncing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <IconSymbol name="arrow.triangle.2.circlepath" size={22} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView 
@@ -103,21 +165,55 @@ export default function ProfileScreen() {
             className="w-24 h-24 rounded-full items-center justify-center mb-4"
             style={{ backgroundColor: colors.primary }}
           >
-            <Text className="text-4xl">👤</Text>
+            {isAuthenticated && user?.name ? (
+              <Text className="text-4xl font-bold" style={{ color: '#0A1A3B' }}>
+                {user.name.charAt(0).toUpperCase()}
+              </Text>
+            ) : (
+              <Text className="text-4xl">👤</Text>
+            )}
           </View>
-          <Text className="text-2xl font-bold text-foreground">Utilisateur</Text>
-          <Text className="text-base text-muted mt-1">Mode invité</Text>
           
-          {/* Premium Badge */}
-          <View 
-            className="flex-row items-center mt-3 px-4 py-2 rounded-full"
-            style={{ backgroundColor: colors.primary + '20' }}
-          >
-            <Text className="text-sm mr-1">👑</Text>
-            <Text className="text-sm font-semibold" style={{ color: colors.primary }}>
-              Compte Gratuit
-            </Text>
-          </View>
+          {isAuthenticated ? (
+            <>
+              <Text className="text-2xl font-bold text-foreground">
+                {user?.name || "Utilisateur"}
+              </Text>
+              <Text className="text-base text-muted mt-1">{user?.email}</Text>
+              
+              {/* Cloud Sync Badge */}
+              <View 
+                className="flex-row items-center mt-3 px-4 py-2 rounded-full"
+                style={{ backgroundColor: '#22C55E20' }}
+              >
+                <IconSymbol name="icloud.fill" size={16} color="#22C55E" />
+                <Text className="text-sm font-semibold ml-2" style={{ color: '#22C55E' }}>
+                  Synchronisé
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text className="text-2xl font-bold text-foreground">Utilisateur</Text>
+              <Text className="text-base text-muted mt-1">Mode invité</Text>
+              
+              {/* Login CTA */}
+              <TouchableOpacity
+                onPress={() => router.push("/login")}
+                className="flex-row items-center mt-4 px-6 py-3 rounded-full"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <IconSymbol name="person.fill" size={18} color="#0A1A3B" />
+                <Text className="text-base font-semibold ml-2" style={{ color: '#0A1A3B' }}>
+                  Se connecter
+                </Text>
+              </TouchableOpacity>
+              
+              <Text className="text-xs text-muted mt-3 text-center px-8">
+                Connectez-vous pour synchroniser vos favoris sur tous vos appareils
+              </Text>
+            </>
+          )}
         </View>
 
         {/* Stats Section */}
@@ -153,7 +249,7 @@ export default function ProfileScreen() {
         <View className="px-4 mb-6">
           <View className="flex-row gap-3">
             <TouchableOpacity
-              onPress={() => router.push("/tryon")}
+              onPress={() => router.push("/(tabs)/tryon")}
               className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
               style={{ backgroundColor: colors.primary }}
             >
@@ -164,7 +260,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity
-              onPress={() => router.push("/settings")}
+              onPress={() => router.push("/(tabs)/settings")}
               className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
               style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
             >
@@ -210,7 +306,11 @@ export default function ProfileScreen() {
         {/* Content */}
         <View className="px-4">
           {activeTab === "favorites" ? (
-            favorites.length > 0 ? (
+            favoritesLoading ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : favorites.length > 0 ? (
               <FlatList
                 data={favorites}
                 keyExtractor={(item) => item.id}
@@ -223,7 +323,7 @@ export default function ProfileScreen() {
                 title="Aucun favori"
                 description="Sauvegardez vos essayages préférés en appuyant sur le cœur lors d'un essayage."
                 actionLabel="Commencer un essayage"
-                onAction={() => router.push("/tryon")}
+                onAction={() => router.push("/(tabs)/tryon")}
                 colors={colors}
               />
             )
@@ -233,38 +333,51 @@ export default function ProfileScreen() {
               title="Historique vide"
               description="Vos essayages récents apparaîtront ici."
               actionLabel="Commencer un essayage"
-              onAction={() => router.push("/tryon")}
+              onAction={() => router.push("/(tabs)/tryon")}
               colors={colors}
             />
           )}
         </View>
 
-        {/* Upgrade CTA */}
+        {/* Upgrade CTA or Logout */}
         <View className="px-4 mt-6">
-          <TouchableOpacity
-            onPress={() => router.push("/settings")}
-            className="rounded-2xl p-5"
-            style={[styles.upgradeCta, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}
-          >
-            <View className="flex-row items-center mb-2">
-              <Text className="text-2xl mr-3">👑</Text>
-              <Text className="text-lg font-bold text-foreground">
-                Passez à Premium
-              </Text>
-            </View>
-            <Text className="text-sm text-muted mb-4">
-              Débloquez les essayages illimités, tous les modèles et la garde-robe virtuelle.
-            </Text>
-            <View 
-              className="flex-row items-center justify-center py-3 rounded-xl"
-              style={{ backgroundColor: colors.primary }}
+          {isAuthenticated ? (
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="flex-row items-center justify-center py-4 rounded-xl"
+              style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
             >
-              <Text className="text-sm font-semibold" style={{ color: '#0A1A3B' }}>
-                Voir les offres
+              <IconSymbol name="rectangle.stack.fill" size={18} color="#EF4444" />
+              <Text className="text-base font-semibold ml-2" style={{ color: '#EF4444' }}>
+                Se déconnecter
               </Text>
-              <IconSymbol name="chevron.right" size={16} color="#0A1A3B" />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/settings")}
+              className="rounded-2xl p-5"
+              style={[styles.upgradeCta, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}
+            >
+              <View className="flex-row items-center mb-2">
+                <Text className="text-2xl mr-3">👑</Text>
+                <Text className="text-lg font-bold text-foreground">
+                  Passez à Premium
+                </Text>
+              </View>
+              <Text className="text-sm text-muted mb-4">
+                Débloquez les essayages illimités, tous les modèles et la garde-robe virtuelle.
+              </Text>
+              <View 
+                className="flex-row items-center justify-center py-3 rounded-xl"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <Text className="text-sm font-semibold" style={{ color: '#0A1A3B' }}>
+                  Voir les offres
+                </Text>
+                <IconSymbol name="chevron.right" size={16} color="#0A1A3B" />
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </ScreenContainer>

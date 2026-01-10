@@ -61,6 +61,9 @@ const MAPPING = {
   "photo.on.rectangle": "add-photo-alternate",
   "rectangle.stack.fill": "layers",
   "menubar.rectangle": "menu",
+  "apple.logo": "apple",
+  "icloud.fill": "cloud",
+  "arrow.triangle.2.circlepath": "sync",
 } as IconMapping;
 
 /**
