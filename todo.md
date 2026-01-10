@@ -339,3 +339,24 @@
 - [x] Persister les préférences avec AsyncStorage
 - [x] Ajouter les traductions pour les nouveaux onglets (6 langues)
 - [x] Créer des tests unitaires pour les nouveaux composants (32 tests - 753 total)
+
+## Vérification Conformité iOS/Android
+- [x] Vérifier les formats d'images (PNG, dimensions, transparence)
+- [x] Vérifier les icônes d'application (toutes tailles requises)
+- [x] Vérifier les images splash screen
+- [x] Vérifier les captures d'écran App Store
+- [x] Vérifier les prix d'abonnement (Découverte, Essentiel, Premium, Annuel) - CONFORME
+- [x] Vérifier les identifiants StoreKit - CONFORME
+- [x] Corriger l'icône d'application (1024x1024)
+- [x] Régénérer captures iPhone (1290x2796) avec nouvelles fonctionnalités
+  - [x] Capture 1: Écran d'accueil avec hero section
+  - [x] Capture 2: Essayage virtuel avec IA
+  - [x] Capture 3: Profil enrichi avec onglets
+  - [x] Capture 4: Notifications et suggestions quotidiennes
+  - [x] Capture 5: Boutique partenaires
+- [x] Régénérer captures iPad (2048x2732) avec nouvelles fonctionnalités
+  - [x] Capture 1: Écran d'accueil
+  - [x] Capture 2: Essayage virtuel
+  - [x] Capture 3: Mon Écrin
+  - [x] Capture 4: Boutique
+  - [x] Capture 5: Abonnements
