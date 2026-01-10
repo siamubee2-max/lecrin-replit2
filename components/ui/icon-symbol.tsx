@@ -65,6 +65,7 @@ const MAPPING = {
   "icloud.fill": "cloud",
   "arrow.triangle.2.circlepath": "sync",
   "doc.on.doc": "content-copy",
+  "arrow.counterclockwise": "replay",
 } as IconMapping;
 
 /**

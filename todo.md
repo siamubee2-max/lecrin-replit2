@@ -136,3 +136,12 @@
 - [x] Intégrer la capture dans l'écran d'essayage (ViewShot)
 - [x] Connecter la capture au partage natif
 - [x] Ajouter la sauvegarde dans la galerie (album "Écrin Virtuel")
+
+## Filtres et Retouche Photo
+- [x] Créer le composant PhotoEditor avec preview en temps réel
+- [x] Ajouter des filtres prédéfinis (Original, Glamour, Vintage, N&B, Doré, Froid, Rose, Dramatique)
+- [x] Implémenter les sliders de retouche (luminosité, contraste, saturation, chaleur)
+- [x] Ajouter un slider de vignette pour effet professionnel
+- [x] Intégrer l'éditeur dans le flux de capture après la prise de photo
+- [x] Ajouter boutons Annuler/Appliquer avec preview avant/après
+- [x] Créer des tests unitaires pour les filtres (48 tests)

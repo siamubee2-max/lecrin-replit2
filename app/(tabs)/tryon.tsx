@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, Modal } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import ViewShot from "react-native-view-shot";
 import { useRouter } from "expo-router";
@@ -13,6 +13,7 @@ import { ShareModal } from "@/components/share-modal";
 import { useFavorites } from "@/lib/favorites-context";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { trpc } from "@/lib/trpc";
+import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/photo-editor";
 
 // Mapping between jewelry types and body part types
 const JEWELRY_TO_BODY_PART: Record<string, string> = {
@@ -54,6 +55,13 @@ export default function TryOnScreen() {
   const [jewelrySize, setJewelrySize] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  
+  // Photo Editor state
+  const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+  const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
+  const [appliedFilter, setAppliedFilter] = useState<FilterType>("original");
+  const [appliedRetouch, setAppliedRetouch] = useState<RetouchOptions | null>(null);
+  
   const { addFavorite, incrementTryOnCount } = useFavorites();
   const { viewShotRef, isCapturing, capture, shareCapture, saveToGallery, lastCaptureUri } = useScreenshot({ format: 'png', quality: 1 });
 
@@ -104,19 +112,60 @@ export default function TryOnScreen() {
     setJewelrySize(prev => Math.max(0.5, Math.min(2, prev + delta)));
   };
 
-  const handleCapture = async () => {
+  // Capture and open photo editor
+  const handleCaptureForEdit = async () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    
+    const capturedUri = await capture();
+    
+    if (capturedUri) {
+      setCapturedImageUri(capturedUri);
+      setShowPhotoEditor(true);
+    }
+  };
+
+  // Save edited photo
+  const handleSaveEditedPhoto = async (editedUri: string, options: RetouchOptions, filter: FilterType) => {
+    setShowPhotoEditor(false);
+    setIsSaving(true);
+    setAppliedFilter(filter);
+    setAppliedRetouch(options);
+    
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    
+    await incrementTryOnCount();
+    
+    // Sauvegarder dans la galerie
+    await saveToGallery();
+    
+    setTimeout(() => {
+      setIsSaving(false);
+      router.push("/(tabs)/gallery");
+    }, 1000);
+  };
+
+  // Cancel photo editing
+  const handleCancelEdit = () => {
+    setShowPhotoEditor(false);
+    setCapturedImageUri(null);
+  };
+
+  // Direct save without editing
+  const handleDirectSave = async () => {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setIsSaving(true);
     
-    // Capturer l'image de l'essayage
     const capturedUri = await capture();
     
     await incrementTryOnCount();
     
     if (capturedUri) {
-      // Sauvegarder dans la galerie
       await saveToGallery();
     }
     
@@ -143,14 +192,11 @@ export default function TryOnScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     
-    // Capturer l'image avant de partager
     const capturedUri = await capture();
     
     if (capturedUri) {
-      // Partager directement l'image capturée
       await shareCapture();
     } else {
-      // Fallback: ouvrir le modal de partage sans image
       setShowShareModal(true);
     }
   };
@@ -248,7 +294,8 @@ export default function TryOnScreen() {
 
           {/* Controls */}
           <View className="px-6 pb-6">
-            <View className="flex-row items-center justify-center mb-6">
+            {/* Size Controls */}
+            <View className="flex-row items-center justify-center mb-4">
               <TouchableOpacity
                 onPress={() => handleSizeChange(-0.1)}
                 className="w-12 h-12 rounded-full bg-surface border border-border items-center justify-center"
@@ -271,18 +318,51 @@ export default function TryOnScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Action Buttons */}
+            <View className="flex-row gap-3 mb-3">
+              {/* Edit & Save Button */}
+              <TouchableOpacity
+                onPress={handleCaptureForEdit}
+                disabled={isSaving}
+                className="flex-1 py-4 px-6 rounded-full items-center flex-row justify-center"
+                style={[styles.captureButton, { backgroundColor: colors.primary, opacity: isSaving ? 0.7 : 1 }]}
+              >
+                <IconSymbol name="slider.horizontal.3" size={20} color="#0A1A3B" />
+                <Text className="text-base font-bold ml-2" style={{ color: '#0A1A3B' }}>
+                  Éditer & Sauvegarder
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Save Button */}
             <TouchableOpacity
-              onPress={handleCapture}
+              onPress={handleDirectSave}
               disabled={isSaving}
-              className="py-4 px-8 rounded-full items-center"
-              style={[styles.captureButton, { backgroundColor: colors.primary, opacity: isSaving ? 0.7 : 1 }]}
+              className="py-3 px-6 rounded-full items-center border"
+              style={{ borderColor: colors.border, opacity: isSaving ? 0.7 : 1 }}
             >
-              <Text className="text-lg font-bold" style={{ color: '#0A1A3B' }}>
-                {isSaving ? "Sauvegarde..." : "Sauvegarder l'Essayage"}
+              <Text className="text-sm font-semibold text-muted">
+                {isSaving ? "Sauvegarde..." : "Sauvegarde rapide"}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Photo Editor Modal */}
+        <Modal
+          visible={showPhotoEditor}
+          animationType="slide"
+          presentationStyle="fullScreen"
+        >
+          {capturedImageUri && (
+            <PhotoEditor
+              imageUri={capturedImageUri}
+              onSave={handleSaveEditedPhoto}
+              onCancel={handleCancelEdit}
+              visible={showPhotoEditor}
+            />
+          )}
+        </Modal>
 
         <ShareModal
           visible={showShareModal}
@@ -348,57 +428,43 @@ export default function TryOnScreen() {
                 >
                   <IconSymbol name="square.and.arrow.up" size={18} color={colors.background} />
                   <Text className="text-base font-semibold ml-2" style={{ color: colors.background }}>
-                    Upload
+                    Importer
                   </Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity
-                  onPress={() => router.push("/(tabs)/ecrin")}
-                  className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
-                  style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
-                >
-                  <IconSymbol name="sparkles" size={18} color={colors.foreground} />
-                  <Text className="text-base font-semibold ml-2 text-foreground">
-                    Mon Écrin
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Upload Zone */}
-              <View className="px-4 mt-6">
                 <TouchableOpacity
                   onPress={() => router.push("/(tabs)/capture")}
-                  className="rounded-2xl p-8 items-center"
-                  style={[styles.uploadZone, { borderColor: colors.border }]}
+                  className="flex-1 flex-row items-center justify-center py-3 rounded-xl border"
+                  style={{ borderColor: colors.border }}
                 >
-                  <IconSymbol name="square.and.arrow.up" size={32} color={colors.muted} />
-                  <Text className="text-base font-semibold text-foreground mt-4">
-                    Cliquez pour importer
+                  <IconSymbol name="camera.fill" size={18} color={colors.foreground} />
+                  <Text className="text-base font-semibold ml-2 text-foreground">
+                    Photo
                   </Text>
-                  <Text className="text-sm text-muted mt-1">JPG, PNG</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Type Grid */}
+              {/* Jewelry Types Grid */}
               <View className="px-4 mt-6">
-                <Text className="text-sm font-semibold text-foreground mb-3">
-                  Ou choisissez un type
-                </Text>
-                <View className="flex-row flex-wrap">
+                <Text className="text-sm font-semibold text-foreground mb-3">Catégories</Text>
+                <View className="flex-row flex-wrap gap-3">
                   {JEWELRY_TYPES.map((type) => (
                     <TouchableOpacity
                       key={type.id}
                       onPress={() => handleTypeSelect(type.id)}
-                      className="w-[31%] mr-[2%] mb-3 p-3 rounded-xl items-center"
+                      className="rounded-xl p-4 items-center"
                       style={[
-                        { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-                        selectedType === type.id && { borderColor: colors.primary, borderWidth: 2 }
+                        { 
+                          width: '31%',
+                          backgroundColor: selectedType === type.id ? colors.primary + '20' : colors.surface,
+                          borderWidth: selectedType === type.id ? 2 : 1,
+                          borderColor: selectedType === type.id ? colors.primary : colors.border,
+                        }
                       ]}
                     >
-                      <Text className="text-2xl mb-1">{type.icon}</Text>
+                      <Text className="text-3xl mb-2">{type.icon}</Text>
                       <Text 
                         className="text-xs text-center"
-                        style={{ color: selectedType === type.id ? colors.primary : colors.muted }}
+                        style={{ color: selectedType === type.id ? colors.primary : colors.foreground }}
                         numberOfLines={2}
                       >
                         {type.name}
@@ -410,111 +476,89 @@ export default function TryOnScreen() {
             </>
           ) : (
             <>
-              {/* Model Selection from Database */}
+              {/* Models Grid */}
               <View className="px-4 mt-4">
                 <Text className="text-sm font-semibold text-foreground mb-3">
-                  Modèles de démonstration pour {selectedTypeData?.name}
+                  Modèles disponibles ({filteredModels.length})
                 </Text>
                 
                 {isLoadingBodyParts ? (
-                  <View className="py-8 items-center">
+                  <View className="py-12 items-center">
                     <ActivityIndicator size="large" color={colors.primary} />
-                    <Text className="text-sm text-muted mt-2">Chargement des modèles...</Text>
+                    <Text className="text-muted mt-4">Chargement des modèles...</Text>
                   </View>
-                ) : filteredModels.length > 0 ? (
-                  <View className="flex-row flex-wrap">
+                ) : filteredModels.length === 0 ? (
+                  <View className="py-12 items-center">
+                    <Text className="text-4xl mb-4">📷</Text>
+                    <Text className="text-muted text-center">
+                      Aucun modèle disponible pour ce type.{'\n'}
+                      Importez votre propre photo !
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="flex-row flex-wrap gap-3">
                     {filteredModels.map((model) => (
                       <TouchableOpacity
                         key={model.id}
                         onPress={() => handleModelSelect(model)}
-                        className="w-[48%] mr-[2%] mb-3 rounded-xl overflow-hidden"
+                        className="rounded-xl overflow-hidden"
                         style={[
-                          { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-                          selectedModel?.id === model.id && { borderColor: colors.primary, borderWidth: 2 },
+                          { 
+                            width: '48%',
+                            aspectRatio: 0.75,
+                            borderWidth: selectedModel?.id === model.id ? 3 : 1,
+                            borderColor: selectedModel?.id === model.id ? colors.primary : colors.border,
+                          }
                         ]}
                       >
-                        <View 
-                          className="aspect-[3/4] items-center justify-center overflow-hidden"
-                          style={{ backgroundColor: colors.background }}
-                        >
-                          {model.imageUrl && model.imageUrl.length > 50 ? (
-                            <Image
-                              source={{ uri: model.imageUrl }}
-                              style={StyleSheet.absoluteFillObject}
-                              contentFit="cover"
-                              transition={200}
-                            />
-                          ) : (
-                            <View className="flex-1 items-center justify-center">
-                              <Text className="text-4xl">👩</Text>
-                              <Text className="text-xs text-muted mt-2">Image à venir</Text>
-                            </View>
+                        <Image
+                          source={{ uri: model.imageUrl }}
+                          style={StyleSheet.absoluteFillObject}
+                          contentFit="cover"
+                          transition={200}
+                        />
+                        <View className="absolute bottom-0 left-0 right-0 p-2 bg-background/80">
+                          <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
+                            {model.name}
+                          </Text>
+                          {model.isDemo && (
+                            <Text className="text-xs text-muted">Démo</Text>
                           )}
                         </View>
-                        <View className="p-3">
-                          <Text className="text-sm font-semibold text-foreground">{model.name}</Text>
-                          <Text className="text-xs text-muted capitalize">{model.type}</Text>
-                        </View>
+                        {selectedModel?.id === model.id && (
+                          <View className="absolute top-2 right-2 w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: colors.primary }}>
+                            <IconSymbol name="checkmark" size={14} color="#0A1A3B" />
+                          </View>
+                        )}
                       </TouchableOpacity>
                     ))}
                   </View>
-                ) : (
-                  <View 
-                    className="py-8 items-center rounded-xl"
-                    style={{ backgroundColor: colors.surface }}
-                  >
-                    <Text className="text-4xl mb-2">🔍</Text>
-                    <Text className="text-base font-semibold text-foreground">
-                      Aucun modèle disponible
-                    </Text>
-                    <Text className="text-sm text-muted text-center mt-1 px-4">
-                      Pas de modèle pour ce type de bijou. Utilisez votre propre photo.
-                    </Text>
-                  </View>
                 )}
-              </View>
-
-              {/* Or Upload Own Photo */}
-              <View className="px-4 mt-4">
-                <Text className="text-sm font-semibold text-foreground mb-3">
-                  Ou utilisez votre photo
-                </Text>
-                <TouchableOpacity
-                  onPress={() => router.push("/(tabs)/capture")}
-                  className="rounded-2xl p-6 items-center"
-                  style={[styles.uploadZone, { borderColor: colors.border }]}
-                >
-                  <IconSymbol name="photo.fill" size={28} color={colors.muted} />
-                  <Text className="text-base font-semibold text-foreground mt-3">
-                    Importer ma photo
-                  </Text>
-                  <Text className="text-xs text-muted mt-1">
-                    Prenez ou importez votre propre photo
-                  </Text>
-                </TouchableOpacity>
               </View>
             </>
           )}
         </ScrollView>
 
-        {/* Bottom Button */}
-        <View 
-          className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-4"
-          style={{ backgroundColor: colors.background }}
-        >
+        {/* Bottom Action Button */}
+        <View className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t" style={{ borderTopColor: colors.border }}>
           <TouchableOpacity
             onPress={handleNext}
-            disabled={(currentStep === 1 && !selectedType) || (currentStep === 2 && !selectedModel)}
-            className="py-4 rounded-full items-center flex-row justify-center"
+            disabled={currentStep === 1 ? !selectedType : !selectedModel}
+            className="py-4 rounded-full items-center"
             style={[
-              { backgroundColor: colors.primary },
-              ((currentStep === 1 && !selectedType) || (currentStep === 2 && !selectedModel)) && { opacity: 0.5 }
+              styles.nextButton,
+              { 
+                backgroundColor: (currentStep === 1 ? selectedType : selectedModel) ? colors.primary : colors.surface,
+                opacity: (currentStep === 1 ? selectedType : selectedModel) ? 1 : 0.5,
+              }
             ]}
           >
-            <Text className="text-base font-bold mr-2" style={{ color: '#0A1A3B' }}>
-              Suivant
+            <Text 
+              className="text-lg font-bold"
+              style={{ color: (currentStep === 1 ? selectedType : selectedModel) ? '#0A1A3B' : colors.muted }}
+            >
+              {currentStep === 1 ? "Continuer" : "Essayer"}
             </Text>
-            <IconSymbol name="chevron.right" size={18} color="#0A1A3B" />
           </TouchableOpacity>
         </View>
       </View>
@@ -523,13 +567,15 @@ export default function TryOnScreen() {
 }
 
 const styles = StyleSheet.create({
-  uploadZone: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    backgroundColor: 'transparent',
-  },
   captureButton: {
-    shadowColor: '#D4AF37',
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  nextButton: {
+    shadowColor: "#D4AF37",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
