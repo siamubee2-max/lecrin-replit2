@@ -129,3 +129,10 @@
 - [x] Ajouter Instagram avec copie du texte
 - [x] Ajouter WhatsApp
 - [x] Installer expo-clipboard
+
+## Capture d'Écran de l'Essayage
+- [x] Installer react-native-view-shot
+- [x] Créer un hook useScreenshot réutilisable
+- [x] Intégrer la capture dans l'écran d'essayage (ViewShot)
+- [x] Connecter la capture au partage natif
+- [x] Ajouter la sauvegarde dans la galerie (album "Écrin Virtuel")

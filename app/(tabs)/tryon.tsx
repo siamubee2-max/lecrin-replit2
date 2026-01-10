@@ -1,5 +1,6 @@
 import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import ViewShot from "react-native-view-shot";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -10,6 +11,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { ShareModal } from "@/components/share-modal";
 import { useFavorites } from "@/lib/favorites-context";
+import { useScreenshot } from "@/hooks/use-screenshot";
 import { trpc } from "@/lib/trpc";
 
 // Mapping between jewelry types and body part types
@@ -53,6 +55,7 @@ export default function TryOnScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const { addFavorite, incrementTryOnCount } = useFavorites();
+  const { viewShotRef, isCapturing, capture, shareCapture, saveToGallery, lastCaptureUri } = useScreenshot({ format: 'png', quality: 1 });
 
   // Fetch body parts from API
   const { data: allBodyParts, isLoading: isLoadingBodyParts } = trpc.bodyParts.list.useQuery();
@@ -106,11 +109,21 @@ export default function TryOnScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setIsSaving(true);
+    
+    // Capturer l'image de l'essayage
+    const capturedUri = await capture();
+    
     await incrementTryOnCount();
+    
+    if (capturedUri) {
+      // Sauvegarder dans la galerie
+      await saveToGallery();
+    }
+    
     setTimeout(() => {
       setIsSaving(false);
       router.push("/(tabs)/gallery");
-    }, 1500);
+    }, 1000);
   };
 
   const handleAddToFavorites = async () => {
@@ -125,11 +138,21 @@ export default function TryOnScreen() {
     setIsFavorited(true);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setShowShareModal(true);
+    
+    // Capturer l'image avant de partager
+    const capturedUri = await capture();
+    
+    if (capturedUri) {
+      // Partager directement l'image capturée
+      await shareCapture();
+    } else {
+      // Fallback: ouvrir le modal de partage sans image
+      setShowShareModal(true);
+    }
   };
 
   const selectedTypeData = JEWELRY_TYPES.find(t => t.id === selectedType);
@@ -174,52 +197,54 @@ export default function TryOnScreen() {
             </View>
           </View>
 
-          {/* AR View with Real Model Image */}
-          <View className="flex-1 mx-4 my-4 rounded-3xl overflow-hidden bg-surface border border-border">
-            <View className="flex-1">
-              {/* Model Image */}
-              <Image
-                source={{ uri: selectedModel.imageUrl }}
-                style={StyleSheet.absoluteFillObject}
-                contentFit="cover"
-                transition={300}
-              />
-              
-              {/* Jewelry Overlay */}
-              <View 
-                className="absolute items-center justify-center"
-                style={{ 
-                  transform: [{ scale: jewelrySize }], 
-                  top: selectedModel.type === 'earrings' ? '25%' : 
-                       selectedModel.type === 'neck' ? '40%' : 
-                       selectedModel.type === 'ring' ? '60%' : 
-                       selectedModel.type === 'wrist' ? '50%' : 
-                       selectedModel.type === 'foot' ? '70%' : '45%',
-                  left: '50%',
-                  marginLeft: -30,
-                }}
-              >
-                <Text className="text-6xl">{selectedTypeData?.icon || "💍"}</Text>
-              </View>
+          {/* AR View with Real Model Image - Wrapped in ViewShot for capture */}
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={{ flex: 1, marginHorizontal: 16, marginVertical: 16 }}>
+            <View className="flex-1 rounded-3xl overflow-hidden bg-surface border border-border">
+              <View className="flex-1">
+                {/* Model Image */}
+                <Image
+                  source={{ uri: selectedModel.imageUrl }}
+                  style={StyleSheet.absoluteFillObject}
+                  contentFit="cover"
+                  transition={300}
+                />
+                
+                {/* Jewelry Overlay */}
+                <View 
+                  className="absolute items-center justify-center"
+                  style={{ 
+                    transform: [{ scale: jewelrySize }], 
+                    top: selectedModel.type === 'earrings' ? '25%' : 
+                         selectedModel.type === 'neck' ? '40%' : 
+                         selectedModel.type === 'ring' ? '60%' : 
+                         selectedModel.type === 'wrist' ? '50%' : 
+                         selectedModel.type === 'foot' ? '70%' : '45%',
+                    left: '50%',
+                    marginLeft: -30,
+                  }}
+                >
+                  <Text className="text-6xl">{selectedTypeData?.icon || "💍"}</Text>
+                </View>
 
-              {/* Info Overlay */}
-              <View className="absolute bottom-4 left-4 right-4">
-                <View className="bg-background/90 rounded-xl px-4 py-3">
-                  <View className="flex-row items-center">
-                    <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3">
-                      <Text className="text-2xl">{selectedTypeData?.icon}</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-xs text-muted">SUR :</Text>
-                      <Text className="text-sm font-semibold text-foreground">
-                        {selectedModel.name}
-                      </Text>
+                {/* Info Overlay */}
+                <View className="absolute bottom-4 left-4 right-4">
+                  <View className="bg-background/90 rounded-xl px-4 py-3">
+                    <View className="flex-row items-center">
+                      <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3">
+                        <Text className="text-2xl">{selectedTypeData?.icon}</Text>
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-xs text-muted">SUR :</Text>
+                        <Text className="text-sm font-semibold text-foreground">
+                          {selectedModel.name}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
               </View>
             </View>
-          </View>
+          </ViewShot>
 
           {/* Controls */}
           <View className="px-6 pb-6">
