@@ -267,6 +267,45 @@ export const fr = {
     saveChanges: "Enregistrer les modifications",
     anonymousUser: "Fashionista Anonyme",
     protectedIdentity: "Identité protégée",
+    preferences: {
+      saved: "Préférences enregistrées",
+      savedMessage: "Vos préférences ont été sauvegardées avec succès.",
+      saveError: "Impossible de sauvegarder vos préférences.",
+      metals: "Métaux préférés",
+      metalsDescription: "Sélectionnez les métaux que vous préférez",
+      stones: "Pierres préférées",
+      stonesDescription: "Sélectionnez les pierres que vous aimez",
+      styles: "Styles préférés",
+      stylesDescription: "Choisissez vos styles de bijoux favoris",
+      occasions: "Occasions",
+      occasionsDescription: "Pour quelles occasions portez-vous des bijoux ?",
+      budget: "Budget",
+      budgetDescription: "Quel est votre budget habituel pour les bijoux ?",
+      skinTone: "Teint de peau",
+      skinToneDescription: "Pour des recommandations de couleurs adaptées",
+      saveButton: "Enregistrer mes préférences",
+    },
+    historyTab: {
+      title: "Historique d'essayage",
+      empty: "Aucun essayage",
+      emptyDescription: "Vos essayages apparaîtront ici après avoir essayé des bijoux.",
+      clearHistory: "Effacer l'historique",
+      clearConfirm: "Voulez-vous vraiment effacer tout l'historique ?",
+      duration: "Durée",
+      liked: "Aimé",
+      shared: "Partagé",
+    },
+    wishlist: {
+      title: "Ma Liste d'envies",
+      empty: "Liste vide",
+      emptyDescription: "Ajoutez des bijoux à votre liste d'envies pour les retrouver facilement.",
+      addItem: "Ajouter un bijou",
+      priority: "Priorité",
+      notes: "Notes",
+      notesPlaceholder: "Ajoutez des notes...",
+      visitBrand: "Visiter la marque",
+      removeConfirm: "Retirer de la liste d'envies ?",
+    },
   },
 
   // Settings
@@ -446,9 +485,9 @@ export const fr = {
   },
 } as const;
 
-// Type for translation structure (allows different string values)
-export type TranslationKeys = {
-  [K in keyof typeof fr]: {
-    [P in keyof typeof fr[K]]: string;
-  };
+// Type for translation structure - deeply nested with flexible string values
+type DeepStringify<T> = {
+  [K in keyof T]: T[K] extends object ? DeepStringify<T[K]> : string;
 };
+
+export type TranslationKeys = DeepStringify<typeof fr>;

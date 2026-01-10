@@ -33,6 +33,7 @@ const MAPPING = {
   "photo.fill": "image",
   "square.and.arrow.up": "share",
   "trash.fill": "delete",
+  "trash": "delete-outline",
   "heart.fill": "favorite",
   "heart": "favorite-border",
   "xmark": "close",

@@ -9,13 +9,20 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useFavorites, FavoriteTryOn } from "@/lib/favorites-context";
 import { useAuth } from "@/hooks/use-auth";
+import { useI18n } from "@/lib/i18n-context";
+import { StylePreferencesTab } from "@/components/profile/StylePreferencesTab";
+import { TryOnHistoryTab } from "@/components/profile/TryOnHistoryTab";
+import { WishlistTab } from "@/components/profile/WishlistTab";
+
+type ProfileTab = "favorites" | "preferences" | "history" | "wishlist";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { t } = useI18n();
   const { favorites, stats, removeFavorite, syncWithServer, isLoading: favoritesLoading } = useFavorites();
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"favorites" | "history">("favorites");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("favorites");
   const [isSyncing, setIsSyncing] = useState(false);
 
   const handleRemoveFavorite = (id: string) => {
@@ -23,12 +30,12 @@ export default function ProfileScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     Alert.alert(
-      "Supprimer des favoris",
+      t.common?.delete || "Supprimer des favoris",
       "Voulez-vous vraiment supprimer cet essayage de vos favoris ?",
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t.common?.cancel || "Annuler", style: "cancel" },
         { 
-          text: "Supprimer", 
+          text: t.common?.delete || "Supprimer", 
           style: "destructive",
           onPress: () => removeFavorite(id)
         },
@@ -45,7 +52,7 @@ export default function ProfileScreen() {
       await syncWithServer();
       Alert.alert("Synchronisation", "Vos favoris ont été synchronisés avec succès !");
     } catch (error) {
-      Alert.alert("Erreur", "Impossible de synchroniser vos favoris.");
+      Alert.alert(t.common?.error || "Erreur", "Impossible de synchroniser vos favoris.");
     } finally {
       setIsSyncing(false);
     }
@@ -53,12 +60,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      "Déconnexion",
+      t.settings?.logout || "Déconnexion",
       "Voulez-vous vraiment vous déconnecter ?",
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t.common?.cancel || "Annuler", style: "cancel" },
         { 
-          text: "Déconnexion", 
+          text: t.settings?.logout || "Déconnexion", 
           style: "destructive",
           onPress: async () => {
             await logout();
@@ -119,6 +126,13 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const tabs: { id: ProfileTab; label: string; icon: string }[] = [
+    { id: "favorites", label: "❤️", icon: "heart.fill" },
+    { id: "preferences", label: "⚙️", icon: "gearshape.fill" },
+    { id: "history", label: "📜", icon: "clock.fill" },
+    { id: "wishlist", label: "💝", icon: "gift.fill" },
+  ];
+
   if (authLoading) {
     return (
       <ScreenContainer edges={["top", "left", "right", "bottom"]} className="bg-background">
@@ -137,7 +151,9 @@ export default function ProfileScreen() {
           <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
             <IconSymbol name="chevron.left" size={24} color={colors.foreground} />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-foreground ml-2">Mon Profil</Text>
+          <Text className="text-xl font-bold text-foreground ml-2">
+            {t.profile?.title || "Mon Profil"}
+          </Text>
         </View>
         
         {isAuthenticated && (
@@ -194,7 +210,9 @@ export default function ProfileScreen() {
             </>
           ) : (
             <>
-              <Text className="text-2xl font-bold text-foreground">Utilisateur</Text>
+              <Text className="text-2xl font-bold text-foreground">
+                {t.profile?.anonymousUser || "Utilisateur"}
+              </Text>
               <Text className="text-base text-muted mt-1">Mode invité</Text>
               
               {/* Login CTA */}
@@ -266,7 +284,7 @@ export default function ProfileScreen() {
             >
               <IconSymbol name="gearshape.fill" size={18} color={colors.foreground} />
               <Text className="text-base font-semibold ml-2 text-foreground">
-                Paramètres
+                {t.settings?.title || "Paramètres"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -275,37 +293,68 @@ export default function ProfileScreen() {
         {/* Tabs */}
         <View className="px-4 mb-4">
           <View className="flex-row">
-            <TouchableOpacity
-              onPress={() => setActiveTab("favorites")}
-              className="flex-1 py-3 items-center"
-              style={activeTab === "favorites" && { borderBottomWidth: 2, borderBottomColor: colors.primary }}
-            >
+            {tabs.map((tab) => (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => {
+                  if (Platform.OS !== "web") {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setActiveTab(tab.id);
+                }}
+                className="flex-1 py-3 items-center"
+                style={activeTab === tab.id ? { borderBottomWidth: 2, borderBottomColor: colors.primary } : undefined}
+              >
+                <Text 
+                  className="text-lg"
+                  style={{ opacity: activeTab === tab.id ? 1 : 0.5 }}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          {/* Tab Labels */}
+          <View className="flex-row mt-1">
+            <View className="flex-1 items-center">
               <Text 
-                className="text-base font-semibold"
+                className="text-xs"
                 style={{ color: activeTab === "favorites" ? colors.primary : colors.muted }}
               >
-                ❤️ Favoris ({favorites.length})
+                Favoris
               </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              onPress={() => setActiveTab("history")}
-              className="flex-1 py-3 items-center"
-              style={activeTab === "history" && { borderBottomWidth: 2, borderBottomColor: colors.primary }}
-            >
+            </View>
+            <View className="flex-1 items-center">
               <Text 
-                className="text-base font-semibold"
+                className="text-xs"
+                style={{ color: activeTab === "preferences" ? colors.primary : colors.muted }}
+              >
+                {t.profile?.stylePreferences || "Style"}
+              </Text>
+            </View>
+            <View className="flex-1 items-center">
+              <Text 
+                className="text-xs"
                 style={{ color: activeTab === "history" ? colors.primary : colors.muted }}
               >
-                📜 Historique
+                {t.profile?.history || "Historique"}
               </Text>
-            </TouchableOpacity>
+            </View>
+            <View className="flex-1 items-center">
+              <Text 
+                className="text-xs"
+                style={{ color: activeTab === "wishlist" ? colors.primary : colors.muted }}
+              >
+                {t.profile?.myList || "Envies"}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Content */}
         <View className="px-4">
-          {activeTab === "favorites" ? (
+          {activeTab === "favorites" && (
             favoritesLoading ? (
               <View className="py-8 items-center">
                 <ActivityIndicator size="large" color={colors.primary} />
@@ -327,15 +376,18 @@ export default function ProfileScreen() {
                 colors={colors}
               />
             )
-          ) : (
-            <EmptyState
-              icon="📜"
-              title="Historique vide"
-              description="Vos essayages récents apparaîtront ici."
-              actionLabel="Commencer un essayage"
-              onAction={() => router.push("/(tabs)/tryon")}
-              colors={colors}
-            />
+          )}
+          
+          {activeTab === "preferences" && (
+            <StylePreferencesTab />
+          )}
+          
+          {activeTab === "history" && (
+            <TryOnHistoryTab />
+          )}
+          
+          {activeTab === "wishlist" && (
+            <WishlistTab />
           )}
         </View>
 
@@ -349,7 +401,7 @@ export default function ProfileScreen() {
             >
               <IconSymbol name="rectangle.stack.fill" size={18} color="#EF4444" />
               <Text className="text-base font-semibold ml-2" style={{ color: '#EF4444' }}>
-                Se déconnecter
+                {t.settings?.logout || "Se déconnecter"}
               </Text>
             </TouchableOpacity>
           ) : (

@@ -329,3 +329,13 @@
 - [ ] Implémenter la mise à jour automatique des widgets
 - [ ] Ajouter les traductions pour les widgets
 - [ ] Créer des tests unitaires pour le service de widgets
+
+## Enrichissement du Profil Utilisateur
+- [x] Analyser l'écran de profil existant
+- [x] Créer le système d'onglets pour le profil (4 onglets)
+- [x] Développer l'onglet "Préférences de Style" (StylePreferencesTab.tsx)
+- [x] Développer l'onglet "Historique d'essayage" (TryOnHistoryTab.tsx)
+- [x] Développer l'onglet "Ma Liste d'envies" (WishlistTab.tsx)
+- [x] Persister les préférences avec AsyncStorage
+- [x] Ajouter les traductions pour les nouveaux onglets (6 langues)
+- [x] Créer des tests unitaires pour les nouveaux composants (32 tests - 753 total)
