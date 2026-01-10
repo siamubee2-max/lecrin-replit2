@@ -223,3 +223,14 @@
 - [x] Implémenter la suppression de looks
 - [x] Ajouter la navigation depuis AI Stylist (bouton dans header)
 - [x] Créer des tests unitaires pour Mes Looks (38 tests)
+
+## Partage de Looks sur Réseaux Sociaux
+- [x] Créer le composant LookShareCard pour générer une image composite
+- [x] Afficher les miniatures des vêtements et bijoux dans la carte (max 6 pièces)
+- [x] Ajouter le nom du look et les conseils de style
+- [x] Intégrer le branding L'Écrin Virtuel dans l'image (header + footer)
+- [x] Utiliser ViewShot pour capturer l'image composite
+- [x] Intégrer le modal de partage existant (ShareModal)
+- [x] Ajouter le bouton de partage dans le modal de détails du look
+- [x] Permettre le partage sur Instagram, WhatsApp, Twitter, Facebook, Pinterest
+- [x] Créer des tests unitaires pour le partage de looks (41 tests)

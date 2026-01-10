@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
+import ViewShot from "react-native-view-shot";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -18,6 +21,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
+import { LookShareCard } from "@/components/look-share-card";
+import { ShareModal } from "@/components/share-modal";
 
 // Types
 type Occasion = "casual" | "work" | "formal" | "sport" | "party" | "all";
@@ -68,12 +73,18 @@ export default function MyLooksScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
+  // Refs
+  const shareCardRef = useRef<ViewShot>(null);
+
   // State
   const [selectedOccasion, setSelectedOccasion] = useState<Occasion>("all");
   const [selectedSeason, setSelectedSeason] = useState<Season>("all");
   const [sortBy, setSortBy] = useState<SortOption>("date");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [selectedLook, setSelectedLook] = useState<SavedLook | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareImageUri, setShareImageUri] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   // API queries
   const { data: looks = [], isLoading, refetch } = trpc.looks.list.useQuery(
@@ -146,6 +157,79 @@ export default function MyLooksScreen() {
       ]
     );
   }, [handleHaptic, deleteLookMutation]);
+
+  // Handle share look
+  const handleShareLook = useCallback(async (look: SavedLook) => {
+    handleHaptic();
+    setIsCapturing(true);
+    
+    // Wait for the share card to render
+    setTimeout(async () => {
+      try {
+        if (shareCardRef.current) {
+          const uri = await shareCardRef.current.capture?.();
+          if (uri) {
+            setShareImageUri(uri);
+            setShowShareModal(true);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to capture look card:", error);
+        Alert.alert("Erreur", "Impossible de générer l'image du look.");
+      } finally {
+        setIsCapturing(false);
+      }
+    }, 100);
+  }, [handleHaptic]);
+
+  // Handle save to gallery
+  const handleSaveToGallery = useCallback(async () => {
+    if (!shareImageUri) return;
+    
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission requise", "Veuillez autoriser l'accès à la galerie.");
+        return;
+      }
+      
+      const asset = await MediaLibrary.createAssetAsync(shareImageUri);
+      const album = await MediaLibrary.getAlbumAsync("Écrin Virtuel");
+      
+      if (album) {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      } else {
+        await MediaLibrary.createAlbumAsync("Écrin Virtuel", asset, false);
+      }
+      
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Alert.alert("Succès", "Le look a été sauvegardé dans votre galerie.");
+    } catch (error) {
+      console.error("Failed to save to gallery:", error);
+      Alert.alert("Erreur", "Impossible de sauvegarder l'image.");
+    }
+  }, [shareImageUri]);
+
+  // Handle native share
+  const handleNativeShare = useCallback(async () => {
+    if (!shareImageUri) return;
+    
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(shareImageUri, {
+          mimeType: "image/png",
+          dialogTitle: "Partager mon look",
+        });
+      } else {
+        Alert.alert("Non disponible", "Le partage n'est pas disponible sur cet appareil.");
+      }
+    } catch (error) {
+      console.error("Failed to share:", error);
+    }
+  }, [shareImageUri]);
 
   // Filter and sort looks
   const filteredLooks = useMemo(() => {
@@ -674,25 +758,73 @@ export default function MyLooksScreen() {
                 </Text>
 
                 {/* Actions */}
-                <View className="flex-row gap-3 mb-6">
+                <View className="gap-3 mb-6">
+                  {/* Share button */}
                   <TouchableOpacity
-                    className="flex-1 bg-surface py-4 rounded-xl items-center border border-border"
-                    onPress={() => handleDeleteLook(selectedLook)}
+                    className="bg-primary py-4 rounded-xl items-center flex-row justify-center"
+                    onPress={() => handleShareLook(selectedLook)}
+                    disabled={isCapturing}
                   >
-                    <Text className="text-error font-semibold">Supprimer</Text>
+                    {isCapturing ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <IconSymbol name="square.and.arrow.up" size={20} color="#FFFFFF" />
+                        <Text className="text-white font-semibold ml-2">Partager ce look</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 bg-primary py-4 rounded-xl items-center"
-                    onPress={() => setSelectedLook(null)}
-                  >
-                    <Text className="text-white font-semibold">Fermer</Text>
-                  </TouchableOpacity>
+                  
+                  {/* Other actions */}
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-surface py-4 rounded-xl items-center border border-border"
+                      onPress={() => handleDeleteLook(selectedLook)}
+                    >
+                      <Text className="text-error font-semibold">Supprimer</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-surface py-4 rounded-xl items-center border border-border"
+                      onPress={() => setSelectedLook(null)}
+                    >
+                      <Text className="text-foreground font-semibold">Fermer</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </ScrollView>
             </View>
           </View>
         </View>
       )}
+
+      {/* Hidden Share Card for capture */}
+      {selectedLook && (
+        <View style={{ position: "absolute", left: -1000, top: 0 }}>
+          <LookShareCard
+            ref={shareCardRef}
+            name={selectedLook.name}
+            description={selectedLook.description}
+            occasion={selectedLook.occasion}
+            season={selectedLook.season}
+            stylingTips={selectedLook.stylingTips}
+            wardrobeItems={getLookItems(selectedLook).clothes}
+            jewelryItems={getLookItems(selectedLook).jewelry}
+            isAiGenerated={selectedLook.isAiGenerated}
+          />
+        </View>
+      )}
+
+      {/* Share Modal */}
+      <ShareModal
+        visible={showShareModal}
+        onClose={() => {
+          setShowShareModal(false);
+          setShareImageUri(null);
+        }}
+        imageUri={shareImageUri || undefined}
+        title={selectedLook?.name || "Mon Look"}
+        message={`Découvrez mon look "${selectedLook?.name}" créé avec L'Écrin Virtuel ! 💍✨`}
+      />
     </ScreenContainer>
   );
 }
