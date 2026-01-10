@@ -93,3 +93,15 @@
 - [x] Configurer les Universal Links (iOS) et App Links (Android)
 - [x] Préparer les métadonnées App Store (titre, sous-titre, mots-clés, description)
 - [x] Créer le fichier de configuration ASO avec les textes optimisés
+
+## Captures d'écran App Store
+- [x] Générer capture iPhone 1 - Écran d'accueil (1290x2796)
+- [x] Générer capture iPhone 2 - Essayage virtuel (1290x2796)
+- [x] Générer capture iPhone 3 - Mon Écrin (1290x2796)
+- [x] Générer capture iPhone 4 - Boutique créateurs (1290x2796)
+- [x] Générer capture iPhone 5 - Abonnements (1290x2796)
+- [x] Générer capture iPad 1 - Écran d'accueil (2048x2732)
+- [x] Générer capture iPad 2 - Essayage virtuel (2048x2732)
+- [x] Générer capture iPad 3 - Mon Écrin (2048x2732)
+- [x] Générer capture iPad 4 - Boutique créateurs (2048x2732)
+- [x] Générer capture iPad 5 - Abonnements (2048x2732)
