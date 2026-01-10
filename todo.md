@@ -293,3 +293,14 @@
 - [x] Mettre à jour le fichier index.ts pour inclure les nouvelles langues
 - [x] Mettre à jour la section languages dans tous les fichiers de traduction
 - [x] Exécuter les tests pour valider les traductions (619 tests passent)
+
+## Notifications Push - Suggestions de Looks Quotidiennes
+- [x] Lire la documentation backend pour les notifications push
+- [x] Configurer expo-notifications pour les permissions et tokens
+- [x] Créer le service météo (weather-service.ts)
+- [x] Créer le service calendrier (calendar-service.ts)
+- [x] Créer le service de génération de suggestions de looks (daily-look-suggestion-service.ts)
+- [x] Créer le service de notifications (notification-service.ts)
+- [x] Implémenter l'écran de paramètres des notifications (app/notifications.tsx)
+- [x] Ajouter les traductions pour les notifications dans les 6 langues
+- [x] Créer les tests unitaires pour les services de notifications (68 tests)
