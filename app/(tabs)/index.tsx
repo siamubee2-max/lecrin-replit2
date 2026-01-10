@@ -1,27 +1,18 @@
-import { ScrollView, Text, View, TouchableOpacity, Image, StyleSheet, Pressable } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Platform, Linking } from "react-native";
-import { useState } from "react";
+import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-
-const LANGUAGES = [
-  { code: "fr", name: "Français", flag: "🇫🇷" },
-  { code: "en", name: "English", flag: "🇬🇧" },
-  { code: "es", name: "Español", flag: "🇪🇸" },
-  { code: "de", name: "Deutsch", flag: "🇩🇪" },
-  { code: "it", name: "Italiano", flag: "🇮🇹" },
-  { code: "pt", name: "Português", flag: "🇵🇹" },
-];
+import { LanguageSelector } from "@/components/language-selector";
+import { useI18n } from "@/lib/i18n-context";
 
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
-  const [currentLang, setCurrentLang] = useState("fr");
-  const [showLangPicker, setShowLangPicker] = useState(false);
+  const { t, language, flags } = useI18n();
 
   const handleStartTryOn = () => {
     if (Platform.OS !== "web") {
@@ -29,16 +20,6 @@ export default function HomeScreen() {
     }
     router.push("/tryon");
   };
-
-  const handleLanguageSelect = (code: string) => {
-    setCurrentLang(code);
-    setShowLangPicker(false);
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  };
-
-  const currentLanguage = LANGUAGES.find(l => l.code === currentLang);
 
   return (
     <ScreenContainer className="bg-background">
@@ -56,58 +37,24 @@ export default function HomeScreen() {
                 resizeMode="contain"
               />
               <Text className="text-xl font-bold text-foreground ml-2">
-                L'Écrin <Text style={{ color: colors.primary }}>Virtuel</Text>
+                {t.brand.name.split(" ")[0]} <Text style={{ color: colors.primary }}>{t.brand.name.split(" ").slice(1).join(" ") || "Virtuel"}</Text>
               </Text>
             </View>
             
             <View className="flex-row items-center">
               {/* Language Selector */}
-              <TouchableOpacity
-                onPress={() => setShowLangPicker(!showLangPicker)}
-                className="flex-row items-center px-3 py-2 rounded-full mr-2"
-                style={{ backgroundColor: colors.surface }}
-              >
-                <Text className="text-lg mr-1">{currentLanguage?.flag}</Text>
-                <IconSymbol name="chevron.down" size={16} color={colors.muted} />
-              </TouchableOpacity>
+              <LanguageSelector variant="dropdown" showName={false} />
               
               {/* Profile Button */}
               <TouchableOpacity
                 onPress={() => router.push("/profile")}
-                className="w-10 h-10 rounded-full items-center justify-center"
+                className="w-10 h-10 rounded-full items-center justify-center ml-2"
                 style={{ backgroundColor: colors.primary }}
               >
                 <IconSymbol name="person.fill" size={20} color="#0A1A3B" />
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Language Picker Dropdown */}
-          {showLangPicker && (
-            <View 
-              className="absolute top-16 right-4 rounded-xl z-50 shadow-lg"
-              style={[styles.langDropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              {LANGUAGES.map((lang) => (
-                <TouchableOpacity
-                  key={lang.code}
-                  onPress={() => handleLanguageSelect(lang.code)}
-                  className="flex-row items-center px-4 py-3"
-                  style={[
-                    lang.code === currentLang && { backgroundColor: colors.primary + '20' }
-                  ]}
-                >
-                  <Text className="text-lg mr-3">{lang.flag}</Text>
-                  <Text 
-                    className="text-base"
-                    style={{ color: lang.code === currentLang ? colors.primary : colors.foreground }}
-                  >
-                    {lang.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
 
           {/* Hero Section */}
           <View 
@@ -120,22 +67,22 @@ export default function HomeScreen() {
                 style={{ backgroundColor: colors.primary }}
               >
                 <Text className="text-xs font-semibold" style={{ color: '#0A1A3B' }}>
-                  ✨ Essayage Virtuel
+                  ✨ {t.home.virtualTryOn}
                 </Text>
               </View>
               
               <Text className="text-3xl font-bold text-white mb-2">
-                Essayez l'inaccessible
+                {t.brand.slogan.split(" ").slice(0, -1).join(" ")}
               </Text>
               <Text 
                 className="text-3xl font-bold italic mb-4"
                 style={{ color: colors.primary }}
               >
-                Virtuellement.
+                {t.brand.slogan.split(" ").slice(-1)[0]}
               </Text>
               
               <Text className="text-base text-white/80 leading-relaxed mb-6">
-                Importez un bijou, choisissez votre photo, et laissez la magie opérer. Visualisez le résultat avant d'acheter ou juste pour rêver.
+                {t.home.tryOnDescription}
               </Text>
 
               <TouchableOpacity
@@ -144,7 +91,7 @@ export default function HomeScreen() {
                 style={[styles.ctaButton, { backgroundColor: colors.background }]}
               >
                 <Text className="text-base font-semibold mr-2" style={{ color: colors.foreground }}>
-                  Nouvel Essayage
+                  {t.home.newTryOn}
                 </Text>
                 <IconSymbol name="chevron.right" size={18} color={colors.foreground} />
               </TouchableOpacity>
@@ -155,15 +102,15 @@ export default function HomeScreen() {
           <View className="flex-row justify-between px-4 mt-6">
             <QuickActionCard
               icon="📸"
-              title="Photographier"
-              subtitle="Capturer un bijou"
+              title={t.home.photographer}
+              subtitle={t.home.captureJewelry}
               onPress={() => router.push("/capture")}
               colors={colors}
             />
             <QuickActionCard
               icon="💎"
-              title="Mon Écrin"
-              subtitle="Ma collection"
+              title={t.home.myCollection}
+              subtitle={t.home.myCollectionDesc}
               onPress={() => router.push("/ecrin")}
               colors={colors}
             />
@@ -172,15 +119,15 @@ export default function HomeScreen() {
           <View className="flex-row justify-between px-4 mt-3">
             <QuickActionCard
               icon="🛍️"
-              title="Boutique"
-              subtitle="Créateurs"
+              title={t.home.boutique}
+              subtitle={t.home.boutiqueDesc}
               onPress={() => router.push("/boutique")}
               colors={colors}
             />
             <QuickActionCard
               icon="⭐"
-              title="Premium"
-              subtitle="Abonnement"
+              title={t.home.premium}
+              subtitle={t.home.premiumDesc}
               onPress={() => router.push("/settings")}
               colors={colors}
             />
@@ -190,14 +137,14 @@ export default function HomeScreen() {
           <View className="px-4 mt-8">
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-xl font-bold text-foreground">
-                Plus récents
+                {t.home.recentItems}
               </Text>
               <TouchableOpacity 
                 onPress={() => router.push("/gallery")}
                 className="flex-row items-center"
               >
                 <Text className="text-sm mr-1" style={{ color: colors.primary }}>
-                  Voir tout
+                  {t.common.seeAll}
                 </Text>
                 <IconSymbol name="chevron.right" size={14} color={colors.primary} />
               </TouchableOpacity>
@@ -209,7 +156,9 @@ export default function HomeScreen() {
             >
               <Text className="text-4xl mb-3">💍</Text>
               <Text className="text-base text-muted text-center">
-                Vos essayages apparaîtront ici
+                {language === "fr" ? "Vos essayages apparaîtront ici" : 
+                 language === "en" ? "Your try-ons will appear here" :
+                 "Tus pruebas aparecerán aquí"}
               </Text>
               <TouchableOpacity
                 onPress={handleStartTryOn}
@@ -217,7 +166,9 @@ export default function HomeScreen() {
                 style={{ backgroundColor: colors.primary }}
               >
                 <Text className="text-sm font-semibold" style={{ color: '#0A1A3B' }}>
-                  Commencer
+                  {language === "fr" ? "Commencer" : 
+                   language === "en" ? "Get Started" :
+                   "Empezar"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -226,7 +177,7 @@ export default function HomeScreen() {
           {/* Footer */}
           <View className="px-4 py-8 mt-auto">
             <Text className="text-xs text-muted text-center">
-              L'ÉCRIN VIRTUEL © 2025 — LUXE & TECHNOLOGIE
+              {t.brand.name.toUpperCase()} © 2025 — LUXE & TECHNOLOGIE
             </Text>
             <Text className="text-xs text-muted text-center mt-1">
               Powered by Inferencevision.store
@@ -291,13 +242,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
-  },
-  langDropdown: {
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
   },
 });

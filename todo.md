@@ -259,3 +259,19 @@
 - [x] Intégrer le filigrane dans les cartes de partage de looks
 - [x] Permettre de personnaliser la position, l'opacité et le thème (light/dark)
 - [x] Créer des tests unitaires pour le filigrane (47 tests)
+
+
+## Internationalisation (i18n) - Anglais et Espagnol
+- [x] Créer le système d'internationalisation avec contexte React (I18nProvider)
+- [x] Créer le fichier de traduction français (fr.ts) - langue par défaut
+- [x] Créer le fichier de traduction anglais (en.ts)
+- [x] Créer le fichier de traduction espagnol (es.ts)
+- [x] Traduire les textes de l'écran d'accueil
+- [x] Traduire les textes de l'écran d'essayage virtuel
+- [x] Traduire les textes de Mon Écrin et Mon Dressing
+- [x] Traduire les textes de la Boutique Partenaires
+- [x] Traduire les textes de l'AI Stylist et Mes Looks
+- [x] Traduire les textes du filigrane et des captures d'écran
+- [x] Créer le composant LanguageSelector dans les paramètres
+- [x] Persister le choix de langue avec AsyncStorage
+- [x] Créer des tests unitaires pour l'internationalisation (42 tests)
