@@ -64,6 +64,7 @@ const MAPPING = {
   "apple.logo": "apple",
   "icloud.fill": "cloud",
   "arrow.triangle.2.circlepath": "sync",
+  "doc.on.doc": "content-copy",
 } as IconMapping;
 
 /**

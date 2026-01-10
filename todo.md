@@ -118,3 +118,14 @@
 - [x] Mettre à jour Premium de 12,99€ à 24,99€/mois
 - [x] Mettre à jour Annuel de 100€ à 199€/an
 - [x] Mettre à jour les identifiants StoreKit correspondants
+
+## Amélioration du Composant de Partage
+- [x] Ajouter le partage natif iOS/Android
+- [x] Ajouter la copie du lien avec feedback visuel
+- [x] Ajouter Twitter/X
+- [x] Ajouter Facebook
+- [x] Ajouter Pinterest (nouveau)
+- [x] Ajouter Email
+- [x] Ajouter Instagram avec copie du texte
+- [x] Ajouter WhatsApp
+- [x] Installer expo-clipboard
