@@ -289,6 +289,9 @@ export const en: TranslationKeys = {
     fr: "Français",
     en: "English",
     es: "Español",
+    de: "Deutsch",
+    it: "Italiano",
+    pt: "Português",
   },
 
   // Subscription

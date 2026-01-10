@@ -6,6 +6,9 @@ import { describe, it, expect } from "vitest";
 import { fr, TranslationKeys } from "../lib/i18n/fr";
 import { en } from "../lib/i18n/en";
 import { es } from "../lib/i18n/es";
+import { de } from "../lib/i18n/de";
+import { it as itLang } from "../lib/i18n/it";
+import { pt } from "../lib/i18n/pt";
 import {
   translations,
   languageNames,
@@ -21,22 +24,31 @@ describe("Internationalization System", () => {
       expect(defaultLanguage).toBe("fr");
     });
 
-    it("should have all three languages available", () => {
+    it("should have all six languages available", () => {
       expect(Object.keys(translations)).toContain("fr");
       expect(Object.keys(translations)).toContain("en");
       expect(Object.keys(translations)).toContain("es");
+      expect(Object.keys(translations)).toContain("de");
+      expect(Object.keys(translations)).toContain("it");
+      expect(Object.keys(translations)).toContain("pt");
     });
 
     it("should have language names for all languages", () => {
       expect(languageNames.fr).toBe("Français");
       expect(languageNames.en).toBe("English");
       expect(languageNames.es).toBe("Español");
+      expect(languageNames.de).toBe("Deutsch");
+      expect(languageNames.it).toBe("Italiano");
+      expect(languageNames.pt).toBe("Português");
     });
 
     it("should have flag emojis for all languages", () => {
       expect(languageFlags.fr).toBe("🇫🇷");
       expect(languageFlags.en).toBe("🇬🇧");
       expect(languageFlags.es).toBe("🇪🇸");
+      expect(languageFlags.de).toBe("🇩🇪");
+      expect(languageFlags.it).toBe("🇮🇹");
+      expect(languageFlags.pt).toBe("🇵🇹");
     });
   });
 
@@ -181,6 +193,147 @@ describe("Internationalization System", () => {
     });
   });
 
+  describe("German Translations", () => {
+    it("should have brand information", () => {
+      expect(de.brand.name).toBe("L'Écrin Virtuel");
+      expect(de.brand.slogan).toBeDefined();
+      expect(de.brand.tagline).toBe("Virtuelles Schmuck-Anprobieren");
+    });
+
+    it("should have common translations", () => {
+      expect(de.common.save).toBe("Speichern");
+      expect(de.common.cancel).toBe("Abbrechen");
+      expect(de.common.delete).toBe("Löschen");
+      expect(de.common.edit).toBe("Bearbeiten");
+      expect(de.common.share).toBe("Teilen");
+      expect(de.common.loading).toBe("Laden...");
+    });
+
+    it("should have home screen translations", () => {
+      expect(de.home.virtualTryOn).toBe("Virtuelles Anprobieren");
+      expect(de.home.newTryOn).toBe("Neue Anprobe");
+      expect(de.home.myCollection).toBe("Meine Schatulle");
+    });
+
+    it("should have try-on screen translations", () => {
+      expect(de.tryOn.title).toBe("Anprobe");
+      expect(de.tryOn.selectJewelry).toBeDefined();
+      expect(de.tryOn.takePhoto).toBe("Foto aufnehmen");
+    });
+
+    it("should have settings translations", () => {
+      expect(de.settings.title).toBe("Einstellungen");
+      expect(de.settings.language).toBe("Sprache");
+      expect(de.settings.theme).toBe("Design");
+    });
+
+    it("should have boutique translations", () => {
+      expect(de.boutique.title).toBeDefined();
+      expect(de.boutique.featuredPartners).toBe("Partner im Fokus");
+      expect(de.boutique.visitBrand).toBe("Marke besuchen");
+    });
+
+    it("should have AI stylist translations", () => {
+      expect(de.aiStylist.title).toBe("KI Stylist");
+      expect(de.aiStylist.generateLooks).toBe("Looks generieren");
+      expect(de.aiStylist.saveLook).toBeDefined();
+    });
+  });
+
+  describe("Italian Translations", () => {
+    it("should have brand information", () => {
+      expect(itLang.brand.name).toBe("L'Écrin Virtuel");
+      expect(itLang.brand.slogan).toBeDefined();
+      expect(itLang.brand.tagline).toBe("Prova virtuale di gioielli");
+    });
+
+    it("should have common translations", () => {
+      expect(itLang.common.save).toBe("Salva");
+      expect(itLang.common.cancel).toBe("Annulla");
+      expect(itLang.common.delete).toBe("Elimina");
+      expect(itLang.common.edit).toBe("Modifica");
+      expect(itLang.common.share).toBe("Condividi");
+      expect(itLang.common.loading).toBe("Caricamento...");
+    });
+
+    it("should have home screen translations", () => {
+      expect(itLang.home.virtualTryOn).toBe("Prova Virtuale");
+      expect(itLang.home.newTryOn).toBe("Nuova Prova");
+      expect(itLang.home.myCollection).toBe("Il Mio Scrigno");
+    });
+
+    it("should have try-on screen translations", () => {
+      expect(itLang.tryOn.title).toBe("Prova");
+      expect(itLang.tryOn.selectJewelry).toBeDefined();
+      expect(itLang.tryOn.takePhoto).toBe("Scatta una foto");
+    });
+
+    it("should have settings translations", () => {
+      expect(itLang.settings.title).toBe("Impostazioni");
+      expect(itLang.settings.language).toBe("Lingua");
+      expect(itLang.settings.theme).toBe("Tema");
+    });
+
+    it("should have boutique translations", () => {
+      expect(itLang.boutique.title).toBeDefined();
+      expect(itLang.boutique.featuredPartners).toBe("Partner in Evidenza");
+      expect(itLang.boutique.visitBrand).toBe("Visita il Marchio");
+    });
+
+    it("should have AI stylist translations", () => {
+      expect(itLang.aiStylist.title).toBe("Stilista IA");
+      expect(itLang.aiStylist.generateLooks).toBe("Genera look");
+      expect(itLang.aiStylist.saveLook).toBeDefined();
+    });
+  });
+
+  describe("Portuguese Translations", () => {
+    it("should have brand information", () => {
+      expect(pt.brand.name).toBe("L'Écrin Virtuel");
+      expect(pt.brand.slogan).toBeDefined();
+      expect(pt.brand.tagline).toBe("Prova virtual de joias");
+    });
+
+    it("should have common translations", () => {
+      expect(pt.common.save).toBe("Salvar");
+      expect(pt.common.cancel).toBe("Cancelar");
+      expect(pt.common.delete).toBe("Excluir");
+      expect(pt.common.edit).toBe("Editar");
+      expect(pt.common.share).toBe("Compartilhar");
+      expect(pt.common.loading).toBe("Carregando...");
+    });
+
+    it("should have home screen translations", () => {
+      expect(pt.home.virtualTryOn).toBe("Prova Virtual");
+      expect(pt.home.newTryOn).toBe("Nova Prova");
+      expect(pt.home.myCollection).toBe("Meu Estojo");
+    });
+
+    it("should have try-on screen translations", () => {
+      expect(pt.tryOn.title).toBe("Prova");
+      expect(pt.tryOn.selectJewelry).toBeDefined();
+      expect(pt.tryOn.takePhoto).toBe("Tirar uma foto");
+    });
+
+    it("should have settings translations", () => {
+      expect(pt.settings.title).toBe("Configurações");
+      expect(pt.settings.language).toBe("Idioma");
+      expect(pt.settings.theme).toBe("Tema");
+    });
+
+    it("should have boutique translations", () => {
+      expect(pt.boutique.title).toBeDefined();
+      expect(pt.boutique.featuredPartners).toBe("Parceiros em Destaque");
+      expect(pt.boutique.visitBrand).toBe("Visitar a Marca");
+    });
+
+    it("should have AI stylist translations", () => {
+      expect(pt.aiStylist.title).toBe("Estilista IA");
+      expect(pt.aiStylist.generateLooks).toBe("Gerar looks");
+      expect(pt.aiStylist.saveLook).toBeDefined();
+    });
+  });
+
   describe("Translation Completeness", () => {
     const frKeys = getAllKeys(fr);
     
@@ -196,6 +349,24 @@ describe("Internationalization System", () => {
       expect(missingKeys).toEqual([]);
     });
 
+    it("should have all French keys in German", () => {
+      const deKeys = getAllKeys(de);
+      const missingKeys = frKeys.filter(key => !deKeys.includes(key));
+      expect(missingKeys).toEqual([]);
+    });
+
+    it("should have all French keys in Italian", () => {
+      const itKeys = getAllKeys(itLang);
+      const missingKeys = frKeys.filter(key => !itKeys.includes(key));
+      expect(missingKeys).toEqual([]);
+    });
+
+    it("should have all French keys in Portuguese", () => {
+      const ptKeys = getAllKeys(pt);
+      const missingKeys = frKeys.filter(key => !ptKeys.includes(key));
+      expect(missingKeys).toEqual([]);
+    });
+
     it("should not have empty translations in English", () => {
       const emptyKeys = findEmptyValues(en);
       expect(emptyKeys).toEqual([]);
@@ -203,6 +374,21 @@ describe("Internationalization System", () => {
 
     it("should not have empty translations in Spanish", () => {
       const emptyKeys = findEmptyValues(es);
+      expect(emptyKeys).toEqual([]);
+    });
+
+    it("should not have empty translations in German", () => {
+      const emptyKeys = findEmptyValues(de);
+      expect(emptyKeys).toEqual([]);
+    });
+
+    it("should not have empty translations in Italian", () => {
+      const emptyKeys = findEmptyValues(itLang);
+      expect(emptyKeys).toEqual([]);
+    });
+
+    it("should not have empty translations in Portuguese", () => {
+      const emptyKeys = findEmptyValues(pt);
       expect(emptyKeys).toEqual([]);
     });
   });
@@ -221,6 +407,21 @@ describe("Internationalization System", () => {
     it("should return Spanish translations for 'es'", () => {
       const result = getTranslation("es");
       expect(result.brand.name).toBe("Joyero Virtual");
+    });
+
+    it("should return German translations for 'de'", () => {
+      const result = getTranslation("de");
+      expect(result.brand.name).toBe("L'Écrin Virtuel");
+    });
+
+    it("should return Italian translations for 'it'", () => {
+      const result = getTranslation("it");
+      expect(result.brand.name).toBe("L'Écrin Virtuel");
+    });
+
+    it("should return Portuguese translations for 'pt'", () => {
+      const result = getTranslation("pt");
+      expect(result.brand.name).toBe("L'Écrin Virtuel");
     });
 
     it("should return default (French) for unknown language", () => {
@@ -253,6 +454,30 @@ describe("Internationalization System", () => {
       expect(es.jewelryTypes.bracelet).toBe("Pulsera");
       expect(es.jewelryTypes.anklet).toBe("Tobillera");
     });
+
+    it("should have all jewelry types in German", () => {
+      expect(de.jewelryTypes.necklace).toBe("Halskette");
+      expect(de.jewelryTypes.earrings).toBe("Ohrringe");
+      expect(de.jewelryTypes.ring).toBe("Ring");
+      expect(de.jewelryTypes.bracelet).toBe("Armband");
+      expect(de.jewelryTypes.anklet).toBe("Fußkettchen");
+    });
+
+    it("should have all jewelry types in Italian", () => {
+      expect(itLang.jewelryTypes.necklace).toBe("Collana");
+      expect(itLang.jewelryTypes.earrings).toBe("Orecchini");
+      expect(itLang.jewelryTypes.ring).toBe("Anello");
+      expect(itLang.jewelryTypes.bracelet).toBe("Bracciale");
+      expect(itLang.jewelryTypes.anklet).toBe("Cavigliera");
+    });
+
+    it("should have all jewelry types in Portuguese", () => {
+      expect(pt.jewelryTypes.necklace).toBe("Colar");
+      expect(pt.jewelryTypes.earrings).toBe("Brincos");
+      expect(pt.jewelryTypes.ring).toBe("Anel");
+      expect(pt.jewelryTypes.bracelet).toBe("Pulseira");
+      expect(pt.jewelryTypes.anklet).toBe("Tornozeleira");
+    });
   });
 
   describe("Metal Styles Translations", () => {
@@ -273,6 +498,24 @@ describe("Internationalization System", () => {
       expect(es.jewelryStyles.silver).toBe("Plata");
       expect(es.jewelryStyles.rosegold).toBe("Oro Rosa");
     });
+
+    it("should have all metal styles in German", () => {
+      expect(de.jewelryStyles.gold).toBe("Gold");
+      expect(de.jewelryStyles.silver).toBe("Silber");
+      expect(de.jewelryStyles.rosegold).toBe("Roségold");
+    });
+
+    it("should have all metal styles in Italian", () => {
+      expect(itLang.jewelryStyles.gold).toBe("Oro");
+      expect(itLang.jewelryStyles.silver).toBe("Argento");
+      expect(itLang.jewelryStyles.rosegold).toBe("Oro Rosa");
+    });
+
+    it("should have all metal styles in Portuguese", () => {
+      expect(pt.jewelryStyles.gold).toBe("Ouro");
+      expect(pt.jewelryStyles.silver).toBe("Prata");
+      expect(pt.jewelryStyles.rosegold).toBe("Ouro Rosé");
+    });
   });
 
   describe("Photo Editor Translations", () => {
@@ -289,6 +532,21 @@ describe("Internationalization System", () => {
     it("should have photo editor section in Spanish", () => {
       expect(es.photoEditor).toBeDefined();
       expect(typeof es.photoEditor).toBe("object");
+    });
+
+    it("should have photo editor section in German", () => {
+      expect(de.photoEditor).toBeDefined();
+      expect(typeof de.photoEditor).toBe("object");
+    });
+
+    it("should have photo editor section in Italian", () => {
+      expect(itLang.photoEditor).toBeDefined();
+      expect(typeof itLang.photoEditor).toBe("object");
+    });
+
+    it("should have photo editor section in Portuguese", () => {
+      expect(pt.photoEditor).toBeDefined();
+      expect(typeof pt.photoEditor).toBe("object");
     });
   });
 });

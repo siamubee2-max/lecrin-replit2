@@ -275,3 +275,21 @@
 - [x] Créer le composant LanguageSelector dans les paramètres
 - [x] Persister le choix de langue avec AsyncStorage
 - [x] Créer des tests unitaires pour l'internationalisation (42 tests)
+
+
+## Langues Supplémentaires (DE, IT, PT)
+- [ ] Créer le fichier de traduction allemand (de.ts)
+- [ ] Créer le fichier de traduction italien (it.ts)
+- [ ] Créer le fichier de traduction portugais (pt.ts)
+- [ ] Mettre à jour le fichier index.ts pour exporter les nouvelles langues
+- [ ] Ajouter les drapeaux allemand, italien et portugais au sélecteur
+- [ ] Mettre à jour le contexte I18n pour supporter les nouvelles langues
+- [ ] Créer des tests unitaires pour les nouvelles traductions
+
+## Traductions Allemand, Italien, Portugais
+- [x] Créer le fichier de traduction allemand (de.ts)
+- [x] Créer le fichier de traduction italien (it.ts)
+- [x] Créer le fichier de traduction portugais (pt.ts)
+- [x] Mettre à jour le fichier index.ts pour inclure les nouvelles langues
+- [x] Mettre à jour la section languages dans tous les fichiers de traduction
+- [x] Exécuter les tests pour valider les traductions (619 tests passent)

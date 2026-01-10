@@ -1,0 +1,375 @@
+/**
+ * Portuguese translations for L'Écrin Virtuel
+ */
+import type { TranslationKeys } from "./fr";
+
+export const pt: TranslationKeys = {
+  // Common
+  common: {
+    loading: "Carregando...",
+    error: "Erro",
+    success: "Sucesso",
+    cancel: "Cancelar",
+    save: "Salvar",
+    delete: "Excluir",
+    edit: "Editar",
+    share: "Compartilhar",
+    close: "Fechar",
+    next: "Próximo",
+    previous: "Anterior",
+    apply: "Aplicar",
+    reset: "Redefinir",
+    search: "Pesquisar",
+    filter: "Filtrar",
+    sort: "Ordenar",
+    all: "Todos",
+    none: "Nenhum",
+    yes: "Sim",
+    no: "Não",
+    ok: "OK",
+    retry: "Tentar novamente",
+    seeAll: "Ver tudo",
+    seeMore: "Ver mais",
+    seeLess: "Ver menos",
+  },
+
+  // App branding
+  brand: {
+    name: "L'Écrin Virtuel",
+    tagline: "Prova virtual de joias",
+    slogan: "Experimente o inacessível Virtualmente.",
+    watermark: "L'Écrin Virtuel",
+    createdWith: "Criado com L'Écrin Virtuel",
+    website: "ecrin-virtuel.app",
+  },
+
+  // Home screen
+  home: {
+    title: "Início",
+    welcome: "Bem-vindo",
+    virtualTryOn: "Prova Virtual",
+    tryOnDescription: "Importe uma joia, escolha sua foto e deixe a magia acontecer. Visualize o resultado antes de comprar ou apenas para sonhar.",
+    newTryOn: "Nova Prova",
+    photographer: "Fotografar",
+    captureJewelry: "Capturar uma joia",
+    myCollection: "Meu Estojo",
+    myCollectionDesc: "Minha coleção",
+    boutique: "Boutique",
+    boutiqueDesc: "Criadores",
+    premium: "Premium",
+    premiumDesc: "Assinatura",
+    recentItems: "Mais recentes",
+  },
+
+  // Try-on screen
+  tryOn: {
+    title: "Prova",
+    selectJewelry: "Escolher a joia",
+    selectModel: "Escolher o modelo",
+    selectStyle: "Escolher o estilo",
+    adjustSize: "Ajustar o tamanho",
+    takePhoto: "Tirar uma foto",
+    chooseFromGallery: "Escolher da galeria",
+    aiPositioning: "Posicionamento IA",
+    manualPositioning: "Posicionamento manual",
+    saveTryOn: "Salvar a prova",
+    quickSave: "Salvamento rápido",
+    editAndSave: "Editar e Salvar",
+    shareResult: "Compartilhar resultado",
+    savedToGallery: "Salvo na galeria",
+    albumName: "Écrin Virtuel",
+  },
+
+  // Jewelry types
+  jewelryTypes: {
+    necklace: "Colar",
+    earrings: "Brincos",
+    ring: "Anel",
+    bracelet: "Pulseira",
+    anklet: "Tornozeleira",
+    brooch: "Broche",
+    set: "Conjunto",
+  },
+
+  // Jewelry styles
+  jewelryStyles: {
+    gold: "Ouro",
+    silver: "Prata",
+    rosegold: "Ouro Rosé",
+    platinum: "Platina",
+    bronze: "Bronze",
+  },
+
+  // Photo editor
+  photoEditor: {
+    title: "Editor de fotos",
+    filters: "Filtros",
+    retouch: "Retoque",
+    crop: "Recortar",
+    rotate: "Girar",
+    brightness: "Brilho",
+    contrast: "Contraste",
+    saturation: "Saturação",
+    warmth: "Calor",
+    vignette: "Vinheta",
+    original: "Original",
+    glamour: "Glamour",
+    vintage: "Vintage",
+    blackAndWhite: "P&B",
+    golden: "Dourado",
+    cold: "Frio",
+    rose: "Rosa",
+    dramatic: "Dramático",
+    beforeAfter: "Antes/Depois",
+    aspectRatio: "Formato",
+    free: "Livre",
+    flipHorizontal: "Virar H",
+    flipVertical: "Virar V",
+  },
+
+  // My collection (Mon Écrin)
+  myCollection: {
+    title: "Meu Estojo",
+    description: "Catalogue suas joias preciosas. A IA ajudará você a organizá-las e encontrar combinações.",
+    addJewelry: "Adicionar uma joia",
+    emptyState: "Seu estojo está vazio",
+    emptyStateDesc: "Adicione suas primeiras joias para começar",
+    searchPlaceholder: "Pesquisar por nome, tags, descrição...",
+    allTypes: "Todos os tipos",
+    allMetals: "Todos os metais",
+    allGems: "Todas as gemas",
+    allBrands: "Todas as marcas",
+    allCollections: "Todas as coleções",
+    priceRange: "Faixa de preço",
+  },
+
+  // Wardrobe (Mon Dressing)
+  wardrobe: {
+    title: "Meu Guarda-Roupa",
+    description: "Gerencie suas roupas e crie looks perfeitos com suas joias.",
+    addClothing: "Adicionar uma roupa",
+    emptyState: "Seu guarda-roupa está vazio",
+    emptyStateDesc: "Adicione suas primeiras roupas para começar",
+    searchPlaceholder: "Pesquisar (vestido vermelho, camisa de seda...)",
+    allCategories: "Todas as categorias",
+    allBrands: "Todas as marcas",
+    allColors: "Todas as cores",
+    priceMin: "Preço mín",
+    priceMax: "Preço máx",
+    selectItems: "Selecionar",
+    deleteSelected: "Excluir selecionados",
+  },
+
+  // Clothing categories
+  clothingCategories: {
+    tops: "Blusas",
+    bottoms: "Calças",
+    dresses: "Vestidos",
+    jackets: "Jaquetas",
+    shoes: "Sapatos",
+    bags: "Bolsas",
+    accessories: "Acessórios",
+  },
+
+  // Boutique
+  boutique: {
+    title: "Boutique Style",
+    description: "Descubra coleções exclusivas de marcas de luxo e estilistas especialistas. Compre o look com um clique.",
+    exploreCollections: "Explorar Coleções",
+    featuredPartners: "Parceiros em Destaque",
+    featuredLooks: "Looks em Destaque",
+    allCollections: "Todas as Coleções",
+    visitBrand: "Visitar a Marca",
+    tryVirtually: "Experimentar virtualmente",
+    addToFavorites: "Adicionar aos favoritos",
+    removeFromFavorites: "Remover dos favoritos",
+    premium: "Premium",
+    artisanal: "Artesanal",
+    handmade: "Feito à mão",
+    uniquePiece: "Peça única",
+    emptyState: "Nenhuma coleção em destaque no momento",
+  },
+
+  // AI Stylist
+  aiStylist: {
+    title: "Estilista IA",
+    description: "Deixe nossa IA criar looks perfeitos para você",
+    generateLooks: "Gerar looks",
+    generating: "Gerando...",
+    occasion: "Ocasião",
+    season: "Estação",
+    confidence: "Confiança",
+    stylingTips: "Dicas de estilo",
+    saveLook: "Salvar este look",
+    lookSaved: "Look salvo!",
+    noClothes: "Adicione roupas ao seu guarda-roupa",
+    noJewelry: "Adicione joias aos seus favoritos",
+  },
+
+  // Occasions
+  occasions: {
+    casual: "Casual",
+    work: "Trabalho",
+    formal: "Noite",
+    sport: "Esporte",
+    party: "Festa",
+    all: "Todas",
+  },
+
+  // Seasons
+  seasons: {
+    spring: "Primavera",
+    summer: "Verão",
+    fall: "Outono",
+    winter: "Inverno",
+    all: "Todas as estações",
+  },
+
+  // My Looks
+  myLooks: {
+    title: "Meus Looks",
+    description: "Seus looks salvos e criações",
+    emptyState: "Nenhum look salvo",
+    emptyStateDesc: "Use o Estilista IA para criar seus primeiros looks",
+    sortByDate: "Data",
+    sortByName: "Nome",
+    sortByFavorites: "Favoritos",
+    pieces: "peças",
+    aiGenerated: "Gerado por IA",
+    shareLook: "Compartilhar este look",
+    deleteLook: "Excluir este look",
+    deleteConfirm: "Tem certeza de que deseja excluir este look?",
+  },
+
+  // Share
+  share: {
+    title: "Compartilhar",
+    shareOn: "Compartilhar em",
+    copyLink: "Copiar link",
+    linkCopied: "Link copiado!",
+    downloadImage: "Baixar imagem",
+    instagram: "Instagram",
+    whatsapp: "WhatsApp",
+    twitter: "Twitter",
+    facebook: "Facebook",
+    pinterest: "Pinterest",
+    more: "Mais opções",
+  },
+
+  // Profile
+  profile: {
+    title: "Meu Perfil",
+    description: "Gerencie suas informações pessoais e preferências de estilo.",
+    personalInfo: "Infos Pessoais",
+    stylePreferences: "Preferências de Estilo",
+    history: "Histórico",
+    myList: "Minha Lista",
+    biography: "Biografia",
+    biographyPlaceholder: "Conte-nos mais sobre seu estilo...",
+    saveChanges: "Salvar alterações",
+    anonymousUser: "Fashionista Anônimo",
+    protectedIdentity: "Identidade protegida",
+  },
+
+  // Settings
+  settings: {
+    title: "Configurações",
+    language: "Idioma",
+    theme: "Tema",
+    notifications: "Notificações",
+    privacy: "Privacidade",
+    about: "Sobre",
+    help: "Ajuda",
+    logout: "Sair",
+    deleteAccount: "Excluir conta",
+  },
+
+  // Languages
+  languages: {
+    fr: "Français",
+    en: "English",
+    es: "Español",
+    de: "Deutsch",
+    it: "Italiano",
+    pt: "Português",
+  },
+
+  // Subscription
+  subscription: {
+    title: "Assinatura",
+    free: "Gratuito",
+    premium: "Premium",
+    currentPlan: "Plano atual",
+    upgrade: "Atualizar para Premium",
+    features: "Recursos incluídos",
+    unlimitedTryOns: "Provas ilimitadas",
+    aiStylist: "Estilista IA",
+    noWatermark: "Sem marca d'água",
+    prioritySupport: "Suporte prioritário",
+    exclusiveCollections: "Coleções exclusivas",
+  },
+
+  // Partnership
+  partnership: {
+    title: "Gestão de Parcerias",
+    description: "Informações de contato para parcerias",
+    becomePartner: "Seja um Parceiro",
+    joinProgram: "Junte-se ao nosso programa de parceria",
+    contactInfo: "Para solicitações de parceria, entre em contato conosco em:",
+    responseTime: "Nossa equipe responderá o mais rápido possível.",
+  },
+
+  // Errors
+  errors: {
+    generic: "Ocorreu um erro",
+    network: "Erro de conexão",
+    notFound: "Não encontrado",
+    unauthorized: "Não autorizado",
+    serverError: "Erro do servidor",
+    tryAgain: "Por favor, tente novamente",
+    noInternet: "Sem conexão com a internet",
+  },
+
+  // Alerts
+  alerts: {
+    deleteConfirmTitle: "Confirmar exclusão",
+    deleteConfirmMessage: "Esta ação não pode ser desfeita.",
+    unsavedChanges: "Alterações não salvas",
+    unsavedChangesMessage: "Deseja salvar suas alterações?",
+    discardChanges: "Descartar",
+    saveAndClose: "Salvar e fechar",
+  },
+
+  // Style Feed
+  styleFeed: {
+    title: "Meu Feed de Estilo",
+    description: "Inspirações diárias, tendências e sugestões personalizadas só para você.",
+    welcomeBack: "Bem-vindo de volta,",
+    editStyle: "Editar estilo",
+    tipOfTheDay: "Dica do dia",
+    forYou: "Para você",
+    curatedForYou: "Selecionado de acordo com seu perfil de estilo",
+    basedOnWishlist: "Baseado na sua lista de desejos",
+    recommendedJewelry: "Joias recomendadas para você",
+    trendAlert: "Alerta de Tendência",
+    piecesToDiscover: "Peças para descobrir",
+    seeDetail: "Ver detalhe",
+  },
+
+  // Atelier
+  atelier: {
+    title: "O Ateliê Criativo",
+    description: "Experimente joias e roupas virtualmente em segundos graças à IA.",
+    step1: "A Joia",
+    step2: "O Modelo",
+    step3: "A Magia",
+    step4: "O Resultado",
+    choosePiece: "Escolha a peça",
+    selectFromCollection: "Selecione um item da sua coleção ou importe uma foto.",
+    type: "Tipo",
+    upload: "Upload",
+    fromMyCollection: "Meu Estojo",
+    clickToImport: "Clique para importar",
+    supportedFormats: "JPG, PNG",
+  },
+};
