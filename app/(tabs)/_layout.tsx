@@ -27,34 +27,58 @@ export default function TabLayout() {
           borderTopColor: colors.border,
           borderTopWidth: 0.5,
         },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "500",
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Accueil",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="capture"
+        name="tryon"
         options={{
           title: "Essayer",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="wand.and.stars" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="gallery"
+        name="ecrin"
         options={{
-          title: "Galerie",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="photo.stack.fill" color={color} />,
+          title: "Mon Écrin",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="diamond.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="boutique"
+        options={{
+          title: "Boutique",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="bag.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Paramètres",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          title: "Plus",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="menubar.rectangle" color={color} />,
+        }}
+      />
+      {/* Hidden screens */}
+      <Tabs.Screen
+        name="capture"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="gallery"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
