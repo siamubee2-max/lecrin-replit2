@@ -165,3 +165,14 @@
 - [x] Intégrer les images dans le composant d'essayage virtuel
 - [x] Ajouter le positionnement dynamique selon le type de bijou
 - [x] Créer des tests unitaires pour les overlays de bijoux (44 tests)
+
+
+## Styles de Bijoux (Or, Argent, Or Rose)
+- [x] Générer des images de colliers en or, argent et or rose
+- [x] Générer des images de boucles d'oreilles en or, argent et or rose
+- [x] Générer des images de bagues en or, argent et or rose
+- [x] Générer des images de bracelets en or, argent et or rose
+- [x] Générer des images de chevillières en or, argent et or rose
+- [x] Créer le sélecteur de style dans l'interface d'essayage
+- [x] Intégrer les styles dans le flux d'essayage virtuel (étapes 1, 2 et 3)
+- [x] Créer des tests unitaires pour les styles de bijoux (28 tests)

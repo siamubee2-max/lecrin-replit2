@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, Dimensions } from "react-native";
+import { Text, View, TouchableOpacity, ScrollView, FlatList, Dimensions, StyleSheet, ActivityIndicator } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import ViewShot from "react-native-view-shot";
 import { useRouter } from "expo-router";
@@ -16,14 +16,51 @@ import { trpc } from "@/lib/trpc";
 import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/photo-editor";
 import { ImageCropper, type TransformOptions } from "@/components/image-cropper";
 
-// Import jewelry images
+// Jewelry styles (metal types)
+type JewelryStyle = "gold" | "silver" | "rosegold";
+
+const JEWELRY_STYLES: { id: JewelryStyle; name: string; color: string }[] = [
+  { id: "gold", name: "Or", color: "#FFD700" },
+  { id: "silver", name: "Argent", color: "#C0C0C0" },
+  { id: "rosegold", name: "Or Rose", color: "#E8B4B8" },
+];
+
+// Import jewelry images by style
+const JEWELRY_IMAGES_BY_STYLE: Record<JewelryStyle, Record<string, any>> = {
+  gold: {
+    necklace: require("@/assets/images/jewelry/gold/necklace.png"),
+    earrings: require("@/assets/images/jewelry/gold/earrings.png"),
+    ring: require("@/assets/images/jewelry/gold/ring.png"),
+    bracelet: require("@/assets/images/jewelry/gold/bracelet.png"),
+    anklet: require("@/assets/images/jewelry/gold/anklet.png"),
+    brooch: require("@/assets/images/jewelry/gold/necklace.png"), // Use necklace for full set
+  },
+  silver: {
+    necklace: require("@/assets/images/jewelry/silver/necklace.png"),
+    earrings: require("@/assets/images/jewelry/silver/earrings.png"),
+    ring: require("@/assets/images/jewelry/silver/ring.png"),
+    bracelet: require("@/assets/images/jewelry/silver/bracelet.png"),
+    anklet: require("@/assets/images/jewelry/silver/anklet.png"),
+    brooch: require("@/assets/images/jewelry/silver/necklace.png"),
+  },
+  rosegold: {
+    necklace: require("@/assets/images/jewelry/rosegold/necklace.png"),
+    earrings: require("@/assets/images/jewelry/rosegold/earrings.png"),
+    ring: require("@/assets/images/jewelry/rosegold/ring.png"),
+    bracelet: require("@/assets/images/jewelry/rosegold/bracelet.png"),
+    anklet: require("@/assets/images/jewelry/rosegold/anklet.png"),
+    brooch: require("@/assets/images/jewelry/rosegold/necklace.png"),
+  },
+};
+
+// Legacy import for fallback
 const JEWELRY_IMAGES = {
   necklace: require("@/assets/images/jewelry/necklace.png"),
   earrings: require("@/assets/images/jewelry/earrings.png"),
   ring: require("@/assets/images/jewelry/ring.png"),
   bracelet: require("@/assets/images/jewelry/bracelet.png"),
   anklet: require("@/assets/images/jewelry/anklet.png"),
-  brooch: require("@/assets/images/jewelry/necklace.png"), // Use necklace for full set
+  brooch: require("@/assets/images/jewelry/necklace.png"),
 };
 
 // Mapping between jewelry types and body part types
@@ -75,6 +112,7 @@ export default function TryOnScreen() {
   const colors = useColors();
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<string>("necklace");
+  const [selectedStyle, setSelectedStyle] = useState<JewelryStyle>("gold");
   const [selectedModel, setSelectedModel] = useState<BodyPart | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -107,6 +145,13 @@ export default function TryOnScreen() {
     }
     setSelectedType(typeId);
     setSelectedModel(null); // Reset model when type changes
+  };
+
+  const handleStyleSelect = (styleId: JewelryStyle) => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setSelectedStyle(styleId);
   };
 
   const handleModelSelect = (model: BodyPart) => {
@@ -200,56 +245,92 @@ export default function TryOnScreen() {
     setCroppedImageUri(null);
   };
 
-  // Direct save without editing
-  const handleDirectSave = async () => {
+  // Quick save without editing
+  const handleQuickSave = async () => {
     if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+    
     setIsSaving(true);
     
     const capturedUri = await capture();
     
-    await incrementTryOnCount();
-    
     if (capturedUri) {
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      
+      await incrementTryOnCount();
       await saveToGallery();
-    }
-    
-    setTimeout(() => {
+      
+      setTimeout(() => {
+        setIsSaving(false);
+        router.push("/(tabs)/gallery");
+      }, 1000);
+    } else {
       setIsSaving(false);
-      router.push("/(tabs)/gallery");
-    }, 1000);
+    }
+  };
+
+  const handleShare = () => {
+    setShowShareModal(true);
   };
 
   const handleAddToFavorites = async () => {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
+    
+    const selectedJewelry = JEWELRY_TYPES.find(j => j.id === selectedType);
+    const selectedStyleInfo = JEWELRY_STYLES.find(s => s.id === selectedStyle);
+    
     await addFavorite({
-      jewelryType: selectedTypeData?.name || "Bijou",
-      jewelryIcon: selectedTypeData?.icon || "💍",
-      modelName: selectedModel?.name || "Modèle",
+      jewelryType: `${selectedJewelry?.name || 'Bijou'} - ${selectedStyleInfo?.name || 'Or'}`,
+      jewelryIcon: selectedJewelry?.icon || '💍',
+      modelName: selectedModel?.name || 'Modèle',
+      imageUri: selectedModel?.imageUrl || '',
     });
+    
     setIsFavorited(true);
+    setTimeout(() => setIsFavorited(false), 2000);
   };
 
-  const handleShare = async () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    
-    const capturedUri = await capture();
-    
-    if (capturedUri) {
-      await shareCapture();
-    } else {
-      setShowShareModal(true);
+  // Get jewelry image based on selected style
+  const getJewelryImage = () => {
+    try {
+      return JEWELRY_IMAGES_BY_STYLE[selectedStyle][selectedType];
+    } catch {
+      // Fallback to legacy images
+      return JEWELRY_IMAGES[selectedType as keyof typeof JEWELRY_IMAGES];
     }
   };
 
-  const selectedTypeData = JEWELRY_TYPES.find(t => t.id === selectedType);
   const jewelryPosition = JEWELRY_POSITIONS[selectedType] || JEWELRY_POSITIONS.necklace;
-  const jewelryImage = JEWELRY_IMAGES[selectedType as keyof typeof JEWELRY_IMAGES];
+  const jewelryImage = getJewelryImage();
+
+  // Show Image Cropper
+  if (editStep === "crop" && capturedImageUri) {
+    return (
+      <ImageCropper
+        imageUri={capturedImageUri}
+        onApply={handleCropApply}
+        onCancel={handleCropCancel}
+        visible={true}
+      />
+    );
+  }
+
+  // Show Photo Editor (after cropping)
+  if (editStep === "filter" && (croppedImageUri || capturedImageUri)) {
+    return (
+      <PhotoEditor
+        imageUri={croppedImageUri || capturedImageUri!}
+        onSave={handleSaveEditedPhoto}
+        onCancel={handleFilterCancel}
+        visible={true}
+      />
+    );
+  }
 
   // Step 3: AR Try-on View
   if (currentStep === 3 && selectedModel) {
@@ -291,8 +372,34 @@ export default function TryOnScreen() {
             </View>
           </View>
 
+          {/* Style Selector - Horizontal Pills */}
+          <View className="px-4 py-2">
+            <View className="flex-row justify-center gap-2">
+              {JEWELRY_STYLES.map((style) => (
+                <TouchableOpacity
+                  key={style.id}
+                  onPress={() => handleStyleSelect(style.id)}
+                  className={`flex-row items-center px-4 py-2 rounded-full border ${
+                    selectedStyle === style.id ? 'border-primary' : 'border-border'
+                  }`}
+                  style={selectedStyle === style.id ? { backgroundColor: colors.primary + '20' } : { backgroundColor: colors.surface }}
+                >
+                  <View 
+                    className="w-4 h-4 rounded-full mr-2 border border-border"
+                    style={{ backgroundColor: style.color }}
+                  />
+                  <Text 
+                    className={`text-sm font-medium ${selectedStyle === style.id ? 'text-primary' : 'text-foreground'}`}
+                  >
+                    {style.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* AR View with Real Model Image - Wrapped in ViewShot for capture */}
-          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={{ flex: 1, marginHorizontal: 16, marginVertical: 16 }}>
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={{ flex: 1, marginHorizontal: 16, marginVertical: 8 }}>
             <View className="flex-1 rounded-3xl overflow-hidden bg-surface border border-border">
               <View className="flex-1">
                 {/* Model Image */}
@@ -303,7 +410,7 @@ export default function TryOnScreen() {
                   transition={300}
                 />
                 
-                {/* Jewelry Overlay - Now using PNG images */}
+                {/* Jewelry Overlay - Now using PNG images with style */}
                 <View 
                   className="absolute items-center justify-center"
                   style={{ 
@@ -338,7 +445,9 @@ export default function TryOnScreen() {
                         />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-xs text-muted">SUR :</Text>
+                        <Text className="text-xs text-muted">
+                          {JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name.toUpperCase()} SUR :
+                        </Text>
                         <Text className="text-sm font-semibold text-foreground">
                           {selectedModel.name}
                         </Text>
@@ -378,266 +487,258 @@ export default function TryOnScreen() {
 
             {/* Action Buttons */}
             <View className="flex-row gap-3 mb-3">
-              {/* Edit & Save Button */}
               <TouchableOpacity
                 onPress={handleCaptureForEdit}
-                disabled={isSaving}
-                className="flex-1 py-4 px-6 rounded-full items-center flex-row justify-center"
-                style={[styles.captureButton, { backgroundColor: colors.primary, opacity: isSaving ? 0.7 : 1 }]}
+                disabled={isCapturing || isSaving}
+                className="flex-1 bg-primary py-4 rounded-xl items-center active:opacity-80"
               >
-                <IconSymbol name="wand.and.stars" size={20} color="#0A1A3B" />
-                <Text className="text-base font-bold ml-2" style={{ color: '#0A1A3B' }}>
-                  Éditer & Sauvegarder
-                </Text>
+                {isCapturing ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text className="text-background font-semibold">
+                    Éditer & Sauvegarder
+                  </Text>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={handleQuickSave}
+                disabled={isCapturing || isSaving}
+                className="flex-1 bg-surface border border-border py-4 rounded-xl items-center active:opacity-80"
+              >
+                {isSaving ? (
+                  <ActivityIndicator color={colors.foreground} />
+                ) : (
+                  <Text className="text-foreground font-semibold">
+                    Sauvegarde rapide
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
-
-            {/* Quick Save Button */}
-            <TouchableOpacity
-              onPress={handleDirectSave}
-              disabled={isSaving}
-              className="py-3 px-6 rounded-full items-center border"
-              style={{ borderColor: colors.border, opacity: isSaving ? 0.7 : 1 }}
-            >
-              <Text className="text-sm font-semibold text-muted">
-                {isSaving ? "Sauvegarde..." : "Sauvegarde rapide"}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Image Cropper Modal (Step 1 of edit flow) */}
-        <Modal
-          visible={editStep === "crop"}
-          animationType="slide"
-          presentationStyle="fullScreen"
-        >
-          {capturedImageUri && (
-            <ImageCropper
-              imageUri={capturedImageUri}
-              onApply={handleCropApply}
-              onCancel={handleCropCancel}
-              visible={editStep === "crop"}
-            />
-          )}
-        </Modal>
-
-        {/* Photo Editor Modal (Step 2 of edit flow) */}
-        <Modal
-          visible={editStep === "filter"}
-          animationType="slide"
-          presentationStyle="fullScreen"
-        >
-          {(croppedImageUri || capturedImageUri) && (
-            <PhotoEditor
-              imageUri={croppedImageUri || capturedImageUri!}
-              onSave={handleSaveEditedPhoto}
-              onCancel={handleFilterCancel}
-              visible={editStep === "filter"}
-            />
-          )}
-        </Modal>
-
+        {/* Share Modal */}
         <ShareModal
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
-          title="Mon essayage Écrin Virtuel"
-          message={`Regardez ${selectedTypeData?.name || 'ce bijou'} que j'ai essayé virtuellement avec Écrin Virtuel ! ✨`}
+          imageUri={lastCaptureUri || undefined}
+          title={`${JEWELRY_TYPES.find(j => j.id === selectedType)?.name || "Bijou"} - ${JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name || "Or"}`}
+          message={`Découvrez mon essayage virtuel de ${JEWELRY_TYPES.find(j => j.id === selectedType)?.name || "bijou"} en ${JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name || "or"} avec L'Écrin Virtuel ! 💍✨`}
         />
       </ScreenContainer>
     );
   }
 
-  return (
-    <ScreenContainer className="bg-background">
-      <View className="flex-1">
-        {/* Header */}
-        <View className="px-4 pt-4 pb-2">
-          <View className="flex-row items-center">
-            {currentStep > 1 && (
-              <TouchableOpacity onPress={handleBack} className="p-2 -ml-2 mr-2">
-                <IconSymbol name="chevron.left" size={24} color={colors.foreground} />
-              </TouchableOpacity>
-            )}
+  // Step 2: Select Model
+  if (currentStep === 2) {
+    return (
+      <ScreenContainer edges={["top", "left", "right"]} className="p-6">
+        <View className="flex-1">
+          {/* Header */}
+          <View className="flex-row items-center mb-6">
+            <TouchableOpacity
+              onPress={handleBack}
+              className="w-10 h-10 rounded-full bg-surface items-center justify-center mr-4 active:opacity-70"
+            >
+              <IconSymbol name="chevron.left" size={20} color={colors.foreground} />
+            </TouchableOpacity>
             <View className="flex-1">
               <Text className="text-2xl font-bold text-foreground">
-                {currentStep === 1 ? "Choisissez la pièce" : "Choisissez votre photo"}
+                Choisir un Modèle
+              </Text>
+              <Text className="text-sm text-muted">
+                {JEWELRY_TYPES.find(j => j.id === selectedType)?.name}
               </Text>
             </View>
           </View>
-          <Text className="text-base text-muted mt-1">
-            {currentStep === 1 
-              ? "Sélectionnez un article de votre collection ou importez une photo."
-              : "Sélectionnez un modèle ou importez votre photo."
-            }
+
+          {/* Style Selector */}
+          <View className="mb-4">
+            <Text className="text-sm font-medium text-muted mb-2">Style du bijou</Text>
+            <View className="flex-row gap-2">
+              {JEWELRY_STYLES.map((style) => (
+                <TouchableOpacity
+                  key={style.id}
+                  onPress={() => handleStyleSelect(style.id)}
+                  className={`flex-row items-center px-4 py-2 rounded-full border ${
+                    selectedStyle === style.id ? 'border-primary' : 'border-border'
+                  }`}
+                  style={selectedStyle === style.id ? { backgroundColor: colors.primary + '20' } : { backgroundColor: colors.surface }}
+                >
+                  <View 
+                    className="w-4 h-4 rounded-full mr-2 border border-border"
+                    style={{ backgroundColor: style.color }}
+                  />
+                  <Text 
+                    className={`text-sm font-medium ${selectedStyle === style.id ? 'text-primary' : 'text-foreground'}`}
+                  >
+                    {style.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Models Grid */}
+          {isLoadingBodyParts ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text className="text-muted mt-4">Chargement des modèles...</Text>
+            </View>
+          ) : filteredModels.length === 0 ? (
+            <View className="flex-1 items-center justify-center">
+              <Text className="text-6xl mb-4">📷</Text>
+              <Text className="text-lg font-semibold text-foreground text-center mb-2">
+                Aucun modèle disponible
+              </Text>
+              <Text className="text-sm text-muted text-center">
+                Ajoutez des photos dans l'onglet Galerie pour commencer
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredModels}
+              numColumns={2}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={{ paddingBottom: 100 }}
+              columnWrapperStyle={{ gap: 12 }}
+              ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => handleModelSelect(item)}
+                  className={`flex-1 rounded-2xl overflow-hidden border-2 ${
+                    selectedModel?.id === item.id ? "border-primary" : "border-transparent"
+                  }`}
+                  style={{ aspectRatio: 3/4 }}
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={StyleSheet.absoluteFillObject}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                  <View className="absolute bottom-0 left-0 right-0 bg-background/80 px-3 py-2">
+                    <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    {item.isDemo && (
+                      <Text className="text-xs text-muted">Démo</Text>
+                    )}
+                  </View>
+                  {selectedModel?.id === item.id && (
+                    <View className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary items-center justify-center">
+                      <IconSymbol name="checkmark" size={14} color="#FFFFFF" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+
+          {/* Next Button */}
+          <View className="absolute bottom-6 left-0 right-0 px-6">
+            <TouchableOpacity
+              onPress={handleNext}
+              disabled={!selectedModel}
+              className={`py-4 rounded-xl items-center ${
+                selectedModel ? "bg-primary" : "bg-surface"
+              }`}
+            >
+              <Text className={`font-semibold ${selectedModel ? "text-background" : "text-muted"}`}>
+                Essayer ce bijou
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // Step 1: Select Jewelry Type
+  return (
+    <ScreenContainer edges={["top", "left", "right"]} className="p-6">
+      <View className="flex-1">
+        {/* Header */}
+        <View className="mb-6">
+          <Text className="text-3xl font-bold text-foreground mb-2">
+            Essayage Virtuel
+          </Text>
+          <Text className="text-base text-muted">
+            Sélectionnez le type de bijou à essayer
           </Text>
         </View>
 
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
-        >
-          {currentStep === 1 ? (
-            <>
-              {/* Type Selector */}
-              <View className="px-4 mt-4">
-                <Text className="text-sm font-semibold text-foreground mb-3">Type</Text>
-                <View 
-                  className="flex-row items-center justify-between px-4 py-3 rounded-xl"
-                  style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
-                >
-                  <Text className="text-base text-foreground">
-                    {selectedTypeData?.name || "Collier / Pendentif"}
-                  </Text>
-                  <IconSymbol name="chevron.down" size={18} color={colors.muted} />
-                </View>
-              </View>
-
-              {/* Action Buttons */}
-              <View className="flex-row px-4 mt-4 gap-3">
-                <TouchableOpacity
-                  onPress={() => router.push("/(tabs)/capture")}
-                  className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
-                  style={{ backgroundColor: colors.foreground }}
-                >
-                  <IconSymbol name="square.and.arrow.up" size={18} color={colors.background} />
-                  <Text className="text-base font-semibold ml-2" style={{ color: colors.background }}>
-                    Importer
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => router.push("/(tabs)/capture")}
-                  className="flex-1 flex-row items-center justify-center py-3 rounded-xl border"
-                  style={{ borderColor: colors.border }}
-                >
-                  <IconSymbol name="camera.fill" size={18} color={colors.foreground} />
-                  <Text className="text-base font-semibold ml-2 text-foreground">
-                    Photo
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Jewelry Types Grid - Now with PNG images */}
-              <View className="px-4 mt-6">
-                <Text className="text-sm font-semibold text-foreground mb-3">Catégories</Text>
-                <View className="flex-row flex-wrap gap-3">
-                  {JEWELRY_TYPES.map((type) => (
-                    <TouchableOpacity
-                      key={type.id}
-                      onPress={() => handleTypeSelect(type.id)}
-                      className="rounded-xl p-4 items-center"
-                      style={[
-                        { 
-                          width: '31%',
-                          backgroundColor: selectedType === type.id ? colors.primary + '20' : colors.surface,
-                          borderWidth: selectedType === type.id ? 2 : 1,
-                          borderColor: selectedType === type.id ? colors.primary : colors.border,
-                        }
-                      ]}
-                    >
-                      <View className="w-12 h-12 items-center justify-center mb-2">
-                        <Image
-                          source={JEWELRY_IMAGES[type.id as keyof typeof JEWELRY_IMAGES]}
-                          style={{ width: 40, height: 40 }}
-                          contentFit="contain"
-                        />
-                      </View>
-                      <Text 
-                        className="text-xs text-center"
-                        style={{ color: selectedType === type.id ? colors.primary : colors.foreground }}
-                        numberOfLines={2}
-                      >
-                        {type.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </>
-          ) : (
-            <>
-              {/* Models Grid */}
-              <View className="px-4 mt-4">
-                <Text className="text-sm font-semibold text-foreground mb-3">
-                  Modèles disponibles ({filteredModels.length})
+        {/* Jewelry Types Grid */}
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          <View className="flex-row flex-wrap gap-4">
+            {JEWELRY_TYPES.map((type) => (
+              <TouchableOpacity
+                key={type.id}
+                onPress={() => handleTypeSelect(type.id)}
+                className={`w-[47%] rounded-2xl p-4 border-2 ${
+                  selectedType === type.id
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-surface"
+                }`}
+              >
+                <Text className="text-4xl mb-3">{type.icon}</Text>
+                <Text className="text-base font-semibold text-foreground">
+                  {type.name}
                 </Text>
-                
-                {isLoadingBodyParts ? (
-                  <View className="py-12 items-center">
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text className="text-muted mt-4">Chargement des modèles...</Text>
-                  </View>
-                ) : filteredModels.length === 0 ? (
-                  <View className="py-12 items-center">
-                    <Text className="text-4xl mb-4">📷</Text>
-                    <Text className="text-muted text-center">
-                      Aucun modèle disponible pour ce type.{'\n'}
-                      Importez votre propre photo !
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Style Preview */}
+          {selectedType && (
+            <View className="mt-6">
+              <Text className="text-lg font-semibold text-foreground mb-3">
+                Aperçu des styles
+              </Text>
+              <View className="flex-row gap-3">
+                {JEWELRY_STYLES.map((style) => (
+                  <TouchableOpacity
+                    key={style.id}
+                    onPress={() => handleStyleSelect(style.id)}
+                    className={`flex-1 rounded-xl p-3 border-2 items-center ${
+                      selectedStyle === style.id
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-surface"
+                    }`}
+                  >
+                    <View className="w-16 h-16 rounded-lg bg-background items-center justify-center mb-2 overflow-hidden">
+                      <Image
+                        source={JEWELRY_IMAGES_BY_STYLE[style.id][selectedType]}
+                        style={{ width: 48, height: 48 }}
+                        contentFit="contain"
+                      />
+                    </View>
+                    <View 
+                      className="w-6 h-6 rounded-full border border-border mb-1"
+                      style={{ backgroundColor: style.color }}
+                    />
+                    <Text className={`text-sm font-medium ${selectedStyle === style.id ? 'text-primary' : 'text-foreground'}`}>
+                      {style.name}
                     </Text>
-                  </View>
-                ) : (
-                  <View className="flex-row flex-wrap gap-3">
-                    {filteredModels.map((model) => (
-                      <TouchableOpacity
-                        key={model.id}
-                        onPress={() => handleModelSelect(model)}
-                        className="rounded-xl overflow-hidden"
-                        style={[
-                          { 
-                            width: '48%',
-                            aspectRatio: 0.75,
-                            borderWidth: selectedModel?.id === model.id ? 3 : 1,
-                            borderColor: selectedModel?.id === model.id ? colors.primary : colors.border,
-                          }
-                        ]}
-                      >
-                        <Image
-                          source={{ uri: model.imageUrl }}
-                          style={StyleSheet.absoluteFillObject}
-                          contentFit="cover"
-                          transition={200}
-                        />
-                        <View className="absolute bottom-0 left-0 right-0 p-2 bg-background/80">
-                          <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
-                            {model.name}
-                          </Text>
-                          {model.isDemo && (
-                            <Text className="text-xs text-muted">Démo</Text>
-                          )}
-                        </View>
-                        {selectedModel?.id === model.id && (
-                          <View className="absolute top-2 right-2 w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: colors.primary }}>
-                            <IconSymbol name="checkmark" size={14} color="#0A1A3B" />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
+                  </TouchableOpacity>
+                ))}
               </View>
-            </>
+            </View>
           )}
         </ScrollView>
 
-        {/* Bottom Action Button */}
-        <View className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t" style={{ borderTopColor: colors.border }}>
+        {/* Next Button */}
+        <View className="absolute bottom-6 left-0 right-0 px-6">
           <TouchableOpacity
             onPress={handleNext}
-            disabled={currentStep === 1 ? !selectedType : !selectedModel}
-            className="py-4 rounded-full items-center"
-            style={[
-              styles.nextButton,
-              { 
-                backgroundColor: (currentStep === 1 ? selectedType : selectedModel) ? colors.primary : colors.surface,
-                opacity: (currentStep === 1 ? selectedType : selectedModel) ? 1 : 0.5,
-              }
-            ]}
+            disabled={!selectedType}
+            className={`py-4 rounded-xl items-center ${
+              selectedType ? "bg-primary" : "bg-surface"
+            }`}
           >
-            <Text 
-              className="text-lg font-bold"
-              style={{ color: (currentStep === 1 ? selectedType : selectedModel) ? '#0A1A3B' : colors.muted }}
-            >
-              {currentStep === 1 ? "Continuer" : "Essayer"}
+            <Text className={`font-semibold ${selectedType ? "text-background" : "text-muted"}`}>
+              Continuer
             </Text>
           </TouchableOpacity>
         </View>
@@ -645,20 +746,3 @@ export default function TryOnScreen() {
     </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  captureButton: {
-    shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  nextButton: {
-    shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-});
