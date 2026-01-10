@@ -110,6 +110,8 @@ export type InsertJewelryItem = typeof jewelryCollection.$inferInsert;
  */
 export const creators = mysqlTable("creators", {
   id: int("id").autoincrement().primaryKey(),
+  /** External ID from Supabase/Base44 */
+  externalId: varchar("externalId", { length: 64 }).unique(),
   /** Creator/Brand name */
   name: varchar("name", { length: 255 }).notNull(),
   /** Description */
@@ -118,9 +120,23 @@ export const creators = mysqlTable("creators", {
   websiteUrl: varchar("websiteUrl", { length: 512 }),
   /** Logo image URI */
   logoUri: text("logoUri"),
-  /** Is premium partner */
+  /** Contact email */
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  /** Commission rate (percentage) */
+  commissionRate: int("commissionRate").default(0),
+  /** Partnership tier: standard, premium, exclusive */
+  tier: mysqlEnum("tier", ["standard", "premium", "exclusive"]).default("standard"),
+  /** Is featured on homepage */
+  isFeatured: boolean("isFeatured").default(false),
+  /** Status: active, inactive, pending */
+  status: mysqlEnum("status", ["active", "inactive", "pending"]).default("active"),
+  /** Contract start date */
+  contractStart: timestamp("contractStart"),
+  /** Contract end date */
+  contractEnd: timestamp("contractEnd"),
+  /** Is premium partner (legacy, kept for compatibility) */
   isPremium: boolean("isPremium").default(false),
-  /** Is active */
+  /** Is active (legacy, kept for compatibility) */
   isActive: boolean("isActive").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

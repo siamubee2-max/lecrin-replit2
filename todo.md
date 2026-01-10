@@ -74,3 +74,8 @@
 - [x] Créer une route API pour récupérer les modèles (bodyParts.list, bodyParts.byType)
 - [x] Mettre à jour l'écran d'essayage pour afficher les vrais modèles
 - [x] Mapper les types de bijoux aux parties du corps correspondantes
+
+## Import des Partenariats de Marques
+- [x] Mettre à jour le schéma creators avec les nouveaux champs (commission, tier, contract dates, contact email)
+- [x] Importer les données Moniattitude depuis le CSV (seed automatique)
+- [x] Mettre à jour l'écran Boutique pour afficher les informations complètes

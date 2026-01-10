@@ -342,13 +342,31 @@ export async function seedMoniattitude() {
   
   if (existing.length === 0) {
     await db.insert(creators).values({
+      externalId: "6953e38162ea1d9dd0b75f6a",
       name: "Moniattitude",
-      description: "Bijoux artisanaux! Pièce unique",
+      description: "bijoux artisanaux! Pièce unique",
       websiteUrl: "https://moniattitude.com",
+      contactEmail: "info@moniattitude.com",
+      commissionRate: 0,
+      tier: "premium",
+      isFeatured: true,
+      status: "active",
       isPremium: true,
       isActive: true,
     });
-    console.log("[Database] Seeded Moniattitude creator");
+    console.log("[Database] Seeded Moniattitude creator with full partnership data");
+  } else {
+    // Update existing record with new fields if needed
+    await db.update(creators)
+      .set({
+        externalId: "6953e38162ea1d9dd0b75f6a",
+        contactEmail: "info@moniattitude.com",
+        tier: "premium",
+        isFeatured: true,
+        status: "active",
+      })
+      .where(eq(creators.name, "Moniattitude"));
+    console.log("[Database] Updated Moniattitude with partnership data");
   }
 }
 

@@ -1,23 +1,13 @@
-import { ScrollView, Text, View, TouchableOpacity, Image, StyleSheet, Linking } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import { Image } from "expo-image";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-
-// Active creators
-const CREATORS = [
-  {
-    id: "1",
-    name: "Moniattitude",
-    description: "bijoux artisanaux! Pièce unique",
-    website: "https://moniattitude.com",
-    isPremium: true,
-    logo: null,
-  },
-];
+import { trpc } from "@/lib/trpc";
 
 // Featured collections
 const COLLECTIONS = [
@@ -39,6 +29,9 @@ export default function BoutiqueScreen() {
   const colors = useColors();
   const [activeTab, setActiveTab] = useState<"featured" | "collections">("featured");
 
+  // Fetch creators from API
+  const { data: creators, isLoading: isLoadingCreators } = trpc.creators.list.useQuery();
+
   const handleVisitCreator = (url: string) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -51,6 +44,37 @@ export default function BoutiqueScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     Linking.openURL("mailto:inferencevision@inferencevision.store?subject=Demande%20de%20partenariat%20Écrin%20Virtuel&body=Bonjour,%0A%0AJe%20souhaite%20devenir%20créateur%20partenaire%20sur%20L'Écrin%20Virtuel.%0A%0AMa%20marque:%0AMon%20site%20web:%0A%0ACordialement");
+  };
+
+  const handleContactCreator = (email: string) => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    Linking.openURL(`mailto:${email}`);
+  };
+
+  // Get tier badge color
+  const getTierColor = (tier: string | null) => {
+    switch (tier) {
+      case "premium":
+        return colors.primary;
+      case "exclusive":
+        return "#9333EA"; // Purple
+      default:
+        return colors.muted;
+    }
+  };
+
+  // Get tier label
+  const getTierLabel = (tier: string | null) => {
+    switch (tier) {
+      case "premium":
+        return "Premium";
+      case "exclusive":
+        return "Exclusif";
+      default:
+        return "Partenaire";
+    }
   };
 
   return (
@@ -107,56 +131,123 @@ export default function BoutiqueScreen() {
             </Text>
           </View>
 
-          {CREATORS.map((creator) => (
-            <View 
-              key={creator.id}
-              className="rounded-2xl overflow-hidden mb-4"
-              style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              {/* Creator Logo Placeholder */}
+          {isLoadingCreators ? (
+            <View className="py-8 items-center">
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text className="text-sm text-muted mt-2">Chargement des créateurs...</Text>
+            </View>
+          ) : creators && creators.length > 0 ? (
+            creators.map((creator) => (
               <View 
-                className="h-24 items-center justify-center"
-                style={{ backgroundColor: colors.background }}
+                key={creator.id}
+                className="rounded-2xl overflow-hidden mb-4"
+                style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               >
-                <Text className="text-2xl text-muted font-light tracking-widest">
-                  {creator.name}
-                </Text>
-              </View>
-              
-              {/* Creator Info */}
-              <View className="p-4">
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-lg font-bold text-foreground">
-                    {creator.name}
-                  </Text>
-                  {creator.isPremium && (
+                {/* Creator Logo/Header */}
+                <View 
+                  className="h-24 items-center justify-center relative"
+                  style={{ backgroundColor: colors.background }}
+                >
+                  {creator.logoUri ? (
+                    <Image
+                      source={{ uri: creator.logoUri }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="contain"
+                    />
+                  ) : (
+                    <Text className="text-2xl text-muted font-light tracking-widest">
+                      {creator.name}
+                    </Text>
+                  )}
+                  
+                  {/* Featured Badge */}
+                  {creator.isFeatured && (
                     <View 
-                      className="px-2 py-1 rounded-full"
-                      style={{ backgroundColor: colors.foreground }}
+                      className="absolute top-2 left-2 px-2 py-1 rounded-full flex-row items-center"
+                      style={{ backgroundColor: colors.primary }}
                     >
-                      <Text className="text-xs font-semibold" style={{ color: colors.background }}>
-                        premium
+                      <Text className="text-xs mr-1">⭐</Text>
+                      <Text className="text-xs font-semibold" style={{ color: '#0A1A3B' }}>
+                        Vedette
                       </Text>
                     </View>
                   )}
                 </View>
-                <Text className="text-sm text-muted mb-4">
-                  {creator.description}
-                </Text>
                 
-                <TouchableOpacity
-                  onPress={() => handleVisitCreator(creator.website)}
-                  className="flex-row items-center justify-center py-3 rounded-xl"
-                  style={{ borderWidth: 1, borderColor: colors.border }}
-                >
-                  <Text className="text-sm font-semibold text-foreground mr-2">
-                    Visiter la Marque
+                {/* Creator Info */}
+                <View className="p-4">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-lg font-bold text-foreground flex-1">
+                      {creator.name}
+                    </Text>
+                    <View 
+                      className="px-2 py-1 rounded-full ml-2"
+                      style={{ backgroundColor: getTierColor(creator.tier) }}
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: creator.tier === 'premium' ? '#0A1A3B' : '#FFFFFF' }}>
+                        {getTierLabel(creator.tier)}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <Text className="text-sm text-muted mb-4">
+                    {creator.description}
                   </Text>
-                  <IconSymbol name="link" size={16} color={colors.foreground} />
-                </TouchableOpacity>
+                  
+                  {/* Action Buttons */}
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity
+                      onPress={() => creator.websiteUrl && handleVisitCreator(creator.websiteUrl)}
+                      className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                      style={{ backgroundColor: colors.foreground }}
+                    >
+                      <Text className="text-sm font-semibold mr-2" style={{ color: colors.background }}>
+                        Visiter
+                      </Text>
+                      <IconSymbol name="link" size={14} color={colors.background} />
+                    </TouchableOpacity>
+                    
+                    {creator.contactEmail && (
+                      <TouchableOpacity
+                        onPress={() => handleContactCreator(creator.contactEmail!)}
+                        className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                        style={{ borderWidth: 1, borderColor: colors.border }}
+                      >
+                        <Text className="text-sm font-semibold text-foreground mr-2">
+                          Contact
+                        </Text>
+                        <IconSymbol name="envelope.fill" size={14} color={colors.foreground} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Status indicator */}
+                  <View className="flex-row items-center mt-3 pt-3 border-t" style={{ borderTopColor: colors.border }}>
+                    <View 
+                      className="w-2 h-2 rounded-full mr-2"
+                      style={{ backgroundColor: creator.status === 'active' ? '#22C55E' : '#EF4444' }}
+                    />
+                    <Text className="text-xs text-muted">
+                      {creator.status === 'active' ? 'Partenaire actif' : 'En attente'}
+                    </Text>
+                  </View>
+                </View>
               </View>
+            ))
+          ) : (
+            <View 
+              className="rounded-2xl p-8 items-center"
+              style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+            >
+              <Text className="text-4xl mb-3">🏪</Text>
+              <Text className="text-base font-semibold text-foreground mb-1">
+                Aucun créateur pour le moment
+              </Text>
+              <Text className="text-sm text-muted text-center">
+                Soyez le premier à rejoindre notre plateforme !
+              </Text>
             </View>
-          ))}
+          )}
         </View>
 
         {/* Become a Creator CTA */}
