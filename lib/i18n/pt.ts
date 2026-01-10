@@ -402,6 +402,16 @@ export const pt: TranslationKeys = {
     refreshSuggestion: "Atualizar sugestão",
     noSuggestionYet: "Nenhuma sugestão ainda",
     generateFirst: "Gere sua primeira sugestão",
+    locationPermissionRequired: "Localização necessária",
+    locationPermissionMessage: "Ative a localização para sugestões meteorológicas precisas baseadas na sua posição.",
+    location: "Localização",
+    currentLocation: "Localização atual",
+    enableLocation: "Ativar localização",
+    refreshLocation: "Atualizar localização",
+    locationEnabled: "Localização ativada",
+    locationDisabled: "Localização desativada",
+    usingDefaultLocation: "Usando localização padrão (Paris)",
+    weatherFor: "Clima para",
   },
 
   // Event types

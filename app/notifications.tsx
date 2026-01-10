@@ -32,6 +32,13 @@ import {
   areNotificationsEnabled,
   NotificationSettings,
 } from "@/services/notification-service";
+import {
+  requestLocationPermission,
+  checkLocationPermission,
+  getUserLocation,
+  clearLocationCache,
+  UserLocation,
+} from "@/services/weather-service";
 import { EventType, EVENT_TYPE_ICONS } from "@/services/calendar-service";
 import { DailySuggestion } from "@/services/daily-look-suggestion-service";
 
@@ -65,12 +72,81 @@ export default function NotificationsScreen() {
   const [generating, setGenerating] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [showEventPicker, setShowEventPicker] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(false);
 
   // Load settings on mount
   useEffect(() => {
     loadSettings();
     configureNotifications();
+    loadLocation();
   }, []);
+
+  const loadLocation = async () => {
+    const hasPermission = await checkLocationPermission();
+    setHasLocationPermission(hasPermission);
+    
+    if (hasPermission) {
+      try {
+        const location = await getUserLocation();
+        setUserLocation(location);
+      } catch (error) {
+        console.error("Error loading location:", error);
+      }
+    }
+  };
+
+  const handleRequestLocationPermission = async () => {
+    setLoadingLocation(true);
+    try {
+      const granted = await requestLocationPermission();
+      setHasLocationPermission(granted);
+      
+      if (granted) {
+        const location = await getUserLocation();
+        setUserLocation(location);
+        
+        // Refresh suggestion with new location
+        if (settings) {
+          const freshSuggestion = await generateFreshSuggestion(settings);
+          setSuggestion(freshSuggestion);
+        }
+        
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Alert.alert(
+          t.notifications.locationPermissionRequired || "Localisation requise",
+          t.notifications.locationPermissionMessage || "Activez la localisation pour des suggestions météo précises."
+        );
+      }
+    } catch (error) {
+      console.error("Error requesting location:", error);
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
+  const handleRefreshLocation = async () => {
+    setLoadingLocation(true);
+    clearLocationCache();
+    try {
+      const location = await getUserLocation();
+      setUserLocation(location);
+      
+      // Refresh suggestion with new location
+      if (settings) {
+        const freshSuggestion = await generateFreshSuggestion(settings);
+        setSuggestion(freshSuggestion);
+      }
+      
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.error("Error refreshing location:", error);
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -226,6 +302,50 @@ export default function NotificationsScreen() {
 
         {/* Settings Section */}
         <View className="px-6 mb-6">
+          {/* Location Section */}
+          <View className="bg-surface rounded-2xl p-4 mb-4">
+            <Text className="text-lg font-semibold text-foreground mb-3">
+              📍 {t.notifications.location}
+            </Text>
+            {hasLocationPermission && userLocation ? (
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-base text-foreground">
+                    {userLocation.city || "Position actuelle"}
+                    {userLocation.country ? `, ${userLocation.country}` : ""}
+                  </Text>
+                  <Text className="text-sm text-muted mt-1">
+                    {t.notifications.locationEnabled}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleRefreshLocation}
+                  disabled={loadingLocation}
+                  className="px-3 py-2"
+                >
+                  <Text className="text-primary text-sm">
+                    {loadingLocation ? "..." : `↻ ${t.notifications.refreshLocation}`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <Text className="text-sm text-muted mb-3">
+                  {t.notifications.usingDefaultLocation}
+                </Text>
+                <TouchableOpacity
+                  onPress={handleRequestLocationPermission}
+                  disabled={loadingLocation}
+                  className="bg-primary py-3 rounded-xl items-center"
+                >
+                  <Text className="text-background font-semibold">
+                    {loadingLocation ? "..." : `📍 ${t.notifications.enableLocation}`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
           {/* Enable/Disable Toggle */}
           <View className="bg-surface rounded-2xl p-4 mb-4">
             <View className="flex-row items-center justify-between">

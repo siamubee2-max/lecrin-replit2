@@ -304,3 +304,14 @@
 - [x] Implémenter l'écran de paramètres des notifications (app/notifications.tsx)
 - [x] Ajouter les traductions pour les notifications dans les 6 langues
 - [x] Créer les tests unitaires pour les services de notifications (68 tests)
+
+## Intégration API Météo Réelle (Open-Meteo)
+- [x] Rechercher la documentation de l'API Open-Meteo
+- [x] Mettre à jour weather-service.ts avec les appels API réels
+- [x] Mapper les codes météo Open-Meteo vers nos conditions (WMO codes)
+- [x] Ajouter expo-location pour la géolocalisation
+- [x] Implémenter la demande de permission de localisation
+- [x] Ajouter un fallback vers Paris si la localisation est refusée
+- [x] Mettre à jour l'écran de notifications pour afficher la ville
+- [x] Ajouter les traductions pour la localisation (6 langues)
+- [x] Créer des tests unitaires pour l'API météo (688 tests passent)

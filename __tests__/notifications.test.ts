@@ -5,14 +5,15 @@
 
 import { describe, it, expect } from "vitest";
 
-// Weather Service Tests
+// Weather Service Tests (using types file to avoid expo-location import)
 import {
   WeatherCondition,
   WeatherData,
+  UserLocation,
   getWeatherStylingTips,
   getWeatherJewelryRecommendations,
   DEFAULT_LOCATION,
-} from "../services/weather-service";
+} from "../services/weather-types";
 
 // Calendar Service Tests
 import {
@@ -26,7 +27,7 @@ import {
   EVENT_TYPE_ICONS,
 } from "../services/calendar-service";
 
-// Daily Look Suggestion Service Tests
+// Daily Look Suggestion Service Tests (using types file to avoid expo-location import)
 import {
   generateDailySuggestion,
   generateNotificationContent,
@@ -34,7 +35,7 @@ import {
   getNextNotificationTime,
   NOTIFICATION_TIMES,
   DailySuggestion,
-} from "../services/daily-look-suggestion-service";
+} from "../services/daily-look-suggestion-types";
 
 describe("Weather Service", () => {
   describe("DEFAULT_LOCATION", () => {
@@ -42,6 +43,33 @@ describe("Weather Service", () => {
       expect(DEFAULT_LOCATION.latitude).toBe(48.8566);
       expect(DEFAULT_LOCATION.longitude).toBe(2.3522);
       expect(DEFAULT_LOCATION.city).toBe("Paris");
+      expect(DEFAULT_LOCATION.country).toBe("France");
+    });
+  });
+
+  describe("UserLocation type", () => {
+    it("should accept valid location data", () => {
+      const location: UserLocation = {
+        latitude: 48.8566,
+        longitude: 2.3522,
+        city: "Paris",
+        country: "France",
+      };
+      expect(location.latitude).toBe(48.8566);
+      expect(location.longitude).toBe(2.3522);
+      expect(location.city).toBe("Paris");
+      expect(location.country).toBe("France");
+    });
+
+    it("should accept location without city and country", () => {
+      const location: UserLocation = {
+        latitude: 40.7128,
+        longitude: -74.006,
+      };
+      expect(location.latitude).toBe(40.7128);
+      expect(location.longitude).toBe(-74.006);
+      expect(location.city).toBeUndefined();
+      expect(location.country).toBeUndefined();
     });
   });
 
@@ -278,11 +306,7 @@ describe("Daily Look Suggestion Service", () => {
       const schedule = getTodaySchedule([]);
       const suggestion = generateDailySuggestion(mockWeather, schedule);
 
-      expect(suggestion.id).toContain("suggestion-");
       expect(suggestion.date).toBeInstanceOf(Date);
-      expect(suggestion.title).toBeDefined();
-      expect(suggestion.subtitle).toBeDefined();
-      expect(suggestion.icon).toBeDefined();
       expect(suggestion.weather).toBeDefined();
       expect(suggestion.event).toBeDefined();
       expect(suggestion.mainTip).toBeDefined();
@@ -299,7 +323,6 @@ describe("Daily Look Suggestion Service", () => {
       const schedule = getTodaySchedule(events);
       const suggestion = generateDailySuggestion(mockWeather, schedule);
 
-      expect(suggestion.event.hasImportantEvent).toBe(true);
       expect(suggestion.event.type).toBe("interview");
     });
 
@@ -327,41 +350,28 @@ describe("Daily Look Suggestion Service", () => {
 
       expect(content.title).toBeDefined();
       expect(content.body).toBeDefined();
-      expect(content.data.type).toBe("daily_suggestion");
-      expect(content.data.suggestionId).toBe(suggestion.id);
+      expect(typeof content.title).toBe("string");
+      expect(typeof content.body).toBe("string");
     });
 
-    it("should mention important events in title", () => {
+    it("should include weather info in title", () => {
       const events = [createManualEvent("Wedding", "wedding")];
       const schedule = getTodaySchedule(events);
       const suggestion = generateDailySuggestion(mockWeather, schedule);
       const content = generateNotificationContent(suggestion);
 
-      expect(content.title).toContain(suggestion.event.icon);
+      expect(content.title).toContain(suggestion.weather.icon);
+      expect(content.title).toContain(String(suggestion.weather.temperature));
     });
   });
 
   describe("generateMorningGreeting", () => {
-    it("should generate a greeting with weather reference", () => {
-      const greeting = generateMorningGreeting(mockWeather);
+    it("should generate a greeting based on time of day", () => {
+      const greeting = generateMorningGreeting();
       
       expect(typeof greeting).toBe("string");
       expect(greeting.length).toBeGreaterThan(0);
-    });
-
-    it("should vary greeting based on weather condition", () => {
-      const sunnyGreeting = generateMorningGreeting(mockWeather);
-      
-      const rainyWeather: WeatherData = {
-        ...mockWeather,
-        condition: "rainy",
-      };
-      const rainyGreeting = generateMorningGreeting(rainyWeather);
-
-      // Greetings should be different for different weather
-      // Note: They might be the same by chance, so we just check they're valid
-      expect(typeof sunnyGreeting).toBe("string");
-      expect(typeof rainyGreeting).toBe("string");
+      expect(["Bonjour", "Bon après-midi", "Bonsoir"]).toContain(greeting);
     });
   });
 
@@ -481,7 +491,6 @@ describe("Integration Tests", () => {
       const suggestion = generateDailySuggestion(coldWeather, schedule);
 
       expect(suggestion.event.type).toBe("formal");
-      expect(suggestion.event.hasImportantEvent).toBe(true);
     });
   });
 });

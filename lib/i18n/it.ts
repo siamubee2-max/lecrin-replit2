@@ -402,6 +402,16 @@ export const it: TranslationKeys = {
     refreshSuggestion: "Aggiorna suggerimento",
     noSuggestionYet: "Nessun suggerimento ancora",
     generateFirst: "Genera il tuo primo suggerimento",
+    locationPermissionRequired: "Posizione richiesta",
+    locationPermissionMessage: "Attiva la posizione per suggerimenti meteo precisi basati sulla tua posizione.",
+    location: "Posizione",
+    currentLocation: "Posizione attuale",
+    enableLocation: "Attiva posizione",
+    refreshLocation: "Aggiorna posizione",
+    locationEnabled: "Posizione attivata",
+    locationDisabled: "Posizione disattivata",
+    usingDefaultLocation: "Utilizzo posizione predefinita (Parigi)",
+    weatherFor: "Meteo per",
   },
 
   // Event types

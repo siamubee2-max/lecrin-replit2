@@ -400,6 +400,16 @@ export const fr = {
     refreshSuggestion: "Actualiser la suggestion",
     noSuggestionYet: "Pas encore de suggestion",
     generateFirst: "Générez votre première suggestion",
+    locationPermissionRequired: "Localisation requise",
+    locationPermissionMessage: "Activez la localisation pour des suggestions météo précises basées sur votre position.",
+    location: "Localisation",
+    currentLocation: "Position actuelle",
+    enableLocation: "Activer la localisation",
+    refreshLocation: "Actualiser la position",
+    locationEnabled: "Localisation activée",
+    locationDisabled: "Localisation désactivée",
+    usingDefaultLocation: "Utilisation de la position par défaut (Paris)",
+    weatherFor: "Météo pour",
   },
 
   // Event types
