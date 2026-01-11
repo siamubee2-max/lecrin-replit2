@@ -243,7 +243,7 @@ export function WishlistTab({ onItemSelect }: WishlistTabProps) {
       {item.notes && (
         <View className="px-4 pb-3">
           <Text className="text-xs text-muted italic" numberOfLines={2}>
-            "{item.notes}"
+            {'"'}{item.notes}{'"'}
           </Text>
         </View>
       )}

@@ -73,7 +73,7 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
           <Text className="text-3xl font-bold text-foreground mt-6">
-            L'Écrin <Text style={{ color: colors.primary }}>Virtuel</Text>
+            L{"'"}Écrin <Text style={{ color: colors.primary }}>Virtuel</Text>
           </Text>
           <Text className="text-base text-muted text-center mt-3 px-4">
             Connectez-vous pour synchroniser vos favoris sur tous vos appareils
@@ -155,11 +155,11 @@ export default function LoginScreen() {
         <View className="mt-auto pb-6">
           <Text className="text-xs text-muted text-center leading-relaxed">
             En continuant, vous acceptez nos{" "}
-            <Text 
-              style={{ color: colors.primary }} 
+            <Text
+              style={{ color: colors.primary }}
               onPress={() => router.push("/terms")}
             >
-              Conditions d'utilisation
+              Conditions d{"'"}utilisation
             </Text>
             {" "}et notre{" "}
             <Text 

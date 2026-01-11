@@ -698,7 +698,7 @@ export default function TryOnScreen() {
                 Aucun modèle disponible
               </Text>
               <Text className="text-sm text-muted text-center">
-                Ajoutez des photos dans l'onglet Galerie pour commencer
+                Ajoutez des photos dans l{"'"}onglet Galerie pour commencer
               </Text>
             </View>
           ) : (
@@ -779,7 +779,7 @@ export default function TryOnScreen() {
             <IconSymbol name="sparkles" size={20} color={colors.primary} />
             <View className="ml-3 flex-1">
               <Text className="font-semibold" style={{ color: colors.primary }}>Mode Démonstration</Text>
-              <Text className="text-sm text-muted">Essayez "{demoJewelryName}" sur une photo</Text>
+              <Text className="text-sm text-muted">Essayez {'"'}{demoJewelryName}{'"'} sur une photo</Text>
             </View>
           </View>
         )}

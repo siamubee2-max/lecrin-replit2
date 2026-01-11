@@ -111,7 +111,7 @@ export const LookShareCard = forwardRef<ViewShot, LookShareCardProps>(
           <View style={styles.brandContainer}>
             <Text style={styles.brandIcon}>💎</Text>
             <View>
-              <Text style={styles.brandName}>L'Écrin Virtuel</Text>
+              <Text style={styles.brandName}>L{"'"}Écrin Virtuel</Text>
               <Text style={styles.brandTagline}>Essayage virtuel de bijoux</Text>
             </View>
           </View>
@@ -199,7 +199,7 @@ export const LookShareCard = forwardRef<ViewShot, LookShareCardProps>(
         {/* Footer */}
         <View style={[styles.footer, { backgroundColor: "#1a2744" }]}>
           <Text style={styles.footerText}>
-            Créé avec L'Écrin Virtuel • ecrin-virtuel.app
+            Créé avec L{"'"}Écrin Virtuel • ecrin-virtuel.app
           </Text>
         </View>
 
