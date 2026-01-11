@@ -18,65 +18,164 @@ const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2;
 
 type BodyPartCategory = "hands" | "ears" | "necks";
+type GenderCategory = "feminine" | "masculine" | "neutral";
 
 interface DemoImage {
   id: string;
   source: any;
   skinTone: string;
   bodyPart: BodyPartCategory;
+  gender: GenderCategory;
 }
 
 const DEMO_IMAGES: DemoImage[] = [
-  // Hands
+  // Feminine hands
   {
     id: "hand_light",
     source: require("@/assets/demo-gallery/hand_light.png"),
     skinTone: "light",
     bodyPart: "hands",
+    gender: "feminine",
   },
   {
     id: "hand_medium",
     source: require("@/assets/demo-gallery/hand_medium.png"),
     skinTone: "medium",
     bodyPart: "hands",
+    gender: "feminine",
   },
   {
     id: "hand_dark",
     source: require("@/assets/demo-gallery/hand_dark.png"),
     skinTone: "dark",
     bodyPart: "hands",
+    gender: "feminine",
   },
-  // Ears
+  // Masculine hands
+  {
+    id: "hand_male_light",
+    source: require("@/assets/demo-gallery/hand_male_light.png"),
+    skinTone: "light",
+    bodyPart: "hands",
+    gender: "masculine",
+  },
+  {
+    id: "hand_male_medium",
+    source: require("@/assets/demo-gallery/hand_male_medium.png"),
+    skinTone: "medium",
+    bodyPart: "hands",
+    gender: "masculine",
+  },
+  {
+    id: "hand_male_dark",
+    source: require("@/assets/demo-gallery/hand_male_dark.png"),
+    skinTone: "dark",
+    bodyPart: "hands",
+    gender: "masculine",
+  },
+  // Neutral hands
+  {
+    id: "hand_neutral_light",
+    source: require("@/assets/demo-gallery/hand_neutral_light.png"),
+    skinTone: "light",
+    bodyPart: "hands",
+    gender: "neutral",
+  },
+  {
+    id: "hand_neutral_dark",
+    source: require("@/assets/demo-gallery/hand_neutral_dark.png"),
+    skinTone: "dark",
+    bodyPart: "hands",
+    gender: "neutral",
+  },
+  // Feminine ears
   {
     id: "ear_light",
     source: require("@/assets/demo-gallery/ear_light.png"),
     skinTone: "light",
     bodyPart: "ears",
+    gender: "feminine",
   },
   {
     id: "ear_medium",
     source: require("@/assets/demo-gallery/ear_medium.png"),
     skinTone: "medium",
     bodyPart: "ears",
+    gender: "feminine",
   },
   {
     id: "ear_dark",
     source: require("@/assets/demo-gallery/ear_dark.png"),
     skinTone: "dark",
     bodyPart: "ears",
+    gender: "feminine",
   },
-  // Necks
+  // Masculine ears
+  {
+    id: "ear_male_light",
+    source: require("@/assets/demo-gallery/ear_male_light.png"),
+    skinTone: "light",
+    bodyPart: "ears",
+    gender: "masculine",
+  },
+  {
+    id: "ear_male_medium",
+    source: require("@/assets/demo-gallery/ear_male_medium.png"),
+    skinTone: "medium",
+    bodyPart: "ears",
+    gender: "masculine",
+  },
+  {
+    id: "ear_male_dark",
+    source: require("@/assets/demo-gallery/ear_male_dark.png"),
+    skinTone: "dark",
+    bodyPart: "ears",
+    gender: "masculine",
+  },
+  // Neutral ears
+  {
+    id: "ear_neutral_light",
+    source: require("@/assets/demo-gallery/ear_neutral_light.png"),
+    skinTone: "light",
+    bodyPart: "ears",
+    gender: "neutral",
+  },
+  {
+    id: "ear_neutral_dark",
+    source: require("@/assets/demo-gallery/ear_neutral_dark.png"),
+    skinTone: "dark",
+    bodyPart: "ears",
+    gender: "neutral",
+  },
+  // Feminine necks
   {
     id: "neck_light",
     source: require("@/assets/demo-gallery/neck_light.png"),
     skinTone: "light",
     bodyPart: "necks",
+    gender: "feminine",
   },
   {
     id: "neck_dark",
     source: require("@/assets/demo-gallery/neck_dark.png"),
     skinTone: "dark",
     bodyPart: "necks",
+    gender: "feminine",
+  },
+  // Masculine necks
+  {
+    id: "neck_male_light",
+    source: require("@/assets/demo-gallery/neck_male_light.png"),
+    skinTone: "light",
+    bodyPart: "necks",
+    gender: "masculine",
+  },
+  {
+    id: "neck_male_dark",
+    source: require("@/assets/demo-gallery/neck_male_dark.png"),
+    skinTone: "dark",
+    bodyPart: "necks",
+    gender: "masculine",
   },
 ];
 
@@ -85,12 +184,14 @@ export default function DemoGalleryScreen() {
   const colors = useColors();
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<BodyPartCategory | "all">("all");
+  const [selectedGender, setSelectedGender] = useState<GenderCategory | "all">("all");
   const [selectedImage, setSelectedImage] = useState<DemoImage | null>(null);
 
-  const filteredImages =
-    selectedCategory === "all"
-      ? DEMO_IMAGES
-      : DEMO_IMAGES.filter((img) => img.bodyPart === selectedCategory);
+  const filteredImages = DEMO_IMAGES.filter((img) => {
+    const categoryMatch = selectedCategory === "all" || img.bodyPart === selectedCategory;
+    const genderMatch = selectedGender === "all" || img.gender === selectedGender;
+    return categoryMatch && genderMatch;
+  });
 
   const getSkinToneLabel = (skinTone: string): string => {
     switch (skinTone) {
@@ -118,6 +219,19 @@ export default function DemoGalleryScreen() {
     }
   };
 
+  const getGenderLabel = (gender: GenderCategory): string => {
+    switch (gender) {
+      case "feminine":
+        return t.demoGallery.genders.feminine;
+      case "masculine":
+        return t.demoGallery.genders.masculine;
+      case "neutral":
+        return t.demoGallery.genders.neutral;
+      default:
+        return gender;
+    }
+  };
+
   const getCategoryLabel = (key: BodyPartCategory | "all"): string => {
     switch (key) {
       case "all":
@@ -133,7 +247,23 @@ export default function DemoGalleryScreen() {
     }
   };
 
+  const getGenderFilterLabel = (key: GenderCategory | "all"): string => {
+    switch (key) {
+      case "all":
+        return t.demoGallery.genders.all;
+      case "feminine":
+        return t.demoGallery.genders.feminine;
+      case "masculine":
+        return t.demoGallery.genders.masculine;
+      case "neutral":
+        return t.demoGallery.genders.neutral;
+      default:
+        return key;
+    }
+  };
+
   const categories: (BodyPartCategory | "all")[] = ["all", "hands", "ears", "necks"];
+  const genders: (GenderCategory | "all")[] = ["all", "feminine", "masculine", "neutral"];
 
   return (
     <ScreenContainer>
@@ -198,6 +328,43 @@ export default function DemoGalleryScreen() {
         ))}
       </ScrollView>
 
+      {/* Gender Filter Tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsContainer}
+      >
+        {genders.map((gen) => (
+          <Pressable
+            key={gen}
+            onPress={() => setSelectedGender(gen)}
+            style={({ pressed }) => [
+              styles.genderTab,
+              {
+                backgroundColor:
+                  selectedGender === gen ? colors.primary : "transparent",
+                borderColor: selectedGender === gen ? colors.primary : colors.border,
+              },
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    selectedGender === gen
+                      ? "#FFFFFF"
+                      : colors.muted,
+                },
+              ]}
+            >
+              {getGenderFilterLabel(gen)}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
       {/* Gallery Grid */}
       <ScrollView
         contentContainerStyle={styles.galleryContainer}
@@ -222,6 +389,9 @@ export default function DemoGalleryScreen() {
               <View style={styles.cardInfo}>
                 <Text style={[styles.cardBodyPart, { color: colors.foreground }]}>
                   {getBodyPartLabel(image.bodyPart)}
+                </Text>
+                <Text style={[styles.cardGender, { color: colors.primary }]}>
+                  {getGenderLabel(image.gender)}
                 </Text>
                 <Text style={[styles.cardSkinTone, { color: colors.muted }]}>
                   {getSkinToneLabel(image.skinTone)}
@@ -257,6 +427,9 @@ export default function DemoGalleryScreen() {
             <View style={styles.modalInfo}>
               <Text style={[styles.modalBodyPart, { color: colors.foreground }]}>
                 {getBodyPartLabel(selectedImage.bodyPart)}
+              </Text>
+              <Text style={[styles.modalGender, { color: colors.primary }]}>
+                {getGenderLabel(selectedImage.gender)}
               </Text>
               <Text style={[styles.modalSkinTone, { color: colors.muted }]}>
                 {getSkinToneLabel(selectedImage.skinTone)}
@@ -306,13 +479,20 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 12,
     gap: 8,
   },
   tab: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  genderTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
     marginRight: 8,
   },
@@ -346,6 +526,11 @@ const styles = StyleSheet.create({
   cardBodyPart: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  cardGender: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
   },
   cardSkinTone: {
     fontSize: 12,
@@ -395,6 +580,11 @@ const styles = StyleSheet.create({
   modalBodyPart: {
     fontSize: 18,
     fontWeight: "600",
+  },
+  modalGender: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 4,
   },
   modalSkinTone: {
     fontSize: 14,

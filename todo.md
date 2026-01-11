@@ -434,3 +434,20 @@
 - [x] Intégrer le message d'inclusivité (pour tous les genres et morphologies)
 - [x] Ajouter un lien vers la galerie depuis l'écran d'accueil
 - [x] Créer les tests unitaires (25 tests)
+
+## Amélioration Inclusivité - Hommes et Non Genrés
+- [x] Générer des images de mains masculines avec bijoux (3 carnations)
+- [x] Générer des images d'oreilles masculines avec boucles d'oreilles (3 carnations)
+- [x] Générer des images de cous masculins avec colliers (2 carnations)
+- [x] Générer des images de mains non genrées/androgynes avec bijoux (2 carnations)
+- [x] Générer des images d'oreilles non genrées/androgynes (2 carnations)
+- [x] Mettre à jour l'écran demo-gallery.tsx avec les nouvelles images
+- [x] Ajouter un filtre par genre (Tous, Féminin, Masculin, Non genré)
+
+## Nouveau Thème Beige/Crème Luxueux
+- [x] Mettre à jour theme.config.js avec les nouvelles couleurs beige/crème
+- [x] Fond principal : Beige crème (#F5F0E8)
+- [x] Surface/cartes : Beige clair (#FAF7F2)
+- [x] Bordures : Beige doré subtil (#E8DFD0)
+- [x] Conserver le bleu marine (#0A1A3B) et l'or (#D4AF37)
+- [x] Vérifier le contraste et l'accessibilité

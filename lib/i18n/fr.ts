@@ -492,6 +492,12 @@ export const fr = {
       ears: "Oreilles",
       necks: "Cous",
     },
+    genders: {
+      all: "Tous",
+      feminine: "Féminin",
+      masculine: "Masculin",
+      neutral: "Non genré",
+    },
     skinTones: {
       light: "Carnation claire",
       medium: "Carnation médiane",

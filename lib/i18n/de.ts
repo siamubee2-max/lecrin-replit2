@@ -494,6 +494,12 @@ export const de: TranslationKeys = {
       ears: "Ohren",
       necks: "Hälse",
     },
+    genders: {
+      all: "Alle",
+      feminine: "Feminin",
+      masculine: "Maskulin",
+      neutral: "Nicht-binär",
+    },
     skinTones: {
       light: "Heller Hautton",
       medium: "Mittlerer Hautton",
