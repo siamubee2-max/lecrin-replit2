@@ -408,3 +408,11 @@
 - [x] Intégrer le tracking dans les favoris (toggleFavorite)
 - [x] Créer les tests unitaires (47 tests - 796 tests au total)
 - [ ] Configurer la clé API Mixpanel (EXPO_PUBLIC_MIXPANEL_TOKEN)
+
+## Audit Inclusivité et Simplicité
+- [x] Vérifier les textes pour la neutralité de genre - CONFORME (aucun terme genré)
+- [x] Vérifier les images pour l'inclusivité - CONFORME (bijoux neutres)
+- [x] Simplifier l'interface si nécessaire - Déjà simple et épurée
+- [x] Vérifier l'élégance du design - CONFORME (bleu marine + or)
+- [x] S'assurer que l'app est fonctionnelle et facile à utiliser - CONFORME
+- [x] Rapport d'audit créé (docs/inclusivity-audit.md)
