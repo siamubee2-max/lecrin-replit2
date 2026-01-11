@@ -133,6 +133,30 @@ export default function HomeScreen() {
             />
           </View>
 
+          {/* Demo Gallery Banner */}
+          <TouchableOpacity
+            onPress={() => router.push("/demo-gallery")}
+            className="mx-4 mt-6 rounded-2xl overflow-hidden"
+            style={[styles.demoBanner, { borderColor: colors.primary }]}
+          >
+            <View className="flex-row items-center p-4" style={{ backgroundColor: colors.surface }}>
+              <View className="flex-1">
+                <Text className="text-base font-semibold text-foreground mb-1">
+                  {t.demoGallery.title}
+                </Text>
+                <Text className="text-xs text-muted" numberOfLines={2}>
+                  {t.demoGallery.intro}
+                </Text>
+              </View>
+              <View 
+                className="w-10 h-10 rounded-full items-center justify-center ml-3"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <IconSymbol name="chevron.right" size={20} color="#0A1A3B" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
           {/* Recent Try-ons Section */}
           <View className="px-4 mt-8">
             <View className="flex-row items-center justify-between mb-4">
@@ -242,5 +266,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  demoBanner: {
+    borderWidth: 1,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
 });

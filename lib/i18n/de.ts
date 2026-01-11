@@ -485,4 +485,21 @@ export const de: TranslationKeys = {
     cold: "Kalt",
     mild: "Mild",
   },
+  demoGallery: {
+    title: "Demo-Galerie",
+    intro: "Entdecken Sie, wie sich unser Schmuck an alle Körpertypen und Hauttöne anpasst.",
+    categories: {
+      all: "Alle",
+      hands: "Hände",
+      ears: "Ohren",
+      necks: "Hälse",
+    },
+    skinTones: {
+      light: "Heller Hautton",
+      medium: "Mittlerer Hautton",
+      dark: "Dunkler Hautton",
+    },
+    inclusivityTitle: "Für alle",
+    inclusivityMessage: "L'Écrin Virtuel ist für alle Menschen konzipiert, unabhängig von Geschlecht, Hautton oder Körpertyp. Schmuck ist universell.",
+  },
 };

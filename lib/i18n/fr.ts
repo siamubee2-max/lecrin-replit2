@@ -483,6 +483,23 @@ export const fr = {
     cold: "Froid",
     mild: "Doux",
   },
+  demoGallery: {
+    title: "Galerie Démo",
+    intro: "Découvrez comment nos bijoux s'adaptent à toutes les morphologies et carnations.",
+    categories: {
+      all: "Tout",
+      hands: "Mains",
+      ears: "Oreilles",
+      necks: "Cous",
+    },
+    skinTones: {
+      light: "Carnation claire",
+      medium: "Carnation médiane",
+      dark: "Carnation foncée",
+    },
+    inclusivityTitle: "Pour tout le monde",
+    inclusivityMessage: "L'Écrin Virtuel est conçu pour toutes les personnes, quels que soient leur genre, leur carnation ou leur morphologie. Les bijoux sont universels.",
+  },
 } as const;
 
 // Type for translation structure - deeply nested with flexible string values

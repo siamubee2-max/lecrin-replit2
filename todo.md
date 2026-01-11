@@ -416,3 +416,21 @@
 - [x] Vérifier l'élégance du design - CONFORME (bleu marine + or)
 - [x] S'assurer que l'app est fonctionnelle et facile à utiliser - CONFORME
 - [x] Rapport d'audit créé (docs/inclusivity-audit.md)
+
+## Galerie de Démonstration Inclusive
+- [ ] Générer des images de démonstration avec morphologies variées
+  - [ ] Mains diverses (différentes carnations, tailles)
+  - [ ] Oreilles diverses (différentes carnations)
+  - [ ] Cous divers (différentes carnations)
+- [ ] Créer l'écran de galerie de démonstration
+- [ ] Intégrer la galerie dans l'écran d'accueil ou essayage
+- [ ] Ajouter les traductions pour la galerie (6 langues)
+- [ ] Tester l'affichage des images
+
+## Galerie de Démonstration Inclusive
+- [x] Créer l'écran demo-gallery.tsx avec filtres par catégorie
+- [x] Générer 8 images de démonstration (mains, oreilles, cous avec différentes carnations)
+- [x] Ajouter les traductions dans les 6 langues (FR, EN, ES, DE, IT, PT)
+- [x] Intégrer le message d'inclusivité (pour tous les genres et morphologies)
+- [x] Ajouter un lien vers la galerie depuis l'écran d'accueil
+- [x] Créer les tests unitaires (25 tests)

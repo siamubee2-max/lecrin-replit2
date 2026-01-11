@@ -485,4 +485,21 @@ export const pt: TranslationKeys = {
     cold: "Frio",
     mild: "Ameno",
   },
+  demoGallery: {
+    title: "Galeria Demo",
+    intro: "Descubra como nossas joias se adaptam a todos os tipos de corpo e tons de pele.",
+    categories: {
+      all: "Todos",
+      hands: "Mãos",
+      ears: "Orelhas",
+      necks: "Pescoços",
+    },
+    skinTones: {
+      light: "Tom de pele claro",
+      medium: "Tom de pele médio",
+      dark: "Tom de pele escuro",
+    },
+    inclusivityTitle: "Para todos",
+    inclusivityMessage: "L'Écrin Virtuel foi projetado para todas as pessoas, independentemente de gênero, tom de pele ou tipo de corpo. As joias são universais.",
+  },
 };

@@ -485,4 +485,21 @@ export const en: TranslationKeys = {
     cold: "Cold",
     mild: "Mild",
   },
+  demoGallery: {
+    title: "Demo Gallery",
+    intro: "Discover how our jewelry adapts to all body types and skin tones.",
+    categories: {
+      all: "All",
+      hands: "Hands",
+      ears: "Ears",
+      necks: "Necks",
+    },
+    skinTones: {
+      light: "Light skin tone",
+      medium: "Medium skin tone",
+      dark: "Dark skin tone",
+    },
+    inclusivityTitle: "For Everyone",
+    inclusivityMessage: "L'Écrin Virtuel is designed for all people, regardless of gender, skin tone, or body type. Jewelry is universal.",
+  },
 } as const;
