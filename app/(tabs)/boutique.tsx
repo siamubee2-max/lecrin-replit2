@@ -47,7 +47,7 @@ interface PartnerJewelry {
   description: string | null;
   priceInCents: number | null;
   currency: string | null;
-  imageUrl: string | null;
+  imageUrl: string | number | null;
   productUrl: string | null;
   metalType: MetalType | null;
   gemType: GemType | null;
@@ -115,7 +115,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Sublimez votre look avec cette paire de boucles d'oreilles artisanales en forme de fleur, minutieusement confectionnées à la main. Grâce à un élégant mélange de nuances or et reflets métallisés, elles apportent une touche naturelle et sophistiquée. Légères et agréables à porter, environ 2 cm de diamètre. Puce en acier inoxydable.",
     priceInCents: null,
     currency: null,
-    imageUrl: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400",
+    imageUrl: require("@/assets/products/moniattitude/fleur_doree.jpeg"),
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -132,7 +132,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles artisanales en forme de fleur dans un magnifique vert émeraude. Chaque modèle est créé une seule fois dans l'atelier Moni'attitude. Puce en acier inoxydable.",
     priceInCents: null,
     currency: null,
-    imageUrl: "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=400",
+    imageUrl: require("@/assets/products/moniattitude/fleur_vertes.jpeg"),
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -167,7 +167,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Adorables boucles d'oreilles en forme de cœur, faites main avec amour. Idéales pour exprimer votre côté romantique. Puce en acier inoxydable.",
     priceInCents: null,
     currency: null,
-    imageUrl: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400",
+    imageUrl: require("@/assets/products/moniattitude/coeur_tendre.jpeg"),
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -201,7 +201,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles cœur rouge passion, faites main en argile polymère. Pièce unique de l'atelier Moni'attitude.",
     priceInCents: null,
     currency: null,
-    imageUrl: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=400",
+    imageUrl: require("@/assets/products/moniattitude/coeur_blanches.jpeg"),
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -236,7 +236,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles géométriques blanches avec paillettes argent. Design élégant fait main.",
     priceInCents: null,
     currency: null,
-    imageUrl: "https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=400",
+    imageUrl: require("@/assets/products/moniattitude/geometrique_blanc.jpeg"),
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -254,7 +254,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles artisanales en résine UV avec reflets uniques. Chaque paire est une création originale.",
     priceInCents: null,
     currency: null,
-    imageUrl: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400",
+    imageUrl: require("@/assets/products/moniattitude/argile_polymere_gouttes.jpeg"),
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "resin",
     gemType: "none",
@@ -289,7 +289,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles en forme de feuille avec finition métallisée. Inspirées par la nature, faites main.",
     priceInCents: null,
     currency: null,
-    imageUrl: "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=400",
+    imageUrl: require("@/assets/products/moniattitude/feuilles_sculptees.jpeg"),
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -423,7 +423,7 @@ function JewelryCard({
       <View className="relative">
         {jewelry.imageUrl ? (
           <Image
-            source={{ uri: jewelry.imageUrl }}
+            source={typeof jewelry.imageUrl === 'string' ? { uri: jewelry.imageUrl } : jewelry.imageUrl}
             style={{ width: "100%", height: 180 }}
             contentFit="cover"
           />
@@ -836,7 +836,7 @@ export default function BoutiqueScreen() {
               {/* Image */}
               {selectedJewelry.imageUrl && (
                 <Image
-                  source={{ uri: selectedJewelry.imageUrl }}
+                  source={typeof selectedJewelry.imageUrl === 'string' ? { uri: selectedJewelry.imageUrl } : selectedJewelry.imageUrl}
                   style={{ width: "100%", height: 300 }}
                   contentFit="cover"
                 />

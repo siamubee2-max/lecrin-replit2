@@ -376,3 +376,9 @@
 - [x] Mettre à jour la boutique avec 12 vrais produits Moni'attitude
 - [x] Mettre à jour les informations de la marque (Belgique, slogan, description)
 - [x] Tester l'affichage des produits (749 tests passent)
+
+## Intégration Vraies Photos Moni'attitude
+- [x] Télécharger les images des produits depuis moniattitude.com (7 images)
+- [x] Sauvegarder les images dans assets/products/moniattitude/
+- [x] Mettre à jour boutique.tsx avec les vraies images (require() local)
+- [x] Tester l'affichage des images (749 tests passent)
