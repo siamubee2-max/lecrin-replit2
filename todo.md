@@ -512,3 +512,8 @@
 - [x] Permettre l'essayage des bijoux de démo sur les mannequins
 - [x] Permettre l'essayage des bijoux de démo sur sa propre photo
 - [x] Ajouter un bouton "Essayer" sur chaque article de démo
+
+## BUGS CRITIQUES À CORRIGER
+- [x] Thème beige/crème non appliqué - forcé le mode light par défaut
+- [x] Bouton de capture photo ne fonctionne pas - ajouté expo-image-picker avec permissions
+- [x] Bouton galerie ne fonctionne pas - ajouté expo-image-picker avec permissions
