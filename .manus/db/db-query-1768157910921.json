@@ -1,0 +1,64 @@
+{
+  "query": "SELECT id, name, type, imageUrl FROM bodyParts LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2XC5zfWndw3yb9g.root --database CiR7qZ3C59qboMiNR9PxaK --execute SELECT id, name, type, imageUrl FROM bodyParts LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Modèle Cou 1",
+      "type": "neck",
+      "imageUrl": "https://drive.google.com/uc?export=view&id="
+    },
+    {
+      "id": "2",
+      "name": "Bague Gauche",
+      "type": "ring",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=13O0T-bzBDjYDmuTUbDapOgnFVAyIKe6H"
+    },
+    {
+      "id": "3",
+      "name": "Poignet Gauche",
+      "type": "wrist",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=1IGdrDuEVNY5gBjoxqDtT0DRNu3nNZMRb"
+    },
+    {
+      "id": "4",
+      "name": "Poignet Droit",
+      "type": "wrist",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=1tdvr_EB22GdAHZfqpzOifclsNjsK5Yd4"
+    },
+    {
+      "id": "5",
+      "name": "Boucles d'oreilles 2",
+      "type": "earrings",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=1B4DQFtmgRYucdG-YLPmrHFF6LmR075A6"
+    },
+    {
+      "id": "6",
+      "name": "Parure Entière",
+      "type": "full",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=12JHKy5atX8UEjsAFGgpzMCMx0iYFb4fa"
+    },
+    {
+      "id": "7",
+      "name": "Boucles d'oreilles 1",
+      "type": "earrings",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=14s7VkHMk3GIkuwD1o1okdkSqNwiKFG_3"
+    },
+    {
+      "id": "8",
+      "name": "Bague Droite",
+      "type": "ring",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=1joQw1bS_orF9EyQ5KieQwRPopPuHv_mG"
+    },
+    {
+      "id": "9",
+      "name": "Chevillière",
+      "type": "foot",
+      "imageUrl": "https://drive.google.com/uc?export=view&id=1pTdVr2wgClGMZUH9PfLl-VBuhXSZ673m"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttype\timageUrl\n1\tModèle Cou 1\tneck\thttps://drive.google.com/uc?export=view&id=\n2\tBague Gauche\tring\thttps://drive.google.com/uc?export=view&id=13O0T-bzBDjYDmuTUbDapOgnFVAyIKe6H\n3\tPoignet Gauche\twrist\thttps://drive.google.com/uc?export=view&id=1IGdrDuEVNY5gBjoxqDtT0DRNu3nNZMRb\n4\tPoignet Droit\twrist\thttps://drive.google.com/uc?export=view&id=1tdvr_EB22GdAHZfqpzOifclsNjsK5Yd4\n5\tBoucles d'oreilles 2\tearrings\thttps://drive.google.com/uc?export=view&id=1B4DQFtmgRYucdG-YLPmrHFF6LmR075A6\n6\tParure Entière\tfull\thttps://drive.google.com/uc?export=view&id=12JHKy5atX8UEjsAFGgpzMCMx0iYFb4fa\n7\tBoucles d'oreilles 1\tearrings\thttps://drive.google.com/uc?export=view&id=14s7VkHMk3GIkuwD1o1okdkSqNwiKFG_3\n8\tBague Droite\tring\thttps://drive.google.com/uc?export=view&id=1joQw1bS_orF9EyQ5KieQwRPopPuHv_mG\n9\tChevillière\tfoot\thttps://drive.google.com/uc?export=view&id=1pTdVr2wgClGMZUH9PfLl-VBuhXSZ673m\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

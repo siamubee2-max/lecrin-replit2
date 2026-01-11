@@ -158,10 +158,36 @@ export default function TryOnScreen() {
   // Fetch body parts from API
   const { data: allBodyParts, isLoading: isLoadingBodyParts } = trpc.bodyParts.list.useQuery();
 
+  // Local demo images as fallback when Google Drive URLs don't work
+  const LOCAL_DEMO_IMAGES: Record<string, any> = {
+    "earrings": [
+      { id: "demo_ear_1", name: "Boucles d'oreilles 1", type: "earrings", imageUrl: require("@/assets/demo-gallery/ear_light.png"), isDemo: true },
+      { id: "demo_ear_2", name: "Boucles d'oreilles 2", type: "earrings", imageUrl: require("@/assets/demo-gallery/ear_medium.png"), isDemo: true },
+      { id: "demo_ear_3", name: "Boucles d'oreilles 3", type: "earrings", imageUrl: require("@/assets/demo-gallery/ear_dark.png"), isDemo: true },
+    ],
+    "neck": [
+      { id: "demo_neck_1", name: "Modèle Cou 1", type: "neck", imageUrl: require("@/assets/demo-gallery/neck_light.png"), isDemo: true },
+      { id: "demo_neck_2", name: "Modèle Cou 2", type: "neck", imageUrl: require("@/assets/demo-gallery/neck_dark.png"), isDemo: true },
+    ],
+    "ring": [
+      { id: "demo_ring_1", name: "Main Gauche", type: "ring", imageUrl: require("@/assets/demo-gallery/hand_light.png"), isDemo: true },
+      { id: "demo_ring_2", name: "Main Droite", type: "ring", imageUrl: require("@/assets/demo-gallery/hand_medium.png"), isDemo: true },
+      { id: "demo_ring_3", name: "Main 3", type: "ring", imageUrl: require("@/assets/demo-gallery/hand_dark.png"), isDemo: true },
+    ],
+    "wrist": [
+      { id: "demo_wrist_1", name: "Poignet Gauche", type: "wrist", imageUrl: require("@/assets/demo-gallery/hand_light.png"), isDemo: true },
+      { id: "demo_wrist_2", name: "Poignet Droit", type: "wrist", imageUrl: require("@/assets/demo-gallery/hand_medium.png"), isDemo: true },
+    ],
+    "foot": [
+      { id: "demo_foot_1", name: "Chevillière", type: "foot", imageUrl: require("@/assets/demo-gallery/hand_dark.png"), isDemo: true },
+    ],
+  };
+
   // Filter body parts by selected jewelry type
-  const filteredModels = allBodyParts?.filter(
-    (part) => part.type === JEWELRY_TO_BODY_PART[selectedType]
-  ) || [];
+  // Use local demo images as fallback
+  const bodyPartType = JEWELRY_TO_BODY_PART[selectedType];
+  const apiModels = allBodyParts?.filter((part) => part.type === bodyPartType) || [];
+  const filteredModels = apiModels.length > 0 ? apiModels : (LOCAL_DEMO_IMAGES[bodyPartType] || []);
 
   const handleTypeSelect = (typeId: string) => {
     if (Platform.OS !== "web") {
@@ -683,7 +709,12 @@ export default function TryOnScreen() {
               contentContainerStyle={{ paddingBottom: 100 }}
               columnWrapperStyle={{ gap: 12 }}
               ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-              renderItem={({ item }) => (
+              renderItem={({ item }) => {
+                // Support both local require() images and remote URLs
+                const imageSource = typeof item.imageUrl === 'number' 
+                  ? item.imageUrl 
+                  : { uri: item.imageUrl };
+                return (
                 <TouchableOpacity
                   onPress={() => handleModelSelect(item)}
                   className={`flex-1 rounded-2xl overflow-hidden border-2 ${
@@ -692,7 +723,7 @@ export default function TryOnScreen() {
                   style={{ aspectRatio: 3/4 }}
                 >
                   <Image
-                    source={{ uri: item.imageUrl }}
+                    source={imageSource}
                     style={StyleSheet.absoluteFillObject}
                     contentFit="cover"
                     transition={200}
@@ -711,7 +742,8 @@ export default function TryOnScreen() {
                     </View>
                   )}
                 </TouchableOpacity>
-              )}
+              );
+              }}
             />
           )}
 

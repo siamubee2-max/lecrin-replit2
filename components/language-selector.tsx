@@ -44,6 +44,9 @@ export function LanguageSelector({
     { code: "fr", name: languages.fr, flag: flags.fr },
     { code: "en", name: languages.en, flag: flags.en },
     { code: "es", name: languages.es, flag: flags.es },
+    { code: "de", name: languages.de, flag: flags.de },
+    { code: "it", name: languages.it, flag: flags.it },
+    { code: "pt", name: languages.pt, flag: flags.pt },
   ];
 
   const currentLanguage = languageList.find((l) => l.code === language);

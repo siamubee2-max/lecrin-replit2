@@ -517,3 +517,7 @@
 - [x] Thème beige/crème non appliqué - forcé le mode light par défaut
 - [x] Bouton de capture photo ne fonctionne pas - ajouté expo-image-picker avec permissions
 - [x] Bouton galerie ne fonctionne pas - ajouté expo-image-picker avec permissions
+
+## BUGS CRITIQUES - Images et Langues
+- [x] Images manquantes sur les cartes de modèles - ajouté images locales de fallback
+- [x] Seulement 3 langues affichées - ajouté les 6 langues (FR, EN, ES, DE, IT, PT)
