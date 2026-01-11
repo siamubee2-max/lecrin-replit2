@@ -368,3 +368,11 @@
 - [x] Ajouter un lien vers moniattitude.com pour les commandes
 - [x] Régénérer les captures d'écran boutique sans marques ni prix
 - [x] Mettre à jour les tests unitaires (749 tests passent)
+
+## Intégration Vrais Produits Moni'attitude
+- [x] Visiter moniattitude.com et collecter les informations produits
+- [x] Récupérer les noms, descriptions et images des bijoux (~140 produits identifiés)
+- [x] Identifier les collections disponibles (Fleurs, Cœurs, Géométrique, Résine, Feuilles)
+- [x] Mettre à jour la boutique avec 12 vrais produits Moni'attitude
+- [x] Mettre à jour les informations de la marque (Belgique, slogan, description)
+- [x] Tester l'affichage des produits (749 tests passent)
