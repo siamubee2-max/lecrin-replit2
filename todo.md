@@ -458,3 +458,17 @@
 - [x] Intégrer le bouton de partage dans l'écran d'essayage
 - [x] Connecter la capture d'écran au partage
 - [x] Tester le partage sur tous les réseaux sociaux
+
+## Photos d'Exemple par Catégorie
+- [x] Générer photo exemple collier (produit seul)
+- [x] Générer photo exemple boucles d'oreilles (produit seul)
+- [x] Générer photo exemple bague (produit seul)
+- [x] Générer photo exemple bracelet (produit seul)
+- [x] Générer photo exemple chevillière (produit seul)
+- [x] Générer photo exemple haut (chemise/blouse)
+- [x] Générer photo exemple bas (pantalon)
+- [x] Générer photo exemple robe
+- [x] Générer photo exemple veste/manteau
+- [x] Générer photo exemple chaussures
+- [x] Intégrer les images dans l'écran Mon Écrin (bijoux)
+- [x] Intégrer les images dans l'écran Mon Dressing (vêtements)

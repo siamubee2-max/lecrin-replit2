@@ -264,27 +264,65 @@ export default function DressingScreen() {
     </TouchableOpacity>
   ), [selectionMode, selectedItems, toggleItemSelection, handleHaptic]);
 
+  // Example items for empty state
+  const EXAMPLE_ITEMS = [
+    { id: "top", label: "Haut", image: require("@/assets/examples/clothing/top.png") },
+    { id: "bottom", label: "Bas", image: require("@/assets/examples/clothing/bottom.png") },
+    { id: "dress", label: "Robe", image: require("@/assets/examples/clothing/dress.png") },
+    { id: "jacket", label: "Veste", image: require("@/assets/examples/clothing/jacket.png") },
+    { id: "shoes", label: "Chaussures", image: require("@/assets/examples/shoes/heels.png") },
+  ];
+
   // Empty state
   const renderEmptyState = () => (
-    <View className="flex-1 items-center justify-center py-20">
-      <View className="w-24 h-24 rounded-full bg-gray-100 items-center justify-center mb-6">
-        <IconSymbol name="tshirt.fill" size={48} color={colors.muted} />
+    <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+      <View className="items-center py-8">
+        <View className="w-20 h-20 rounded-full bg-gray-100 items-center justify-center mb-4">
+          <IconSymbol name="tshirt.fill" size={40} color={colors.muted} />
+        </View>
+        <Text className="text-xl font-semibold text-foreground mb-2">
+          Votre dressing est vide
+        </Text>
+        <Text className="text-muted text-center px-8 mb-4">
+          Ajoutez vos vêtements pour créer des looks parfaits avec vos bijoux
+        </Text>
+        <TouchableOpacity
+          className="bg-primary px-6 py-3 rounded-full flex-row items-center mb-6"
+          onPress={handleAddItem}
+          activeOpacity={0.8}
+        >
+          <IconSymbol name="plus" size={20} color="#FFFFFF" />
+          <Text className="text-white font-semibold ml-2">Ajouter un vêtement</Text>
+        </TouchableOpacity>
       </View>
-      <Text className="text-xl font-semibold text-foreground mb-2">
-        Votre dressing est vide
-      </Text>
-      <Text className="text-muted text-center px-8 mb-6">
-        Ajoutez vos vêtements pour créer des looks parfaits avec vos bijoux
-      </Text>
-      <TouchableOpacity
-        className="bg-primary px-6 py-3 rounded-full flex-row items-center"
-        onPress={handleAddItem}
-        activeOpacity={0.8}
-      >
-        <IconSymbol name="plus" size={20} color="#FFFFFF" />
-        <Text className="text-white font-semibold ml-2">Ajouter un vêtement</Text>
-      </TouchableOpacity>
-    </View>
+
+      {/* Example items section */}
+      <View className="px-4">
+        <Text className="text-lg font-semibold text-foreground mb-2">
+          Exemples de catégories
+        </Text>
+        <Text className="text-muted text-sm mb-4">
+          Voici les types de vêtements que vous pouvez ajouter à votre dressing
+        </Text>
+        <View className="flex-row flex-wrap justify-between">
+          {EXAMPLE_ITEMS.map((item) => (
+            <View
+              key={item.id}
+              className="w-[48%] bg-surface rounded-xl overflow-hidden border border-border mb-4"
+            >
+              <Image
+                source={item.image}
+                style={{ width: "100%", height: 150 }}
+                contentFit="cover"
+              />
+              <View className="p-3">
+                <Text className="text-sm font-medium text-foreground">{item.label}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
   );
 
   return (

@@ -1,7 +1,7 @@
-import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
+import { Image } from "expo-image";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -163,15 +163,50 @@ export default function EcrinScreen() {
             )}
           />
         ) : (
-          <View className="flex-1 items-center justify-center px-8">
-            <Text className="text-5xl mb-4">💎</Text>
-            <Text className="text-xl font-semibold text-foreground text-center mb-2">
-              Votre écrin est vide
-            </Text>
-            <Text className="text-base text-muted text-center">
-              Ajoutez vos premiers bijoux pour commencer votre collection virtuelle.
-            </Text>
-          </View>
+          <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+            <View className="items-center px-8 py-6">
+              <Text className="text-5xl mb-4">💎</Text>
+              <Text className="text-xl font-semibold text-foreground text-center mb-2">
+                Votre écrin est vide
+              </Text>
+              <Text className="text-base text-muted text-center mb-4">
+                Ajoutez vos premiers bijoux pour commencer votre collection virtuelle.
+              </Text>
+            </View>
+
+            {/* Example jewelry section */}
+            <View className="px-4">
+              <Text className="text-lg font-semibold text-foreground mb-2">
+                Exemples de bijoux
+              </Text>
+              <Text className="text-muted text-sm mb-4">
+                Voici les types de bijoux que vous pouvez ajouter à votre écrin
+              </Text>
+              <View className="flex-row flex-wrap justify-between">
+                {[
+                  { id: "necklace", label: "Collier", image: require("@/assets/examples/jewelry/necklace.png") },
+                  { id: "earrings", label: "Boucles d'oreilles", image: require("@/assets/examples/jewelry/earrings.png") },
+                  { id: "ring", label: "Bague", image: require("@/assets/examples/jewelry/ring.png") },
+                  { id: "bracelet", label: "Bracelet", image: require("@/assets/examples/jewelry/bracelet.png") },
+                  { id: "anklet", label: "Chevillière", image: require("@/assets/examples/jewelry/anklet.png") },
+                ].map((item) => (
+                  <View
+                    key={item.id}
+                    className="w-[48%] bg-surface rounded-xl overflow-hidden border border-border mb-4"
+                  >
+                    <Image
+                      source={item.image}
+                      style={{ width: "100%", height: 150 }}
+                      contentFit="cover"
+                    />
+                    <View className="p-3">
+                      <Text className="text-sm font-medium text-foreground">{item.label}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
         )}
       </View>
     </ScreenContainer>
