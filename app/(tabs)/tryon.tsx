@@ -282,6 +282,21 @@ export default function TryOnScreen() {
     setShowShareModal(true);
   };
 
+  // Capture l'image et ouvre le modal de partage
+  const handleShareWithCapture = async () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    
+    // Capturer l'image d'abord
+    const capturedUri = await capture();
+    
+    if (capturedUri) {
+      // Ouvrir le modal de partage avec l'image capturée
+      setShowShareModal(true);
+    }
+  };
+
   const handleAddToFavorites = async () => {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -549,6 +564,18 @@ export default function TryOnScreen() {
                 )}
               </TouchableOpacity>
             </View>
+
+            {/* Share Button */}
+            <TouchableOpacity
+              onPress={handleShareWithCapture}
+              disabled={isCapturing || isSaving}
+              className="flex-row items-center justify-center bg-surface border border-primary py-4 rounded-xl active:opacity-80"
+            >
+              <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
+              <Text className="text-primary font-semibold ml-2">
+                Partager sur les réseaux sociaux
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
