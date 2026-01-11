@@ -392,3 +392,19 @@
 - [ ] Télécharger l'image feuille métalisée depuis moniattitude.com
 - [ ] Mettre à jour boutique.tsx avec les nouvelles images
 - [ ] Tester l'affichage des images
+
+## Intégration Mixpanel Analytics
+- [x] Installer mixpanel-react-native
+- [x] Créer le service d'analytics (analytics-service.ts)
+- [x] Définir les événements produits à tracker
+  - [x] product_viewed (vue d'un produit)
+  - [x] product_tried_on (essayage virtuel)
+  - [x] product_favorited (ajout aux favoris)
+  - [x] product_shared (partage)
+  - [x] boutique_visited (visite boutique)
+  - [x] collection_filtered (filtre par collection)
+- [x] Intégrer le tracking dans boutique.tsx
+- [x] Intégrer le tracking dans l'essayage virtuel (handleTryOn)
+- [x] Intégrer le tracking dans les favoris (toggleFavorite)
+- [x] Créer les tests unitaires (47 tests - 796 tests au total)
+- [ ] Configurer la clé API Mixpanel (EXPO_PUBLIC_MIXPANEL_TOKEN)

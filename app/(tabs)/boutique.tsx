@@ -20,6 +20,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { analytics } from "@/services/analytics-service";
 
 // Types
 type JewelryType = "necklace" | "earrings" | "ring" | "bracelet" | "anklet" | "brooch" | "set";
@@ -628,22 +629,50 @@ export default function BoutiqueScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    // Find the jewelry item for tracking
+    const jewelry = filteredJewelry.find(j => j.id === jewelryId) || DEMO_JEWELRY.find((j: PartnerJewelry) => j.id === jewelryId);
+    
     setFavorites(prev => {
       const next = new Set(prev);
       if (next.has(jewelryId)) {
         next.delete(jewelryId);
+        // Track unfavorite
+        if (jewelry) {
+          analytics.trackProductUnfavorited({
+            productId: String(jewelry.id),
+            productName: jewelry.name,
+            collection: jewelry.collection || undefined,
+            category: jewelry.type,
+          });
+        }
       } else {
         next.add(jewelryId);
+        // Track favorite
+        if (jewelry) {
+          analytics.trackProductFavorited({
+            productId: String(jewelry.id),
+            productName: jewelry.name,
+            collection: jewelry.collection || undefined,
+            category: jewelry.type,
+          });
+        }
       }
       return next;
     });
-  }, []);
+  }, [filteredJewelry]);
   
   // Handle try-on
   const handleTryOn = useCallback((jewelry: PartnerJewelry) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+    // Track try-on event
+    analytics.trackTryOnStarted({
+      productId: String(jewelry.id),
+      productName: jewelry.name,
+      collection: jewelry.collection || undefined,
+      category: jewelry.type,
+    });
     // Navigate to try-on screen with jewelry info
     router.push({
       pathname: "/(tabs)/tryon",
@@ -659,6 +688,12 @@ export default function BoutiqueScreen() {
   // Handle visit brand
   const handleVisitBrand = useCallback((brand: PartnerBrand) => {
     if (brand.websiteUrl) {
+      // Track brand visit
+      analytics.track('brand_website_visited', {
+        brandId: String(brand.id),
+        brandName: brand.name,
+        websiteUrl: brand.websiteUrl,
+      });
       Linking.openURL(brand.websiteUrl);
     }
   }, []);
@@ -797,7 +832,16 @@ export default function BoutiqueScreen() {
                     jewelry={item}
                     brand={getBrand(item.brandId)}
                     isFavorite={favorites.has(item.id)}
-                    onPress={() => setSelectedJewelry(item)}
+                    onPress={() => {
+                      // Track product view
+                      analytics.trackProductViewed({
+                        productId: String(item.id),
+                        productName: item.name,
+                        collection: item.collection || undefined,
+                        category: item.type,
+                      });
+                      setSelectedJewelry(item);
+                    }}
                     onFavoriteToggle={() => toggleFavorite(item.id)}
                     onTryOn={() => handleTryOn(item)}
                   />
