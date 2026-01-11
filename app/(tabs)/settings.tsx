@@ -181,11 +181,11 @@ export default function SettingsScreen() {
                       className="mt-3 py-2 rounded-xl items-center"
                       style={{ backgroundColor: plan.popular ? colors.primary : colors.primary + '20' }}
                     >
-                      <Text 
+                      <Text
                         className="font-semibold"
                         style={{ color: plan.popular ? '#0A1A3B' : colors.primary }}
                       >
-                        S'abonner
+                        S{"'"}abonner
                       </Text>
                     </View>
                   )}
@@ -359,7 +359,7 @@ export default function SettingsScreen() {
           >
             <Text className="text-3xl">💎</Text>
           </View>
-          <Text className="text-lg font-semibold text-foreground">L'Écrin Virtuel</Text>
+          <Text className="text-lg font-semibold text-foreground">L{"'"}Écrin Virtuel</Text>
           <Text className="text-sm text-muted mt-1">Version 1.0.0</Text>
           <Text className="text-xs text-muted mt-4 text-center">
             © 2025 Inferencevision.store{"\n"}Tous droits réservés

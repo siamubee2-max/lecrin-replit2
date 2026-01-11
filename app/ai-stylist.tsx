@@ -414,7 +414,7 @@ export default function AIStylistScreen() {
         <View className="flex-1 items-center justify-center px-6">
           <IconSymbol name="person.fill" size={48} color={colors.muted} />
           <Text className="text-lg font-semibold text-foreground mt-4 text-center">
-            Connectez-vous pour utiliser l'AI Stylist
+            Connectez-vous pour utiliser l{"'"}AI Stylist
           </Text>
         </View>
       ) : suggestions.length === 0 && !isGenerating ? (
@@ -430,7 +430,7 @@ export default function AIStylistScreen() {
             isGenerating ? (
               <View className="items-center py-12">
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text className="text-muted mt-4">L'IA analyse votre garde-robe...</Text>
+                <Text className="text-muted mt-4">L{"'"}IA analyse votre garde-robe...</Text>
               </View>
             ) : null
           }

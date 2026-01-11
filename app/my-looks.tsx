@@ -407,7 +407,7 @@ export default function MyLooksScreen() {
         Aucun look sauvegardé
       </Text>
       <Text className="text-muted text-center px-8 mb-6">
-        Utilisez l'AI Stylist pour générer des suggestions de looks et les sauvegarder ici.
+        Utilisez l{"'"}AI Stylist pour générer des suggestions de looks et les sauvegarder ici.
       </Text>
       <TouchableOpacity
         className="bg-primary px-6 py-3 rounded-full flex-row items-center"

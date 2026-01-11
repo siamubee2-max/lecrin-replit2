@@ -214,7 +214,7 @@ export default function EcrinScreen() {
         <View className="px-4 pt-4 pb-2">
           <Text className="text-3xl font-bold text-foreground">Mon Écrin</Text>
           <Text className="text-base text-muted mt-1">
-            Cataloguez vos bijoux précieux. L'IA vous aidera à les organiser et à trouver des correspondances.
+            Cataloguez vos bijoux précieux. L{"'"}IA vous aidera à les organiser et à trouver des correspondances.
           </Text>
         </View>
 

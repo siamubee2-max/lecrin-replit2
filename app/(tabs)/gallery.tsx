@@ -96,7 +96,7 @@ export default function GalleryScreen() {
         Aucun essayage
       </Text>
       <Text className="text-base text-muted text-center">
-        Commencez par photographier un bijou pour l'essayer virtuellement
+        Commencez par photographier un bijou pour l{"'"}essayer virtuellement
       </Text>
     </View>
   );

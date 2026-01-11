@@ -21,7 +21,7 @@ export default function PrivacyScreen() {
         </Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         className="flex-1 px-4"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -33,8 +33,8 @@ export default function PrivacyScreen() {
 
           <Section title="1. Introduction">
             <Text className="text-base text-foreground leading-relaxed">
-              L'Écrin Virtuel ("nous", "notre", "nos") s'engage à protéger la confidentialité de ses utilisateurs. 
-              Cette politique de confidentialité explique comment nous collectons, utilisons et protégeons vos informations 
+              L{"'"}Écrin Virtuel ({'"'}nous{'"'}, {'"'}notre{'"'}, {'"'}nos{'"'}) s{"'"}engage à protéger la confidentialité de ses utilisateurs.
+              Cette politique de confidentialité explique comment nous collectons, utilisons et protégeons vos informations
               personnelles lorsque vous utilisez notre application mobile.
             </Text>
           </Section>
@@ -61,22 +61,22 @@ export default function PrivacyScreen() {
 
           <Section title="4. Stockage des Données">
             <Text className="text-base text-foreground leading-relaxed">
-              Vos photos et essayages sont stockés localement sur votre appareil. 
+              Vos photos et essayages sont stockés localement sur votre appareil.
               Nous ne transférons pas vos images vers nos serveurs sans votre consentement explicite.
-              Les données d'abonnement sont gérées de manière sécurisée par Apple via StoreKit.
+              Les données d{"'"}abonnement sont gérées de manière sécurisée par Apple via StoreKit.
             </Text>
           </Section>
 
           <Section title="5. Partage des Données">
             <Text className="text-base text-foreground leading-relaxed">
-              Nous ne vendons, n'échangeons ni ne louons vos informations personnelles à des tiers. 
-              Nous pouvons partager des données anonymisées à des fins d'analyse et d'amélioration du service.
+              Nous ne vendons, n{"'"}échangeons ni ne louons vos informations personnelles à des tiers.
+              Nous pouvons partager des données anonymisées à des fins d{"'"}analyse et d{"'"}amélioration du service.
             </Text>
           </Section>
 
           <Section title="6. Sécurité">
             <Text className="text-base text-foreground leading-relaxed">
-              Nous mettons en œuvre des mesures de sécurité appropriées pour protéger vos données contre 
+              Nous mettons en œuvre des mesures de sécurité appropriées pour protéger vos données contre
               tout accès non autorisé, modification, divulgation ou destruction.
             </Text>
           </Section>
@@ -93,15 +93,15 @@ export default function PrivacyScreen() {
 
           <Section title="8. Cookies et Technologies Similaires">
             <Text className="text-base text-foreground leading-relaxed">
-              Notre application n'utilise pas de cookies. Nous utilisons des technologies de stockage local 
+              Notre application n{"'"}utilise pas de cookies. Nous utilisons des technologies de stockage local
               standard pour sauvegarder vos préférences sur votre appareil.
             </Text>
           </Section>
 
           <Section title="9. Modifications">
             <Text className="text-base text-foreground leading-relaxed">
-              Nous pouvons mettre à jour cette politique de confidentialité de temps à autre. 
-              Nous vous informerons de tout changement significatif via l'application.
+              Nous pouvons mettre à jour cette politique de confidentialité de temps à autre.
+              Nous vous informerons de tout changement significatif via l{"'"}application.
             </Text>
           </Section>
 
