@@ -71,18 +71,19 @@ const COLORS = [
 ];
 
 // Demo wardrobe items (shown when user is not logged in or has no items)
-const DEMO_WARDROBE: WardrobeItem[] = [
+// No prices for demo items - they are just for trying out the app
+const DEMO_WARDROBE: (WardrobeItem & { isDemo?: boolean })[] = [
   {
     id: -1,
     name: "Chemisier Soie Ivoire",
     category: "tops",
     brand: "Sandro",
     color: "beige",
-    price: 12900,
     imageUrl: null,
     season: "all",
     occasion: "work",
     isFavorite: true,
+    isDemo: true,
   },
   {
     id: -2,
@@ -90,11 +91,11 @@ const DEMO_WARDROBE: WardrobeItem[] = [
     category: "bottoms",
     brand: "Maje",
     color: "navy",
-    price: 17900,
     imageUrl: null,
     season: "all",
     occasion: "work",
     isFavorite: false,
+    isDemo: true,
   },
   {
     id: -3,
@@ -102,11 +103,11 @@ const DEMO_WARDROBE: WardrobeItem[] = [
     category: "dresses",
     brand: "Ba&sh",
     color: "black",
-    price: 24900,
     imageUrl: null,
     season: "all",
     occasion: "party",
     isFavorite: true,
+    isDemo: true,
   },
   {
     id: -4,
@@ -114,11 +115,11 @@ const DEMO_WARDROBE: WardrobeItem[] = [
     category: "outerwear",
     brand: "The Kooples",
     color: "beige",
-    price: 34900,
     imageUrl: null,
     season: "fall",
     occasion: "work",
     isFavorite: false,
+    isDemo: true,
   },
   {
     id: -5,
@@ -126,11 +127,11 @@ const DEMO_WARDROBE: WardrobeItem[] = [
     category: "shoes",
     brand: "Jonak",
     color: "beige",
-    price: 14900,
     imageUrl: null,
     season: "all",
     occasion: "formal",
     isFavorite: true,
+    isDemo: true,
   },
 ];
 
@@ -300,7 +301,7 @@ export default function DressingScreen() {
       )}
 
       {/* Image */}
-      <View className="aspect-square bg-gray-100">
+      <View className="aspect-square bg-gray-100 relative">
         {item.imageUrl ? (
           <Image
             source={{ uri: item.imageUrl }}
@@ -320,6 +321,16 @@ export default function DressingScreen() {
             </Text>
           </View>
         )}
+        {/* Try-on badge for demo items */}
+        {(item as any).isDemo && (
+          <View 
+            className="absolute bottom-2 left-2 right-2 rounded-lg py-1 px-2 flex-row items-center justify-center"
+            style={{ backgroundColor: colors.primary }}
+          >
+            <IconSymbol name="sparkles" size={12} color="#0A1A3B" />
+            <Text className="text-xs font-semibold ml-1" style={{ color: "#0A1A3B" }}>Essayer</Text>
+          </View>
+        )}
       </View>
 
       {/* Info */}
@@ -333,7 +344,11 @@ export default function DressingScreen() {
           </Text>
         )}
         <View className="flex-row items-center justify-between mt-2">
-          {item.price ? (
+          {(item as any).isDemo ? (
+            <View className="bg-primary/20 rounded px-2 py-0.5">
+              <Text className="text-xs" style={{ color: colors.primary }}>Démo</Text>
+            </View>
+          ) : item.price ? (
             <Text className="text-primary font-semibold text-sm">
               {(item.price / 100).toFixed(0)}€
             </Text>

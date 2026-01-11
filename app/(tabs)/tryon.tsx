@@ -1,7 +1,7 @@
 import { Text, View, TouchableOpacity, ScrollView, FlatList, Dimensions, StyleSheet, ActivityIndicator } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import ViewShot from "react-native-view-shot";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import { Image } from "expo-image";
@@ -114,7 +114,25 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function TryOnScreen() {
   const colors = useColors();
   const router = useRouter();
-  const [selectedType, setSelectedType] = useState<string>("necklace");
+  const params = useLocalSearchParams<{ demoJewelryId?: string; demoJewelryName?: string; demoJewelryType?: string }>();
+  
+  // Check if we're in demo mode (coming from Mon Écrin with a demo jewelry)
+  const isDemoMode = !!params.demoJewelryId;
+  const demoJewelryName = params.demoJewelryName || "";
+  
+  // Map demo jewelry type to internal type
+  const mapDemoTypeToInternal = (demoType?: string): string => {
+    const mapping: Record<string, string> = {
+      "Necklace": "necklace",
+      "Earrings": "earrings",
+      "Ring": "ring",
+      "Bracelet": "bracelet",
+      "Brooch": "brooch",
+    };
+    return mapping[demoType || ""] || "necklace";
+  };
+  
+  const [selectedType, setSelectedType] = useState<string>(mapDemoTypeToInternal(params.demoJewelryType));
   const [selectedStyle, setSelectedStyle] = useState<JewelryStyle>("gold");
   const [selectedModel, setSelectedModel] = useState<BodyPart | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -720,13 +738,27 @@ export default function TryOnScreen() {
   return (
     <ScreenContainer edges={["top", "left", "right"]} className="p-6">
       <View className="flex-1">
+        {/* Demo Mode Banner */}
+        {isDemoMode && (
+          <View 
+            className="mb-4 p-3 rounded-xl flex-row items-center"
+            style={{ backgroundColor: colors.primary + "20" }}
+          >
+            <IconSymbol name="sparkles" size={20} color={colors.primary} />
+            <View className="ml-3 flex-1">
+              <Text className="font-semibold" style={{ color: colors.primary }}>Mode Démonstration</Text>
+              <Text className="text-sm text-muted">Essayez "{demoJewelryName}" sur une photo</Text>
+            </View>
+          </View>
+        )}
+        
         {/* Header */}
         <View className="mb-6">
           <Text className="text-3xl font-bold text-foreground mb-2">
             Essayage Virtuel
           </Text>
           <Text className="text-base text-muted">
-            Sélectionnez le type de bijou à essayer
+            {isDemoMode ? "Choisissez un modèle ou prenez une photo" : "Sélectionnez le type de bijou à essayer"}
           </Text>
         </View>
 

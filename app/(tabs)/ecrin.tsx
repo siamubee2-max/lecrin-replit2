@@ -3,6 +3,7 @@ import { useState } from "react";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -17,57 +18,57 @@ const FILTERS = {
   collections: ["All Collections", "Summer 2025", "Classic", "Modern"],
 };
 
-// Demo jewelry items with real images
+// Demo jewelry items with real images (no prices for demo items)
 const DEMO_JEWELRY = [
   {
-    id: "1",
+    id: "demo-1",
     name: "Collier Pendentif Or",
     type: "Necklace",
     brand: "Moniattitude",
     image: require("@/assets/examples/jewelry/necklace.png"),
     isFavorite: true,
     metal: "Gold",
-    price: 12900,
+    isDemo: true,
   },
   {
-    id: "2",
+    id: "demo-2",
     name: "Boucles d'Oreilles Diamant",
     type: "Earrings",
     brand: "Moniattitude",
     image: require("@/assets/examples/jewelry/earrings.png"),
     isFavorite: false,
     metal: "Gold",
-    price: 8900,
+    isDemo: true,
   },
   {
-    id: "3",
+    id: "demo-3",
     name: "Bague Solitaire",
     type: "Ring",
     brand: "Custom",
     image: require("@/assets/examples/jewelry/ring.png"),
     isFavorite: true,
     metal: "Gold",
-    price: 15900,
+    isDemo: true,
   },
   {
-    id: "4",
+    id: "demo-4",
     name: "Bracelet Chaîne Or",
     type: "Bracelet",
     brand: "Moniattitude",
     image: require("@/assets/examples/jewelry/bracelet.png"),
     isFavorite: false,
     metal: "Gold",
-    price: 6900,
+    isDemo: true,
   },
   {
-    id: "5",
+    id: "demo-5",
     name: "Chevillière Élégante",
     type: "Bracelet",
     brand: "Custom",
     image: require("@/assets/examples/jewelry/anklet.png"),
     isFavorite: false,
     metal: "Gold",
-    price: 4900,
+    isDemo: true,
   },
 ];
 
@@ -163,7 +164,7 @@ export default function EcrinScreen() {
       image: newJewelryImage,
       isFavorite: false,
       metal: "Gold",
-      price: 0,
+      isDemo: false,
     };
     
     setJewelry(prev => [newItem, ...prev]);
@@ -183,6 +184,21 @@ export default function EcrinScreen() {
         item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
       )
     );
+  };
+
+  const handleTryOnDemo = (item: typeof DEMO_JEWELRY[0]) => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    // Navigate to try-on screen with the demo jewelry item
+    router.push({
+      pathname: "/(tabs)/tryon",
+      params: {
+        demoJewelryId: item.id,
+        demoJewelryName: item.name,
+        demoJewelryType: item.type,
+      },
+    });
   };
 
   const filteredJewelry = jewelry.filter(item => {
@@ -283,6 +299,7 @@ export default function EcrinScreen() {
                 item={item}
                 colors={colors}
                 onToggleFavorite={() => toggleFavorite(item.id)}
+                onTryOn={item.isDemo ? () => handleTryOnDemo(item) : undefined}
               />
             )}
           />
@@ -493,25 +510,25 @@ function FilterDropdown({ label, colors }: { label: string; colors: ReturnType<t
 function JewelryCard({ 
   item, 
   colors,
-  onToggleFavorite 
+  onToggleFavorite,
+  onTryOn,
 }: { 
   item: typeof DEMO_JEWELRY[0]; 
   colors: ReturnType<typeof useColors>;
   onToggleFavorite: () => void;
+  onTryOn?: () => void;
 }) {
-  const formatPrice = (price: number) => {
-    return (price / 100).toFixed(2).replace(".", ",") + " €";
-  };
-
   return (
     <View 
       className="w-[48%] rounded-2xl overflow-hidden mb-3"
       style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
     >
       {/* Image */}
-      <View 
+      <TouchableOpacity 
         className="aspect-square items-center justify-center relative"
         style={{ backgroundColor: colors.background }}
+        onPress={onTryOn}
+        activeOpacity={0.8}
       >
         {item.image ? (
           <Image
@@ -533,7 +550,17 @@ function JewelryCard({
             color={item.isFavorite ? "#EF4444" : colors.muted} 
           />
         </TouchableOpacity>
-      </View>
+        {/* Try-on badge for demo items */}
+        {item.isDemo && (
+          <View 
+            className="absolute bottom-2 left-2 right-2 rounded-lg py-1 px-2 flex-row items-center justify-center"
+            style={{ backgroundColor: colors.primary }}
+          >
+            <IconSymbol name="sparkles" size={12} color="#0A1A3B" />
+            <Text className="text-xs font-semibold ml-1" style={{ color: "#0A1A3B" }}>Essayer</Text>
+          </View>
+        )}
+      </TouchableOpacity>
       
       {/* Info */}
       <View className="p-3">
@@ -542,10 +569,10 @@ function JewelryCard({
         </Text>
         <View className="flex-row items-center justify-between mt-1">
           <Text className="text-xs text-muted">{item.brand}</Text>
-          {item.price && (
-            <Text className="text-xs font-semibold" style={{ color: colors.primary }}>
-              {formatPrice(item.price)}
-            </Text>
+          {item.isDemo && (
+            <View className="bg-primary/20 rounded px-2 py-0.5">
+              <Text className="text-xs" style={{ color: colors.primary }}>Démo</Text>
+            </View>
           )}
         </View>
       </View>

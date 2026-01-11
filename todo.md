@@ -493,3 +493,22 @@
 - [x] Ajouter SafeAreaView au modal d'ajustement d'image
 - [x] Regénérer la photo du collier avec un fond beige propre
 - [x] Remplacer l'image dans les assets
+
+## Améliorations UX - Thème, Prix et Essayage Démo
+- [ ] Diagnostiquer pourquoi le thème beige/crème n'est pas appliqué visuellement
+- [ ] Corriger l'application du thème dans tous les écrans
+- [ ] Supprimer l'affichage des prix dans les bijoux de démo
+- [ ] Supprimer l'affichage des prix dans les vêtements de démo
+- [ ] Permettre de sélectionner un article de démo pour l'essayer
+- [ ] Intégrer l'essayage sur photos de parties du corps
+- [ ] Intégrer l'essayage sur mannequin
+- [ ] Intégrer l'essayage sur photo prise par l'utilisateur
+
+## Améliorations UX - Thème, Prix et Essayage Démo
+- [x] Diagnostiquer pourquoi le thème beige/crème n'est pas appliqué (thème configuré dans theme.config.js)
+- [x] Supprimer l'affichage des prix dans les bijoux de démo (remplacé par badge "Démo")
+- [x] Supprimer l'affichage des prix dans les vêtements de démo (remplacé par badge "Démo")
+- [x] Permettre l'essayage des bijoux de démo sur les photos
+- [x] Permettre l'essayage des bijoux de démo sur les mannequins
+- [x] Permettre l'essayage des bijoux de démo sur sa propre photo
+- [x] Ajouter un bouton "Essayer" sur chaque article de démo
