@@ -479,3 +479,11 @@
 - [x] Ajouter des vêtements et chaussures de démonstration dans Mon Dressing (5 articles avec images)
 - [x] Rendre fonctionnel le bouton "Ajouter un bijou" (modal complet avec formulaire)
 - [x] Tester l'affichage des articles de démo
+
+## Import Photo pour Ajout de Bijou
+- [x] Intégrer expo-image-picker dans le modal d'ajout de bijou
+- [x] Ajouter bouton pour prendre une photo avec l'appareil
+- [x] Ajouter bouton pour importer depuis la galerie
+- [x] Afficher l'aperçu de l'image sélectionnée
+- [x] Sauvegarder l'image avec le bijou créé
+- [x] Afficher l'image dans la carte du bijou

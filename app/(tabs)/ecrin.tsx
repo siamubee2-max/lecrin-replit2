@@ -1,6 +1,7 @@
-import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform, Modal, KeyboardAvoidingView } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform, Modal, KeyboardAvoidingView, Alert } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -80,12 +81,71 @@ export default function EcrinScreen() {
   const [newJewelryName, setNewJewelryName] = useState("");
   const [newJewelryType, setNewJewelryType] = useState("Necklace");
   const [newJewelryBrand, setNewJewelryBrand] = useState("");
+  const [newJewelryImage, setNewJewelryImage] = useState<string | null>(null);
 
   const handleAddJewelry = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     setShowAddModal(true);
+  };
+
+  const pickImageFromGallery = async () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission requise",
+        "Veuillez autoriser l'accès à votre galerie pour importer une photo."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setNewJewelryImage(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission requise",
+        "Veuillez autoriser l'accès à votre appareil photo pour prendre une photo."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setNewJewelryImage(result.assets[0].uri);
+    }
+  };
+
+  const removeImage = () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setNewJewelryImage(null);
   };
 
   const handleSaveNewJewelry = () => {
@@ -100,7 +160,7 @@ export default function EcrinScreen() {
       name: newJewelryName.trim(),
       type: newJewelryType,
       brand: newJewelryBrand.trim() || "Custom",
-      image: null,
+      image: newJewelryImage,
       isFavorite: false,
       metal: "Gold",
       price: 0,
@@ -110,6 +170,7 @@ export default function EcrinScreen() {
     setNewJewelryName("");
     setNewJewelryType("Necklace");
     setNewJewelryBrand("");
+    setNewJewelryImage(null);
     setShowAddModal(false);
   };
 
@@ -346,14 +407,67 @@ export default function EcrinScreen() {
                 />
               </View>
 
+              {/* Photo Section */}
+              <View className="mb-6">
+                <Text className="text-sm font-medium text-foreground mb-3">Photo du bijou</Text>
+                
+                {newJewelryImage ? (
+                  <View className="items-center">
+                    <View className="relative">
+                      <Image
+                        source={{ uri: newJewelryImage }}
+                        style={{ width: 200, height: 200, borderRadius: 16 }}
+                        contentFit="cover"
+                      />
+                      <TouchableOpacity
+                        onPress={removeImage}
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-error items-center justify-center"
+                        style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 }}
+                      >
+                        <IconSymbol name="xmark" size={16} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text className="text-xs text-muted mt-2">Appuyez sur × pour supprimer</Text>
+                  </View>
+                ) : (
+                  <View className="flex-row gap-3">
+                    {/* Take Photo Button */}
+                    <TouchableOpacity
+                      onPress={takePhoto}
+                      className="flex-1 bg-surface border border-border rounded-xl p-4 items-center"
+                      activeOpacity={0.7}
+                    >
+                      <View className="w-12 h-12 rounded-full bg-primary/10 items-center justify-center mb-2">
+                        <IconSymbol name="camera.fill" size={24} color={colors.primary} />
+                      </View>
+                      <Text className="text-sm font-medium text-foreground">Prendre une photo</Text>
+                      <Text className="text-xs text-muted mt-1">Appareil photo</Text>
+                    </TouchableOpacity>
+
+                    {/* Import from Gallery Button */}
+                    <TouchableOpacity
+                      onPress={pickImageFromGallery}
+                      className="flex-1 bg-surface border border-border rounded-xl p-4 items-center"
+                      activeOpacity={0.7}
+                    >
+                      <View className="w-12 h-12 rounded-full bg-primary/10 items-center justify-center mb-2">
+                        <IconSymbol name="photo.fill" size={24} color={colors.primary} />
+                      </View>
+                      <Text className="text-sm font-medium text-foreground">Importer</Text>
+                      <Text className="text-xs text-muted mt-1">Depuis la galerie</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
               {/* Info */}
-              <View className="bg-surface rounded-xl p-4 border border-border">
+              <View className="bg-primary/5 rounded-xl p-4 border border-primary/20">
                 <View className="flex-row items-center mb-2">
-                  <Text className="text-lg mr-2">📷</Text>
-                  <Text className="text-sm font-medium text-foreground">Ajouter une photo</Text>
+                  <Text className="text-lg mr-2">💡</Text>
+                  <Text className="text-sm font-medium text-foreground">Conseil</Text>
                 </View>
                 <Text className="text-xs text-muted">
-                  Vous pourrez ajouter une photo de votre bijou après l'avoir créé, en utilisant l'appareil photo ou en important depuis votre galerie.
+                  Pour un meilleur rendu, photographiez votre bijou sur un fond uni et bien éclairé.
                 </Text>
               </View>
             </ScrollView>
@@ -401,7 +515,7 @@ function JewelryCard({
       >
         {item.image ? (
           <Image
-            source={item.image}
+            source={typeof item.image === "string" ? { uri: item.image } : item.image}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
