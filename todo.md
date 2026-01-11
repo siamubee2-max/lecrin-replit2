@@ -472,3 +472,10 @@
 - [x] Générer photo exemple chaussures
 - [x] Intégrer les images dans l'écran Mon Écrin (bijoux)
 - [x] Intégrer les images dans l'écran Mon Dressing (vêtements)
+
+## Corrections Urgentes - Thème et Démo
+- [x] Vérifier et corriger le thème beige/crème (couleurs appliquées dans theme.config.js)
+- [x] Ajouter des bijoux de démonstration pré-chargés visibles dans Mon Écrin (5 bijoux avec images)
+- [x] Ajouter des vêtements et chaussures de démonstration dans Mon Dressing (5 articles avec images)
+- [x] Rendre fonctionnel le bouton "Ajouter un bijou" (modal complet avec formulaire)
+- [x] Tester l'affichage des articles de démo

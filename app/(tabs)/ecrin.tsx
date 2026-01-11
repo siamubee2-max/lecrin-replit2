@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform, Modal, KeyboardAvoidingView } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -16,23 +16,57 @@ const FILTERS = {
   collections: ["All Collections", "Summer 2025", "Classic", "Modern"],
 };
 
-// Demo jewelry items
+// Demo jewelry items with real images
 const DEMO_JEWELRY = [
   {
     id: "1",
-    name: "Boucles Géométriques",
-    type: "Earrings",
+    name: "Collier Pendentif Or",
+    type: "Necklace",
     brand: "Moniattitude",
-    image: null,
+    image: require("@/assets/examples/jewelry/necklace.png"),
     isFavorite: true,
+    metal: "Gold",
+    price: 12900,
   },
   {
-    id: "2", 
-    name: "Collier Pendentif Cristal",
-    type: "Necklace",
-    brand: "Custom",
-    image: null,
+    id: "2",
+    name: "Boucles d'Oreilles Diamant",
+    type: "Earrings",
+    brand: "Moniattitude",
+    image: require("@/assets/examples/jewelry/earrings.png"),
     isFavorite: false,
+    metal: "Gold",
+    price: 8900,
+  },
+  {
+    id: "3",
+    name: "Bague Solitaire",
+    type: "Ring",
+    brand: "Custom",
+    image: require("@/assets/examples/jewelry/ring.png"),
+    isFavorite: true,
+    metal: "Gold",
+    price: 15900,
+  },
+  {
+    id: "4",
+    name: "Bracelet Chaîne Or",
+    type: "Bracelet",
+    brand: "Moniattitude",
+    image: require("@/assets/examples/jewelry/bracelet.png"),
+    isFavorite: false,
+    metal: "Gold",
+    price: 6900,
+  },
+  {
+    id: "5",
+    name: "Chevillière Élégante",
+    type: "Bracelet",
+    brand: "Custom",
+    image: require("@/assets/examples/jewelry/anklet.png"),
+    isFavorite: false,
+    metal: "Gold",
+    price: 4900,
   },
 ];
 
@@ -42,12 +76,41 @@ export default function EcrinScreen() {
   const [selectedType, setSelectedType] = useState("All Types");
   const [showFilters, setShowFilters] = useState(false);
   const [jewelry, setJewelry] = useState(DEMO_JEWELRY);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newJewelryName, setNewJewelryName] = useState("");
+  const [newJewelryType, setNewJewelryType] = useState("Necklace");
+  const [newJewelryBrand, setNewJewelryBrand] = useState("");
 
   const handleAddJewelry = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    // TODO: Open add jewelry modal
+    setShowAddModal(true);
+  };
+
+  const handleSaveNewJewelry = () => {
+    if (!newJewelryName.trim()) return;
+    
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    
+    const newItem = {
+      id: Date.now().toString(),
+      name: newJewelryName.trim(),
+      type: newJewelryType,
+      brand: newJewelryBrand.trim() || "Custom",
+      image: null,
+      isFavorite: false,
+      metal: "Gold",
+      price: 0,
+    };
+    
+    setJewelry(prev => [newItem, ...prev]);
+    setNewJewelryName("");
+    setNewJewelryType("Necklace");
+    setNewJewelryBrand("");
+    setShowAddModal(false);
   };
 
   const toggleFavorite = (id: string) => {
@@ -209,6 +272,94 @@ export default function EcrinScreen() {
           </ScrollView>
         )}
       </View>
+
+      {/* Add Jewelry Modal */}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <View className="flex-1 bg-background">
+            {/* Modal Header */}
+            <View className="flex-row items-center justify-between px-4 py-4 border-b border-border">
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Text className="text-primary font-medium">Annuler</Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-semibold text-foreground">Nouveau bijou</Text>
+              <TouchableOpacity onPress={handleSaveNewJewelry}>
+                <Text className={`font-semibold ${newJewelryName.trim() ? "text-primary" : "text-muted"}`}>
+                  Ajouter
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Form */}
+            <ScrollView className="flex-1 px-4 py-6">
+              {/* Name */}
+              <View className="mb-6">
+                <Text className="text-sm font-medium text-foreground mb-2">Nom du bijou *</Text>
+                <TextInput
+                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
+                  placeholder="Ex: Collier en or rose"
+                  placeholderTextColor={colors.muted}
+                  value={newJewelryName}
+                  onChangeText={setNewJewelryName}
+                  returnKeyType="next"
+                />
+              </View>
+
+              {/* Type */}
+              <View className="mb-6">
+                <Text className="text-sm font-medium text-foreground mb-2">Type de bijou</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row gap-2">
+                    {["Necklace", "Earrings", "Ring", "Bracelet", "Brooch"].map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        className={`px-4 py-2 rounded-full border ${newJewelryType === type ? "bg-primary border-primary" : "bg-surface border-border"}`}
+                        onPress={() => setNewJewelryType(type)}
+                      >
+                        <Text className={newJewelryType === type ? "text-white font-medium" : "text-foreground"}>
+                          {type === "Necklace" ? "Collier" : type === "Earrings" ? "Boucles" : type === "Ring" ? "Bague" : type === "Bracelet" ? "Bracelet" : "Broche"}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Brand */}
+              <View className="mb-6">
+                <Text className="text-sm font-medium text-foreground mb-2">Marque (optionnel)</Text>
+                <TextInput
+                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
+                  placeholder="Ex: Moniattitude, Cartier..."
+                  placeholderTextColor={colors.muted}
+                  value={newJewelryBrand}
+                  onChangeText={setNewJewelryBrand}
+                  returnKeyType="done"
+                />
+              </View>
+
+              {/* Info */}
+              <View className="bg-surface rounded-xl p-4 border border-border">
+                <View className="flex-row items-center mb-2">
+                  <Text className="text-lg mr-2">📷</Text>
+                  <Text className="text-sm font-medium text-foreground">Ajouter une photo</Text>
+                </View>
+                <Text className="text-xs text-muted">
+                  Vous pourrez ajouter une photo de votre bijou après l'avoir créé, en utilisant l'appareil photo ou en important depuis votre galerie.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -234,20 +385,33 @@ function JewelryCard({
   colors: ReturnType<typeof useColors>;
   onToggleFavorite: () => void;
 }) {
+  const formatPrice = (price: number) => {
+    return (price / 100).toFixed(2).replace(".", ",") + " €";
+  };
+
   return (
     <View 
       className="w-[48%] rounded-2xl overflow-hidden mb-3"
       style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
     >
-      {/* Image Placeholder */}
+      {/* Image */}
       <View 
-        className="aspect-square items-center justify-center"
+        className="aspect-square items-center justify-center relative"
         style={{ backgroundColor: colors.background }}
       >
+        {item.image ? (
+          <Image
+            source={item.image}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+          />
+        ) : (
+          <Text className="text-4xl">💍</Text>
+        )}
         <TouchableOpacity
           onPress={onToggleFavorite}
-          className="absolute top-2 left-2 w-8 h-8 rounded-full items-center justify-center"
-          style={{ backgroundColor: colors.surface }}
+          className="absolute top-2 right-2 w-8 h-8 rounded-full items-center justify-center"
+          style={{ backgroundColor: "rgba(255,255,255,0.9)" }}
         >
           <IconSymbol 
             name={item.isFavorite ? "heart.fill" : "heart"} 
@@ -255,7 +419,6 @@ function JewelryCard({
             color={item.isFavorite ? "#EF4444" : colors.muted} 
           />
         </TouchableOpacity>
-        <Text className="text-4xl">💍</Text>
       </View>
       
       {/* Info */}
@@ -263,7 +426,14 @@ function JewelryCard({
         <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
           {item.name}
         </Text>
-        <Text className="text-xs text-muted mt-1">{item.brand}</Text>
+        <View className="flex-row items-center justify-between mt-1">
+          <Text className="text-xs text-muted">{item.brand}</Text>
+          {item.price && (
+            <Text className="text-xs font-semibold" style={{ color: colors.primary }}>
+              {formatPrice(item.price)}
+            </Text>
+          )}
+        </View>
       </View>
     </View>
   );

@@ -70,6 +70,79 @@ const COLORS = [
   { id: "silver", label: "Argenté", hex: "#C0C0C0" },
 ];
 
+// Demo wardrobe items (shown when user is not logged in or has no items)
+const DEMO_WARDROBE: WardrobeItem[] = [
+  {
+    id: -1,
+    name: "Chemisier Soie Ivoire",
+    category: "tops",
+    brand: "Sandro",
+    color: "beige",
+    price: 12900,
+    imageUrl: null,
+    season: "all",
+    occasion: "work",
+    isFavorite: true,
+  },
+  {
+    id: -2,
+    name: "Pantalon Tailleur Marine",
+    category: "bottoms",
+    brand: "Maje",
+    color: "navy",
+    price: 17900,
+    imageUrl: null,
+    season: "all",
+    occasion: "work",
+    isFavorite: false,
+  },
+  {
+    id: -3,
+    name: "Robe Cocktail Noire",
+    category: "dresses",
+    brand: "Ba&sh",
+    color: "black",
+    price: 24900,
+    imageUrl: null,
+    season: "all",
+    occasion: "party",
+    isFavorite: true,
+  },
+  {
+    id: -4,
+    name: "Blazer Camel",
+    category: "outerwear",
+    brand: "The Kooples",
+    color: "beige",
+    price: 34900,
+    imageUrl: null,
+    season: "fall",
+    occasion: "work",
+    isFavorite: false,
+  },
+  {
+    id: -5,
+    name: "Escarpins Cuir Nude",
+    category: "shoes",
+    brand: "Jonak",
+    color: "beige",
+    price: 14900,
+    imageUrl: null,
+    season: "all",
+    occasion: "formal",
+    isFavorite: true,
+  },
+];
+
+// Demo images mapping
+const DEMO_IMAGES: Record<number, any> = {
+  [-1]: require("@/assets/examples/clothing/top.png"),
+  [-2]: require("@/assets/examples/clothing/bottom.png"),
+  [-3]: require("@/assets/examples/clothing/dress.png"),
+  [-4]: require("@/assets/examples/clothing/jacket.png"),
+  [-5]: require("@/assets/examples/shoes/heels.png"),
+};
+
 export default function DressingScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -97,18 +170,28 @@ export default function DressingScreen() {
     onSuccess: () => refetch(),
   });
 
+  // Use demo items when user has no items or is not logged in
+  const displayItems = useMemo(() => {
+    if (!user || wardrobeItems.length === 0) {
+      return DEMO_WARDROBE;
+    }
+    return wardrobeItems;
+  }, [user, wardrobeItems]);
+
+  const isShowingDemo = !user || wardrobeItems.length === 0;
+
   // Extract unique brands from items
   const brands = useMemo(() => {
     const uniqueBrands = new Set<string>();
-    wardrobeItems.forEach((item) => {
+    displayItems.forEach((item) => {
       if (item.brand) uniqueBrands.add(item.brand);
     });
     return ["all", ...Array.from(uniqueBrands).sort()];
-  }, [wardrobeItems]);
+  }, [displayItems]);
 
   // Filter items
   const filteredItems = useMemo(() => {
-    return wardrobeItems.filter((item) => {
+    return displayItems.filter((item) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -221,6 +304,12 @@ export default function DressingScreen() {
         {item.imageUrl ? (
           <Image
             source={{ uri: item.imageUrl }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+          />
+        ) : DEMO_IMAGES[item.id] ? (
+          <Image
+            source={DEMO_IMAGES[item.id]}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
@@ -522,20 +611,27 @@ export default function DressingScreen() {
         )}
       </View>
 
+      {/* Demo banner */}
+      {isShowingDemo && (
+        <View className="mx-4 mb-3 p-3 rounded-xl" style={{ backgroundColor: "#FEF3C7" }}>
+          <View className="flex-row items-center">
+            <Text className="text-lg mr-2">✨</Text>
+            <View className="flex-1">
+              <Text className="text-sm font-medium" style={{ color: "#92400E" }}>
+                Mode démonstration
+              </Text>
+              <Text className="text-xs" style={{ color: "#B45309" }}>
+                Connectez-vous pour ajouter vos propres vêtements
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Content */}
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : !user ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <IconSymbol name="person.fill" size={48} color={colors.muted} />
-          <Text className="text-lg font-semibold text-foreground mt-4 text-center">
-            Connectez-vous pour accéder à votre dressing
-          </Text>
-          <Text className="text-muted text-center mt-2">
-            Créez un compte pour sauvegarder vos vêtements et créer des looks
-          </Text>
         </View>
       ) : filteredItems.length === 0 ? (
         renderEmptyState()
