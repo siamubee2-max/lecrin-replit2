@@ -382,3 +382,13 @@
 - [x] Sauvegarder les images dans assets/products/moniattitude/
 - [x] Mettre à jour boutique.tsx avec les vraies images (require() local)
 - [x] Tester l'affichage des images (749 tests passent)
+
+## Compléter Collection Photos Moni'attitude
+- [ ] Télécharger l'image fleur duo depuis moniattitude.com
+- [ ] Télécharger l'image lotus depuis moniattitude.com
+- [ ] Télécharger l'image artisanales depuis moniattitude.com
+- [ ] Télécharger l'image texturées depuis moniattitude.com
+- [ ] Télécharger l'image résine orange depuis moniattitude.com
+- [ ] Télécharger l'image feuille métalisée depuis moniattitude.com
+- [ ] Mettre à jour boutique.tsx avec les nouvelles images
+- [ ] Tester l'affichage des images
