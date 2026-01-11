@@ -7,6 +7,7 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -296,7 +297,7 @@ export function ImageCropper({ imageUri, onApply, onCancel, visible }: ImageCrop
   if (!visible) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onCancel} style={styles.headerButton}>
@@ -520,7 +521,7 @@ export function ImageCropper({ imageUri, onApply, onCancel, visible }: ImageCrop
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

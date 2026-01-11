@@ -487,3 +487,9 @@
 - [x] Afficher l'aperçu de l'image sélectionnée
 - [x] Sauvegarder l'image avec le bijou créé
 - [x] Afficher l'image dans la carte du bijou
+
+## Corrections UI - Cadrage et Photo
+- [x] Corriger le header modal qui chevauche la barre d'état iOS
+- [x] Ajouter SafeAreaView au modal d'ajustement d'image
+- [x] Regénérer la photo du collier avec un fond beige propre
+- [x] Remplacer l'image dans les assets
