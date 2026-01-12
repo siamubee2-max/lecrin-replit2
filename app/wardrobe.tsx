@@ -216,8 +216,8 @@ export default function WardrobeScreen() {
         {/* Description */}
         <View className="px-4 py-6">
           <Text className="text-base text-muted leading-relaxed">
-            Ajoutez vos propres photos pour essayer virtuellement des bijoux sur vous. 
-            L'IA vous aidera à trouver les correspondances parfaites.
+            Ajoutez vos propres photos pour essayer virtuellement des bijoux sur vous.
+            L{"'"}IA vous aidera à trouver les correspondances parfaites.
           </Text>
         </View>
 
