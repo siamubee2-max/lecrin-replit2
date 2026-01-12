@@ -538,7 +538,7 @@ export default function NotificationsScreen() {
                   {t.notifications.lookInspiration}
                 </Text>
                 <Text className="text-base text-foreground italic">
-                  "{suggestion.lookInspiration}"
+                  {'"'}{suggestion.lookInspiration}{'"'}
                 </Text>
               </View>
 
