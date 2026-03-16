@@ -521,3 +521,13 @@
 ## BUGS CRITIQUES - Images et Langues
 - [x] Images manquantes sur les cartes de modèles - ajouté images locales de fallback
 - [x] Seulement 3 langues affichées - ajouté les 6 langues (FR, EN, ES, DE, IT, PT)
+
+## Correction des Images de Body Parts (Essayage Virtuel)
+- [x] Identifier le problème : les images de demo-gallery montraient des bijoux déjà portés
+- [x] Générer de nouvelles images AI de body parts sans bijoux (cou, oreilles, main, poignet, cheville)
+- [x] Uploader les images sur CDN (CloudFront)
+- [x] Mettre à jour LOCAL_DEMO_IMAGES dans tryon.tsx avec les URLs CDN
+- [x] Corriger la gestion des types d'images ({uri: string} vs string vs require())
+- [x] Mettre à jour le composant AIPositionedJewelry pour accepter {uri: string}
+- [x] Corriger le mode manuel dans tryon.tsx pour les objets {uri}
+- [x] Créer des tests unitaires pour la logique de chargement des images (12 tests)

@@ -25,7 +25,7 @@ const DEMO_JEWELRY = [
     name: "Collier Pendentif Or",
     type: "Necklace",
     brand: "Moniattitude",
-    image: require("@/assets/examples/jewelry/necklace.png"),
+    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/necklace_98314c60.png" },
     isFavorite: true,
     metal: "Gold",
     isDemo: true,
@@ -35,7 +35,7 @@ const DEMO_JEWELRY = [
     name: "Boucles d'Oreilles Diamant",
     type: "Earrings",
     brand: "Moniattitude",
-    image: require("@/assets/examples/jewelry/earrings.png"),
+    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/earrings_c42a49a8.png" },
     isFavorite: false,
     metal: "Gold",
     isDemo: true,
@@ -45,7 +45,7 @@ const DEMO_JEWELRY = [
     name: "Bague Solitaire",
     type: "Ring",
     brand: "Custom",
-    image: require("@/assets/examples/jewelry/ring.png"),
+    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/ring_02068a5c.png" },
     isFavorite: true,
     metal: "Gold",
     isDemo: true,
@@ -55,7 +55,7 @@ const DEMO_JEWELRY = [
     name: "Bracelet Chaîne Or",
     type: "Bracelet",
     brand: "Moniattitude",
-    image: require("@/assets/examples/jewelry/bracelet.png"),
+    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/bracelet_0cceb60d.png" },
     isFavorite: false,
     metal: "Gold",
     isDemo: true,
@@ -65,7 +65,7 @@ const DEMO_JEWELRY = [
     name: "Chevillière Élégante",
     type: "Bracelet",
     brand: "Custom",
-    image: require("@/assets/examples/jewelry/anklet.png"),
+    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/anklet_25156a89.png" },
     isFavorite: false,
     metal: "Gold",
     isDemo: true,
@@ -83,6 +83,8 @@ export default function EcrinScreen() {
   const [newJewelryType, setNewJewelryType] = useState("Necklace");
   const [newJewelryBrand, setNewJewelryBrand] = useState("");
   const [newJewelryImage, setNewJewelryImage] = useState<string | null>(null);
+  // Helper to convert image string to {uri} object for consistency
+  const toImageSource = (img: string | null): { uri: string } | null => img ? { uri: img } : null;
 
   const handleAddJewelry = () => {
     if (Platform.OS !== "web") {
@@ -161,7 +163,7 @@ export default function EcrinScreen() {
       name: newJewelryName.trim(),
       type: newJewelryType,
       brand: newJewelryBrand.trim() || "Custom",
-      image: newJewelryImage,
+      image: newJewelryImage ? { uri: newJewelryImage } : { uri: "" },
       isFavorite: false,
       metal: "Gold",
       isDemo: false,
@@ -325,11 +327,11 @@ export default function EcrinScreen() {
               </Text>
               <View className="flex-row flex-wrap justify-between">
                 {[
-                  { id: "necklace", label: "Collier", image: require("@/assets/examples/jewelry/necklace.png") },
-                  { id: "earrings", label: "Boucles d'oreilles", image: require("@/assets/examples/jewelry/earrings.png") },
-                  { id: "ring", label: "Bague", image: require("@/assets/examples/jewelry/ring.png") },
-                  { id: "bracelet", label: "Bracelet", image: require("@/assets/examples/jewelry/bracelet.png") },
-                  { id: "anklet", label: "Chevillière", image: require("@/assets/examples/jewelry/anklet.png") },
+                  { id: "necklace", label: "Collier", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/necklace_example_ddb00585.png" } },
+                  { id: "earrings", label: "Boucles d'oreilles", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/earrings_example_bcf0dd76.png" } },
+                  { id: "ring", label: "Bague", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/ring_example_7651ac1d.png" } },
+                  { id: "bracelet", label: "Bracelet", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/bracelet_0cceb60d.png" } },
+                  { id: "anklet", label: "Chevillière", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/anklet_25156a89.png" } },
                 ].map((item) => (
                   <View
                     key={item.id}

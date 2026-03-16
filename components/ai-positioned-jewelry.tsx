@@ -20,7 +20,7 @@ import { useAIPositioning, type JewelryType, type JewelryPosition } from "@/hook
 import { useColors } from "@/hooks/use-colors";
 
 interface AIPositionedJewelryProps {
-  modelImageUrl: string;
+  modelImageUrl: string | { uri: string };
   jewelryImage: any; // require() image source
   jewelryType: JewelryType;
   manualSize?: number; // Manual size override (0.5-2.0)
@@ -60,13 +60,22 @@ export function AIPositionedJewelry({
   const animatedRotation = useSharedValue(0);
   const animatedOpacity = useSharedValue(0);
 
+  // Helper to get the actual URL string from modelImageUrl (which can be string or {uri: string})
+  const getModelUrl = useCallback((): string => {
+    if (typeof modelImageUrl === 'string') return modelImageUrl;
+    if (typeof modelImageUrl === 'object' && modelImageUrl !== null && 'uri' in modelImageUrl) return modelImageUrl.uri;
+    return '';
+  }, [modelImageUrl]);
+
   // Convert model image URL to base64 and analyze
   const performAnalysis = useCallback(async () => {
     if (hasAnalyzed || !modelImageUrl) return;
+    const modelUrl = getModelUrl();
+    if (!modelUrl) return;
     
     try {
       // Fetch the image and convert to base64
-      const response = await fetch(modelImageUrl);
+      const response = await fetch(modelUrl);
       const blob = await response.blob();
       
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -139,7 +148,7 @@ export function AIPositionedJewelry({
       onAnalysisComplete?.(false, fallback);
       setHasAnalyzed(true);
     }
-  }, [modelImageUrl, jewelryType, hasAnalyzed, analyzeImage, getPrimaryPosition, getFallbackPosition, manualSize, onAnalysisComplete]);
+  }, [modelImageUrl, getModelUrl, jewelryType, hasAnalyzed, analyzeImage, getPrimaryPosition, getFallbackPosition, manualSize, onAnalysisComplete]);
 
   // Trigger analysis when component mounts or model changes
   useEffect(() => {
@@ -204,7 +213,7 @@ export function AIPositionedJewelry({
     <View style={styles.container} onLayout={handleLayout}>
       {/* Model Image */}
       <Image
-        source={{ uri: modelImageUrl }}
+        source={typeof modelImageUrl === 'string' ? { uri: modelImageUrl } : modelImageUrl}
         style={StyleSheet.absoluteFillObject}
         contentFit="cover"
         transition={300}

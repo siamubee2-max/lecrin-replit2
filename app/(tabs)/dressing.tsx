@@ -135,13 +135,16 @@ const DEMO_WARDROBE: (WardrobeItem & { isDemo?: boolean })[] = [
   },
 ];
 
-// Demo images mapping
+// CDN base URL for demo images
+const DEMO_CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
+
+// Demo images mapping (using CDN URLs)
 const DEMO_IMAGES: Record<number, any> = {
-  [-1]: require("@/assets/examples/clothing/top.png"),
-  [-2]: require("@/assets/examples/clothing/bottom.png"),
-  [-3]: require("@/assets/examples/clothing/dress.png"),
-  [-4]: require("@/assets/examples/clothing/jacket.png"),
-  [-5]: require("@/assets/examples/shoes/heels.png"),
+  [-1]: { uri: `${DEMO_CDN}/top_f0aa9195.png` },
+  [-2]: { uri: `${DEMO_CDN}/bottom_35b18c4f.png` },
+  [-3]: { uri: `${DEMO_CDN}/dress_357ec580.png` },
+  [-4]: { uri: `${DEMO_CDN}/jacket_d81912f6.png` },
+  [-5]: { uri: `${DEMO_CDN}/heels_99098445.png` },
 };
 
 export default function DressingScreen() {
@@ -370,11 +373,11 @@ export default function DressingScreen() {
 
   // Example items for empty state
   const EXAMPLE_ITEMS = [
-    { id: "top", label: "Haut", image: require("@/assets/examples/clothing/top.png") },
-    { id: "bottom", label: "Bas", image: require("@/assets/examples/clothing/bottom.png") },
-    { id: "dress", label: "Robe", image: require("@/assets/examples/clothing/dress.png") },
-    { id: "jacket", label: "Veste", image: require("@/assets/examples/clothing/jacket.png") },
-    { id: "shoes", label: "Chaussures", image: require("@/assets/examples/shoes/heels.png") },
+    { id: "top", label: "Haut", image: { uri: `${DEMO_CDN}/top_f0aa9195.png` } },
+    { id: "bottom", label: "Bas", image: { uri: `${DEMO_CDN}/bottom_35b18c4f.png` } },
+    { id: "dress", label: "Robe", image: { uri: `${DEMO_CDN}/dress_357ec580.png` } },
+    { id: "jacket", label: "Veste", image: { uri: `${DEMO_CDN}/jacket_d81912f6.png` } },
+    { id: "shoes", label: "Chaussures", image: { uri: `${DEMO_CDN}/heels_99098445.png` } },
   ];
 
   // Empty state
