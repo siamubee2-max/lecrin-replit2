@@ -28,25 +28,27 @@ interface DemoImage {
   gender: GenderCategory;
 }
 
+const CDN_GALLERY = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
+
 const DEMO_IMAGES: DemoImage[] = [
   // Feminine hands
   {
     id: "hand_light",
-    source: require("@/assets/demo-gallery/hand_light.png"),
+    source: { uri: `${CDN_GALLERY}/hand_light_27905ffe.png` },
     skinTone: "light",
     bodyPart: "hands",
     gender: "feminine",
   },
   {
     id: "hand_medium",
-    source: require("@/assets/demo-gallery/hand_medium.png"),
+    source: { uri: `${CDN_GALLERY}/hand_medium_2a86cd6d.png` },
     skinTone: "medium",
     bodyPart: "hands",
     gender: "feminine",
   },
   {
     id: "hand_dark",
-    source: require("@/assets/demo-gallery/hand_dark.png"),
+    source: { uri: `${CDN_GALLERY}/hand_dark_79766f9c.png` },
     skinTone: "dark",
     bodyPart: "hands",
     gender: "feminine",
@@ -54,21 +56,21 @@ const DEMO_IMAGES: DemoImage[] = [
   // Masculine hands
   {
     id: "hand_male_light",
-    source: require("@/assets/demo-gallery/hand_male_light.png"),
+    source: { uri: `${CDN_GALLERY}/hand_male_light_1b56849b.png` },
     skinTone: "light",
     bodyPart: "hands",
     gender: "masculine",
   },
   {
     id: "hand_male_medium",
-    source: require("@/assets/demo-gallery/hand_male_medium.png"),
+    source: { uri: `${CDN_GALLERY}/hand_male_medium_2a2cbf76.png` },
     skinTone: "medium",
     bodyPart: "hands",
     gender: "masculine",
   },
   {
     id: "hand_male_dark",
-    source: require("@/assets/demo-gallery/hand_male_dark.png"),
+    source: { uri: `${CDN_GALLERY}/hand_male_dark_71881b8b.png` },
     skinTone: "dark",
     bodyPart: "hands",
     gender: "masculine",
@@ -76,14 +78,14 @@ const DEMO_IMAGES: DemoImage[] = [
   // Neutral hands
   {
     id: "hand_neutral_light",
-    source: require("@/assets/demo-gallery/hand_neutral_light.png"),
+    source: { uri: `${CDN_GALLERY}/hand_neutral_light_8dfbb232.png` },
     skinTone: "light",
     bodyPart: "hands",
     gender: "neutral",
   },
   {
     id: "hand_neutral_dark",
-    source: require("@/assets/demo-gallery/hand_neutral_dark.png"),
+    source: { uri: `${CDN_GALLERY}/hand_neutral_dark_db24cc6a.png` },
     skinTone: "dark",
     bodyPart: "hands",
     gender: "neutral",
@@ -91,21 +93,21 @@ const DEMO_IMAGES: DemoImage[] = [
   // Feminine ears
   {
     id: "ear_light",
-    source: require("@/assets/demo-gallery/ear_light.png"),
+    source: { uri: `${CDN_GALLERY}/ear_light_5a0a5b26.png` },
     skinTone: "light",
     bodyPart: "ears",
     gender: "feminine",
   },
   {
     id: "ear_medium",
-    source: require("@/assets/demo-gallery/ear_medium.png"),
+    source: { uri: `${CDN_GALLERY}/ear_medium_2594e260.png` },
     skinTone: "medium",
     bodyPart: "ears",
     gender: "feminine",
   },
   {
     id: "ear_dark",
-    source: require("@/assets/demo-gallery/ear_dark.png"),
+    source: { uri: `${CDN_GALLERY}/ear_dark_bd431eeb.png` },
     skinTone: "dark",
     bodyPart: "ears",
     gender: "feminine",
@@ -113,21 +115,21 @@ const DEMO_IMAGES: DemoImage[] = [
   // Masculine ears
   {
     id: "ear_male_light",
-    source: require("@/assets/demo-gallery/ear_male_light.png"),
+    source: { uri: `${CDN_GALLERY}/ear_male_light_28d21a3c.png` },
     skinTone: "light",
     bodyPart: "ears",
     gender: "masculine",
   },
   {
     id: "ear_male_medium",
-    source: require("@/assets/demo-gallery/ear_male_medium.png"),
+    source: { uri: `${CDN_GALLERY}/ear_male_medium_063c5f10.png` },
     skinTone: "medium",
     bodyPart: "ears",
     gender: "masculine",
   },
   {
     id: "ear_male_dark",
-    source: require("@/assets/demo-gallery/ear_male_dark.png"),
+    source: { uri: `${CDN_GALLERY}/ear_male_dark_0993ca37.png` },
     skinTone: "dark",
     bodyPart: "ears",
     gender: "masculine",
@@ -135,14 +137,14 @@ const DEMO_IMAGES: DemoImage[] = [
   // Neutral ears
   {
     id: "ear_neutral_light",
-    source: require("@/assets/demo-gallery/ear_neutral_light.png"),
+    source: { uri: `${CDN_GALLERY}/ear_neutral_light_19bd5de1.png` },
     skinTone: "light",
     bodyPart: "ears",
     gender: "neutral",
   },
   {
     id: "ear_neutral_dark",
-    source: require("@/assets/demo-gallery/ear_neutral_dark.png"),
+    source: { uri: `${CDN_GALLERY}/ear_neutral_dark_6e25f290.png` },
     skinTone: "dark",
     bodyPart: "ears",
     gender: "neutral",
@@ -150,14 +152,14 @@ const DEMO_IMAGES: DemoImage[] = [
   // Feminine necks
   {
     id: "neck_light",
-    source: require("@/assets/demo-gallery/neck_light.png"),
+    source: { uri: `${CDN_GALLERY}/neck_light_d9c677ba.png` },
     skinTone: "light",
     bodyPart: "necks",
     gender: "feminine",
   },
   {
     id: "neck_dark",
-    source: require("@/assets/demo-gallery/neck_dark.png"),
+    source: { uri: `${CDN_GALLERY}/neck_dark_35eedc86.png` },
     skinTone: "dark",
     bodyPart: "necks",
     gender: "feminine",
@@ -165,14 +167,14 @@ const DEMO_IMAGES: DemoImage[] = [
   // Masculine necks
   {
     id: "neck_male_light",
-    source: require("@/assets/demo-gallery/neck_male_light.png"),
+    source: { uri: `${CDN_GALLERY}/neck_male_light_ede2acec.png` },
     skinTone: "light",
     bodyPart: "necks",
     gender: "masculine",
   },
   {
     id: "neck_male_dark",
-    source: require("@/assets/demo-gallery/neck_male_dark.png"),
+    source: { uri: `${CDN_GALLERY}/neck_male_dark_a2434531.png` },
     skinTone: "dark",
     bodyPart: "necks",
     gender: "masculine",

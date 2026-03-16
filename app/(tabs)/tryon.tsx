@@ -28,42 +28,45 @@ const JEWELRY_STYLES: { id: JewelryStyle; name: string; color: string }[] = [
   { id: "rosegold", name: "Or Rose", color: "#E8B4B8" },
 ];
 
-// Import jewelry images by style
+// CDN base URL for jewelry images
+const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
+
+// Import jewelry images by style (using CDN URLs)
 const JEWELRY_IMAGES_BY_STYLE: Record<JewelryStyle, Record<string, any>> = {
   gold: {
-    necklace: require("@/assets/images/jewelry/gold/necklace.png"),
-    earrings: require("@/assets/images/jewelry/gold/earrings.png"),
-    ring: require("@/assets/images/jewelry/gold/ring.png"),
-    bracelet: require("@/assets/images/jewelry/gold/bracelet.png"),
-    anklet: require("@/assets/images/jewelry/gold/anklet.png"),
-    brooch: require("@/assets/images/jewelry/gold/necklace.png"), // Use necklace for full set
+    necklace: { uri: `${CDN}/necklace_7177dd4f.png` },
+    earrings: { uri: `${CDN}/earrings_d519be16.png` },
+    ring: { uri: `${CDN}/ring_98bc5b36.png` },
+    bracelet: { uri: `${CDN}/bracelet_a20f8e1b.png` },
+    anklet: { uri: `${CDN}/anklet_898db7b9.png` },
+    brooch: { uri: `${CDN}/necklace_7177dd4f.png` }, // Use necklace for full set
   },
   silver: {
-    necklace: require("@/assets/images/jewelry/silver/necklace.png"),
-    earrings: require("@/assets/images/jewelry/silver/earrings.png"),
-    ring: require("@/assets/images/jewelry/silver/ring.png"),
-    bracelet: require("@/assets/images/jewelry/silver/bracelet.png"),
-    anklet: require("@/assets/images/jewelry/silver/anklet.png"),
-    brooch: require("@/assets/images/jewelry/silver/necklace.png"),
+    necklace: { uri: `${CDN}/necklace_272e5538.png` },
+    earrings: { uri: `${CDN}/earrings_5f6e88c0.png` },
+    ring: { uri: `${CDN}/ring_98d1f1c4.png` },
+    bracelet: { uri: `${CDN}/bracelet_2e01c216.png` },
+    anklet: { uri: `${CDN}/anklet_49ad301c.png` },
+    brooch: { uri: `${CDN}/necklace_272e5538.png` },
   },
   rosegold: {
-    necklace: require("@/assets/images/jewelry/rosegold/necklace.png"),
-    earrings: require("@/assets/images/jewelry/rosegold/earrings.png"),
-    ring: require("@/assets/images/jewelry/rosegold/ring.png"),
-    bracelet: require("@/assets/images/jewelry/rosegold/bracelet.png"),
-    anklet: require("@/assets/images/jewelry/rosegold/anklet.png"),
-    brooch: require("@/assets/images/jewelry/rosegold/necklace.png"),
+    necklace: { uri: `${CDN}/necklace_17a308e7.png` },
+    earrings: { uri: `${CDN}/earrings_d76acdc3.png` },
+    ring: { uri: `${CDN}/ring_c4986919.png` },
+    bracelet: { uri: `${CDN}/bracelet_8332e426.png` },
+    anklet: { uri: `${CDN}/anklet_ce49b8e0.png` },
+    brooch: { uri: `${CDN}/necklace_17a308e7.png` },
   },
 };
 
-// Legacy import for fallback
+// Legacy import for fallback (CDN URLs)
 const JEWELRY_IMAGES = {
-  necklace: require("@/assets/images/jewelry/necklace.png"),
-  earrings: require("@/assets/images/jewelry/earrings.png"),
-  ring: require("@/assets/images/jewelry/ring.png"),
-  bracelet: require("@/assets/images/jewelry/bracelet.png"),
-  anklet: require("@/assets/images/jewelry/anklet.png"),
-  brooch: require("@/assets/images/jewelry/necklace.png"),
+  necklace: { uri: `${CDN}/necklace_bd6660e2.png` },
+  earrings: { uri: `${CDN}/earrings_ca44164c.png` },
+  ring: { uri: `${CDN}/ring_1387f5ad.png` },
+  bracelet: { uri: `${CDN}/bracelet_9eb16d6e.png` },
+  anklet: { uri: `${CDN}/anklet_a3ab66ce.png` },
+  brooch: { uri: `${CDN}/necklace_bd6660e2.png` },
 };
 
 // Mapping between jewelry types and body part types
@@ -158,28 +161,27 @@ export default function TryOnScreen() {
   // Fetch body parts from API
   const { data: allBodyParts, isLoading: isLoadingBodyParts } = trpc.bodyParts.list.useQuery();
 
-  // Local demo images as fallback when Google Drive URLs don't work
+  // Demo images using AI-generated body part photos (no jewelry, suitable for virtual try-on)
   const LOCAL_DEMO_IMAGES: Record<string, any> = {
     "earrings": [
-      { id: "demo_ear_1", name: "Boucles d'oreilles 1", type: "earrings", imageUrl: require("@/assets/demo-gallery/ear_light.png"), isDemo: true },
-      { id: "demo_ear_2", name: "Boucles d'oreilles 2", type: "earrings", imageUrl: require("@/assets/demo-gallery/ear_medium.png"), isDemo: true },
-      { id: "demo_ear_3", name: "Boucles d'oreilles 3", type: "earrings", imageUrl: require("@/assets/demo-gallery/ear_dark.png"), isDemo: true },
+      { id: "demo_ear_1", name: "Oreille 1", type: "earrings", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_ear_female_light-oKyQzhjaEeMaTVQE2RSjzv.png" }, isDemo: true },
+      { id: "demo_ear_2", name: "Oreille 2", type: "earrings", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_ear_female_dark-b3hHnGt8vPVuRfUentdNM5.png" }, isDemo: true },
     ],
     "neck": [
-      { id: "demo_neck_1", name: "Modèle Cou 1", type: "neck", imageUrl: require("@/assets/demo-gallery/neck_light.png"), isDemo: true },
-      { id: "demo_neck_2", name: "Modèle Cou 2", type: "neck", imageUrl: require("@/assets/demo-gallery/neck_dark.png"), isDemo: true },
+      { id: "demo_neck_1", name: "Cou 1", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_female_light-fi7h3coGBhB7QXE5m8Ubdd.png" }, isDemo: true },
+      { id: "demo_neck_2", name: "Cou 2", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_female_medium-V6NKontzEYLKqDzsbp5b6i.png" }, isDemo: true },
+      { id: "demo_neck_3", name: "Cou 3", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_female_dark-dUGtrfRqepNU8BoNZR8LSB.png" }, isDemo: true },
+      { id: "demo_neck_4", name: "Cou Homme", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_male_light-4JdnQugvs9BoU6rsnXh4Yi.png" }, isDemo: true },
     ],
     "ring": [
-      { id: "demo_ring_1", name: "Main Gauche", type: "ring", imageUrl: require("@/assets/demo-gallery/hand_light.png"), isDemo: true },
-      { id: "demo_ring_2", name: "Main Droite", type: "ring", imageUrl: require("@/assets/demo-gallery/hand_medium.png"), isDemo: true },
-      { id: "demo_ring_3", name: "Main 3", type: "ring", imageUrl: require("@/assets/demo-gallery/hand_dark.png"), isDemo: true },
+      { id: "demo_ring_1", name: "Main 1", type: "ring", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_hand_female_light-2PbB4bSWex8tzUnZHJD9te.png" }, isDemo: true },
+      { id: "demo_ring_2", name: "Main Homme", type: "ring", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_hand_male_light-huy4w46aFJPQan5jbwUG5M.png" }, isDemo: true },
     ],
     "wrist": [
-      { id: "demo_wrist_1", name: "Poignet Gauche", type: "wrist", imageUrl: require("@/assets/demo-gallery/hand_light.png"), isDemo: true },
-      { id: "demo_wrist_2", name: "Poignet Droit", type: "wrist", imageUrl: require("@/assets/demo-gallery/hand_medium.png"), isDemo: true },
+      { id: "demo_wrist_1", name: "Poignet 1", type: "wrist", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_wrist_female_light-PwZU2jSds6D2sgBQSMaqYG.png" }, isDemo: true },
     ],
     "foot": [
-      { id: "demo_foot_1", name: "Chevillière", type: "foot", imageUrl: require("@/assets/demo-gallery/hand_dark.png"), isDemo: true },
+      { id: "demo_foot_1", name: "Cheville 1", type: "foot", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_ankle_female_light-YZJjUmhcgVcmwqT7UqoGWz.png" }, isDemo: true },
     ],
   };
 
@@ -484,7 +486,13 @@ export default function TryOnScreen() {
                 <View className="flex-1">
                   {/* Model Image */}
                   <Image
-                    source={{ uri: selectedModel.imageUrl }}
+                    source={
+                      typeof selectedModel.imageUrl === 'number' 
+                        ? selectedModel.imageUrl 
+                        : (typeof selectedModel.imageUrl === 'object' && 'uri' in selectedModel.imageUrl)
+                          ? selectedModel.imageUrl
+                          : { uri: selectedModel.imageUrl }
+                    }
                     style={StyleSheet.absoluteFillObject}
                     contentFit="cover"
                     transition={300}
@@ -711,9 +719,14 @@ export default function TryOnScreen() {
               ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
               renderItem={({ item }) => {
                 // Support both local require() images and remote URLs
+                // If imageUrl is already an object {uri: ...}, use it directly
+                // If it's a number (require()), use it directly
+                // If it's a string, wrap it in {uri: ...}
                 const imageSource = typeof item.imageUrl === 'number' 
                   ? item.imageUrl 
-                  : { uri: item.imageUrl };
+                  : (typeof item.imageUrl === 'object' && item.imageUrl !== null && 'uri' in item.imageUrl)
+                    ? item.imageUrl
+                    : { uri: item.imageUrl };
                 return (
                 <TouchableOpacity
                   onPress={() => handleModelSelect(item)}
