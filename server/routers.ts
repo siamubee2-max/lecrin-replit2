@@ -911,22 +911,52 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const dbInstance = await db.getDb();
+        let insertedId: number | null = null;
+
         if (!dbInstance) {
           console.warn('[PartnerApplications] DB not available, application not saved');
-          return { success: true, id: null };
+        } else {
+          const { partnerApplications } = await import('../drizzle/schema');
+          const [result] = await dbInstance.insert(partnerApplications).values({
+            brandName: input.brandName,
+            contactName: input.contactName,
+            email: input.email,
+            websiteUrl: input.websiteUrl || null,
+            jewelryTypes: input.jewelryTypes || null,
+            priceRange: input.priceRange || null,
+            message: input.message || null,
+            status: 'pending',
+          });
+          insertedId = (result as any)?.insertId ?? null;
         }
-        const { partnerApplications } = await import('../drizzle/schema');
-        const [result] = await dbInstance.insert(partnerApplications).values({
-          brandName: input.brandName,
-          contactName: input.contactName,
-          email: input.email,
-          websiteUrl: input.websiteUrl || null,
-          jewelryTypes: input.jewelryTypes || null,
-          priceRange: input.priceRange || null,
-          message: input.message || null,
-          status: 'pending',
-        });
-        return { success: true, id: (result as any)?.insertId ?? null };
+
+        // Envoi des emails automatiques (non bloquant)
+        try {
+          const { sendPartnerApplicationEmails } = await import('./services/email');
+          // Séparer prénom et nom depuis contactName
+          const nameParts = (input.contactName || '').trim().split(' ');
+          const firstName = nameParts[0] || input.contactName;
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          const emailResult = await sendPartnerApplicationEmails({
+            firstName,
+            lastName,
+            brandName: input.brandName,
+            email: input.email,
+            phone: undefined,
+            website: input.websiteUrl,
+            instagram: undefined,
+            description: input.message,
+            productTypes: input.jewelryTypes,
+            priceRange: input.priceRange,
+          });
+          console.log('[PartnerApplications] Emails envoyés:', emailResult);
+        } catch (emailErr) {
+          // L'erreur email ne doit pas bloquer la soumission
+          console.error('[PartnerApplications] Erreur envoi email:', emailErr);
+        }
+
+        return { success: true, id: insertedId };
       }),
   }),
 });
