@@ -550,3 +550,17 @@
 ## Bug : Onglet Communauté disparu
 - [x] Diagnostiquer pourquoi l'onglet Communauté a disparu
 - [x] Restaurer l'onglet Communauté dans la barre de navigation
+
+## Refonte Essayage Virtuel (fidèle Replit)
+- [ ] Analyser le TryOnScreen.tsx du dépôt Replit
+- [ ] Refaire l'écran d'essayage avec les vraies photos mannequins
+- [ ] Superposition propre des bijoux sur les photos
+- [ ] Interface simple et fluide comme dans Replit
+
+## Refonte Essayage Virtuel (style Replit)
+- [x] Analyser l'interface Replit pour reproduire l'essayage virtuel
+- [x] Uploader les vraies photos mannequins du dépôt GitHub sur le CDN
+- [x] Uploader les vrais bijoux MONI'ATTITUDE sur le CDN
+- [x] Refaire l'écran d'essayage avec interface 2 blocs (photo + bijou) + galeries modales
+- [x] Intégrer les 19 mannequins (visages, mains, poignets, chevilles, corps entier)
+- [x] Intégrer les 30+ bijoux MONI'ATTITUDE (boucles, colliers, bracelets, bagues, chevillières, parures)
