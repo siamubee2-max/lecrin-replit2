@@ -175,43 +175,49 @@ export default function CommunityScreen() {
   );
 
   return (
-    <ScreenContainer>
-      {/* Header */}
-      <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
+    <ScreenContainer containerClassName="bg-background">
+      {/* Header luxe */}
+      <View style={commStyles.header}>
         <View>
-          <Text className="text-3xl font-bold text-foreground">Communauté</Text>
-          <Text className="text-sm text-muted mt-0.5">Partagez vos bijoux préférés</Text>
+          <Text style={[commStyles.title, { color: colors.foreground }]}>COMMUNAUTÉ</Text>
+          <Text style={[commStyles.subtitle, { color: colors.primary }]}>Partagez vos bijoux</Text>
         </View>
         <TouchableOpacity
           onPress={() => setShowNewPost(true)}
-          className="w-10 h-10 rounded-full items-center justify-center"
-          style={{ backgroundColor: colors.foreground }}
+          style={[commStyles.addBtn, { borderColor: colors.primary }]}
         >
-          <IconSymbol name="plus" size={20} color={colors.background} />
+          <IconSymbol name="plus" size={16} color={colors.primary} />
         </TouchableOpacity>
       </View>
+      <View style={[commStyles.headerLine, { backgroundColor: colors.border }]} />
 
       {/* Tabs */}
-      <View className="flex-row px-4 mb-3 gap-2">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
+      >
         {(["feed", "trending", "following"] as const).map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
-            className="px-4 py-2 rounded-full"
             style={[
-              { borderWidth: 1, borderColor: colors.border },
+              commStyles.tabChip,
+              { borderColor: activeTab === tab ? colors.primary : colors.border },
               activeTab === tab && { backgroundColor: colors.foreground },
             ]}
           >
             <Text
-              className="text-sm font-medium"
-              style={{ color: activeTab === tab ? colors.background : colors.foreground }}
+              style={[
+                commStyles.tabChipText,
+                { color: activeTab === tab ? colors.background : colors.muted },
+              ]}
             >
-              {tab === "feed" ? "Fil" : tab === "trending" ? "Tendances" : "Abonnements"}
+              {tab === "feed" ? "FIL" : tab === "trending" ? "TENDANCES" : "ABONNEMENTS"}
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Posts Feed */}
       <FlatList
@@ -341,33 +347,22 @@ function PostCard({
   const [showComments, setShowComments] = useState(false);
 
   return (
-    <View
-      className="mb-4 mx-4 rounded-2xl overflow-hidden"
-      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-    >
+    <View style={[commStyles.postCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Post Header */}
-      <View className="flex-row items-center px-4 py-3">
-        <View
-          className="w-10 h-10 rounded-full items-center justify-center mr-3"
-          style={{ backgroundColor: colors.primary + "30" }}
-        >
-          <Text className="text-sm font-bold" style={{ color: colors.primary }}>
+      <View style={commStyles.postHeader}>
+        <View style={[commStyles.avatar, { borderColor: colors.primary }]}>
+          <Text style={[commStyles.avatarText, { color: colors.primary }]}>
             {post.user.initials}
           </Text>
         </View>
-        <View className="flex-1">
-          <Text className="text-sm font-semibold text-foreground">{post.user.name}</Text>
-          <Text className="text-xs text-muted">{post.timeAgo}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[commStyles.posterName, { color: colors.foreground }]}>{post.user.name}</Text>
+          <Text style={[commStyles.postTime, { color: colors.muted }]}>{post.timeAgo}</Text>
         </View>
         {post.jewelryBrand ? (
-          <View
-            className="px-2 py-1 rounded-full"
-            style={{ backgroundColor: colors.primary + "20" }}
-          >
-            <Text className="text-xs font-medium" style={{ color: colors.primary }}>
-              {post.jewelryBrand}
-            </Text>
-          </View>
+          <Text style={[commStyles.brandBadge, { color: colors.primary }]}>
+            {post.jewelryBrand}
+          </Text>
         ) : null}
       </View>
 
@@ -383,59 +378,50 @@ function PostCard({
       ) : null}
 
       {/* Actions */}
-      <View className="flex-row items-center px-4 py-3 gap-4">
+      <View style={commStyles.postActions}>
         <TouchableOpacity
           onPress={onLike}
-          className="flex-row items-center gap-1.5"
+          style={commStyles.actionBtn}
           activeOpacity={0.7}
         >
           <IconSymbol
             name={post.isLiked ? "heart.fill" : "heart"}
-            size={22}
-            color={post.isLiked ? "#EF4444" : colors.muted}
+            size={18}
+            color={post.isLiked ? "#C9A96E" : colors.muted}
           />
-          <Text className="text-sm font-medium" style={{ color: colors.muted }}>
-            {post.likes}
-          </Text>
+          <Text style={[commStyles.actionCount, { color: colors.muted }]}>{post.likes}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setShowComments(!showComments)}
-          className="flex-row items-center gap-1.5"
+          style={commStyles.actionBtn}
           activeOpacity={0.7}
         >
-          <IconSymbol name="bubble.left" size={20} color={colors.muted} />
-          <Text className="text-sm font-medium" style={{ color: colors.muted }}>
-            {post.comments}
-          </Text>
+          <IconSymbol name="bubble.left" size={17} color={colors.muted} />
+          <Text style={[commStyles.actionCount, { color: colors.muted }]}>{post.comments}</Text>
         </TouchableOpacity>
 
-        <View className="flex-1" />
+        <View style={{ flex: 1 }} />
 
-        {/* Try On button */}
         {post.jewelryName ? (
           <TouchableOpacity
             onPress={onTryOn}
-            className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: colors.foreground }}
+            style={[commStyles.tryBtn, { borderColor: colors.primary }]}
             activeOpacity={0.8}
           >
-            <IconSymbol name="sparkles" size={14} color={colors.background} />
-            <Text className="text-xs font-semibold" style={{ color: colors.background }}>
-              Essayer
-            </Text>
+            <Text style={[commStyles.tryBtnText, { color: colors.primary }]}>ESSAYER</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
       {/* Caption */}
-      <View className="px-4 pb-3">
-        <Text className="text-sm text-foreground leading-5">
-          <Text className="font-semibold">{post.user.name} </Text>
+      <View style={commStyles.postCaption}>
+        <Text style={[commStyles.captionText, { color: colors.foreground }]}>
+          <Text style={{ fontWeight: "600" }}>{post.user.name} </Text>
           {post.caption}
         </Text>
         {post.tags.length > 0 && (
-          <Text className="text-sm mt-1" style={{ color: colors.primary }}>
+          <Text style={[commStyles.tagsText, { color: colors.primary }]}>
             {post.tags.join(" ")}
           </Text>
         )}
@@ -444,4 +430,130 @@ function PostCard({
   );
 }
 
-const styles = StyleSheet.create({});
+const commStyles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "300",
+    letterSpacing: 4,
+    lineHeight: 24,
+  },
+  subtitle: {
+    fontSize: 9,
+    fontWeight: "400",
+    letterSpacing: 3,
+    marginTop: 2,
+  },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerLine: {
+    height: 0.5,
+    marginHorizontal: 20,
+    marginBottom: 4,
+  },
+  tabChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderWidth: 1,
+  },
+  tabChipText: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 2,
+  },
+  postCard: {
+    marginBottom: 16,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  postHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  posterName: {
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.3,
+  },
+  postTime: {
+    fontSize: 10,
+    fontWeight: "300",
+    letterSpacing: 0.3,
+    marginTop: 1,
+  },
+  brandBadge: {
+    fontSize: 8,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+  },
+  postActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 14,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  actionCount: {
+    fontSize: 11,
+    fontWeight: "300",
+  },
+  tryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+  },
+  tryBtnText: {
+    fontSize: 8,
+    fontWeight: "500",
+    letterSpacing: 2,
+  },
+  postCaption: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+  captionText: {
+    fontSize: 12,
+    fontWeight: "300",
+    lineHeight: 18,
+  },
+  tagsText: {
+    fontSize: 11,
+    fontWeight: "300",
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+});

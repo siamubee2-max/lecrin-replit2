@@ -232,24 +232,26 @@ export default function TryOnScreen() {
   const canTryOn = !!userPhoto && !!selectedJewelry && !isProcessing;
 
   return (
-    <ScreenContainer>
+    <ScreenContainer containerClassName="bg-background">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       >
-        {/* Header */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Essayage Virtuel</Text>
-          <Text style={[styles.subtitle, { color: colors.muted }]}>
-            Visualisez un bijou sur vous avant d'acheter
-          </Text>
+        {/* Header luxe */}
+        <View style={styles.luxeHeader}>
+          <View>
+            <Text style={[styles.title, { color: colors.foreground }]}>ESSAYAGE</Text>
+            <Text style={[styles.titleAccent, { color: colors.primary }]}>VIRTUEL</Text>
+          </View>
+          <View style={[styles.headerDot, { backgroundColor: colors.primary }]} />
         </View>
+        <View style={[styles.headerLine, { backgroundColor: colors.border }]} />
 
         {/* Sélecteur de type de bijou */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 8 }}
         >
           {JEWELRY_TYPES.map((type) => {
             const isSelected = selectedJewelryType === type.key;
@@ -265,14 +267,14 @@ export default function TryOnScreen() {
                   styles.typeChip,
                   {
                     backgroundColor: isSelected ? colors.foreground : "transparent",
-                    borderColor: isSelected ? colors.foreground : colors.border,
+                    borderColor: isSelected ? colors.primary : colors.border,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.typeChipText,
-                    { color: isSelected ? colors.background : colors.foreground },
+                    { color: isSelected ? colors.background : colors.muted },
                   ]}
                 >
                   {type.label}
@@ -641,63 +643,92 @@ function GalleryModal({
 }
 
 const styles = StyleSheet.create({
+  // Header luxe
+  luxeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  headerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  headerLine: {
+    height: 0.5,
+    marginHorizontal: 20,
+    marginBottom: 4,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    letterSpacing: -0.5,
+    fontSize: 22,
+    fontWeight: "300",
+    letterSpacing: 4,
+    lineHeight: 26,
+  },
+  titleAccent: {
+    fontSize: 10,
+    fontWeight: "400",
+    letterSpacing: 5,
+    lineHeight: 16,
   },
   subtitle: {
     fontSize: 14,
     marginTop: 2,
   },
   typeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderWidth: 1,
   },
   typeChipText: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
   photosRow: {
     flexDirection: "row",
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 20,
+    gap: 14,
     marginTop: 4,
   },
   photoCol: {
     flex: 1,
   },
   photoLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    marginBottom: 6,
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 2.5,
+    marginBottom: 8,
+    textTransform: "uppercase",
   },
   photoBox: {
     aspectRatio: 3 / 4,
-    borderRadius: 16,
     overflow: "hidden",
     position: "relative",
+    borderWidth: 1,
   },
   emptyBox: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
   },
   emptyIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
-    fontSize: 11,
+    fontSize: 10,
     textAlign: "center",
     paddingHorizontal: 8,
+    letterSpacing: 0.3,
   },
   btnRow: {
     flexDirection: "row",
@@ -707,7 +738,6 @@ const styles = StyleSheet.create({
   smallBtn: {
     flex: 1,
     paddingVertical: 8,
-    borderRadius: 10,
     borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -715,44 +745,49 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   smallBtnText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.5,
   },
   fullBtn: {
     marginTop: 6,
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
   },
   fullBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
   selectedLabel: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "400",
     textAlign: "center",
     marginTop: 6,
+    letterSpacing: 0.5,
   },
   tryOnBtn: {
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
   },
   tryOnBtnText: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
   },
   hintText: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 10,
+    letterSpacing: 0.3,
   },
   // Modal
   modalContainer: {
@@ -762,18 +797,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 56,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
+    paddingBottom: 16,
+    borderBottomWidth: 0.5,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "300",
+    letterSpacing: 3,
+    textTransform: "uppercase",
   },
   modalSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 11,
+    marginTop: 3,
+    letterSpacing: 0.5,
   },
   closeBtn: {
     width: 36,
@@ -783,13 +821,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   galleryItem: {
-    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
   },
   galleryLabel: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 10,
+    fontWeight: "400",
     textAlign: "center",
+    letterSpacing: 0.5,
   },
 });
