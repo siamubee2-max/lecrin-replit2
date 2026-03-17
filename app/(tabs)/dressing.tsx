@@ -9,1084 +9,1179 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
+  StyleSheet,
 } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
-
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 
-// Types
-type Category = "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "bags" | "accessories" | "other";
-type Season = "spring" | "summer" | "fall" | "winter" | "all";
-type Occasion = "casual" | "work" | "formal" | "sport" | "party" | "all";
+// ─── Types ────────────────────────────────────────────────────────────────────
+type DressingSection = "jewelry" | "shoes" | "clothing" | "accessories";
+type WardrobeCategory =
+  | "tops"
+  | "bottoms"
+  | "dresses"
+  | "outerwear"
+  | "shoes"
+  | "bags"
+  | "accessories"
+  | "other";
 
 interface WardrobeItem {
   id: number;
   name: string;
-  category: Category;
+  category: WardrobeCategory;
   brand?: string | null;
   color?: string | null;
   price?: number | null;
   imageUrl?: string | null;
-  season?: Season | null;
-  occasion?: Occasion | null;
   isFavorite?: boolean | null;
+  isDemo?: boolean;
 }
 
-// Constants
-const CATEGORIES: { id: Category | "all"; label: string; icon: string }[] = [
-  { id: "all", label: "Toutes", icon: "👗" },
-  { id: "tops", label: "Hauts", icon: "👚" },
-  { id: "bottoms", label: "Bas", icon: "👖" },
-  { id: "dresses", label: "Robes", icon: "👗" },
-  { id: "outerwear", label: "Vestes", icon: "🧥" },
-  { id: "shoes", label: "Chaussures", icon: "👠" },
-  { id: "bags", label: "Sacs", icon: "👜" },
-  { id: "accessories", label: "Accessoires", icon: "🧣" },
-  { id: "other", label: "Autres", icon: "📦" },
-];
-
-const COLORS = [
-  { id: "all", label: "Toutes", hex: "#CCCCCC" },
-  { id: "black", label: "Noir", hex: "#000000" },
-  { id: "white", label: "Blanc", hex: "#FFFFFF" },
-  { id: "red", label: "Rouge", hex: "#EF4444" },
-  { id: "blue", label: "Bleu", hex: "#3B82F6" },
-  { id: "green", label: "Vert", hex: "#22C55E" },
-  { id: "yellow", label: "Jaune", hex: "#EAB308" },
-  { id: "pink", label: "Rose", hex: "#EC4899" },
-  { id: "purple", label: "Violet", hex: "#8B5CF6" },
-  { id: "orange", label: "Orange", hex: "#F97316" },
-  { id: "brown", label: "Marron", hex: "#92400E" },
-  { id: "gray", label: "Gris", hex: "#6B7280" },
-  { id: "beige", label: "Beige", hex: "#D4A574" },
-  { id: "navy", label: "Marine", hex: "#1E3A5F" },
-  { id: "gold", label: "Doré", hex: "#D4AF37" },
-  { id: "silver", label: "Argenté", hex: "#C0C0C0" },
-];
-
-// Demo wardrobe items (shown when user is not logged in or has no items)
-// No prices for demo items - they are just for trying out the app
-const DEMO_WARDROBE: (WardrobeItem & { isDemo?: boolean })[] = [
+// ─── Sections config ──────────────────────────────────────────────────────────
+const SECTIONS: {
+  id: DressingSection;
+  label: string;
+  emoji: string;
+  categories: WardrobeCategory[];
+  defaultCategory: WardrobeCategory;
+  placeholder: string;
+}[] = [
   {
-    id: -1,
+    id: "jewelry",
+    label: "BIJOUX",
+    emoji: "💎",
+    categories: ["accessories"],
+    defaultCategory: "accessories",
+    placeholder: "Ex: Boucles dorées Moni'attitude",
+  },
+  {
+    id: "shoes",
+    label: "CHAUSSURES",
+    emoji: "👠",
+    categories: ["shoes"],
+    defaultCategory: "shoes",
+    placeholder: "Ex: Escarpins nude Jonak",
+  },
+  {
+    id: "clothing",
+    label: "VÊTEMENTS",
+    emoji: "👗",
+    categories: ["tops", "bottoms", "dresses", "outerwear"],
+    defaultCategory: "tops",
+    placeholder: "Ex: Robe cocktail noire Ba&sh",
+  },
+  {
+    id: "accessories",
+    label: "ACCESSOIRES",
+    emoji: "👜",
+    categories: ["bags", "other"],
+    defaultCategory: "bags",
+    placeholder: "Ex: Sac cuir caramel Polène",
+  },
+];
+
+const CATEGORY_LABELS: Record<WardrobeCategory, string> = {
+  tops: "Haut",
+  bottoms: "Bas",
+  dresses: "Robe",
+  outerwear: "Veste",
+  shoes: "Chaussures",
+  bags: "Sac",
+  accessories: "Bijou / Accessoire",
+  other: "Autre",
+};
+
+const SECTION_SUBCATEGORIES: Record<
+  DressingSection,
+  { id: WardrobeCategory; label: string }[]
+> = {
+  jewelry: [{ id: "accessories", label: "Bijou" }],
+  shoes: [{ id: "shoes", label: "Chaussures" }],
+  clothing: [
+    { id: "tops", label: "Haut" },
+    { id: "bottoms", label: "Bas" },
+    { id: "dresses", label: "Robe" },
+    { id: "outerwear", label: "Veste" },
+  ],
+  accessories: [
+    { id: "bags", label: "Sac" },
+    { id: "other", label: "Autre" },
+  ],
+};
+
+// ─── Demo items ───────────────────────────────────────────────────────────────
+const DEMO_ITEMS: WardrobeItem[] = [
+  // Bijoux
+  {
+    id: -10,
+    name: "Boucles Fleur Dorée",
+    category: "accessories",
+    brand: "Moni'attitude",
+    color: "gold",
+    imageUrl:
+      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/foIbwvIEZnQRCkLk.jpeg",
+    isFavorite: true,
+    isDemo: true,
+  },
+  {
+    id: -11,
+    name: "Boucles Résine Orange",
+    category: "accessories",
+    brand: "Moni'attitude",
+    color: "orange",
+    imageUrl:
+      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/rjfmUlamBZcBgUfF.jpeg",
+    isFavorite: false,
+    isDemo: true,
+  },
+  {
+    id: -12,
+    name: "Collier Chaîne Dorée",
+    category: "accessories",
+    brand: "Moni'attitude",
+    color: "gold",
+    imageUrl: null,
+    isFavorite: false,
+    isDemo: true,
+  },
+  // Chaussures
+  {
+    id: -20,
+    name: "Escarpins Nude",
+    category: "shoes",
+    brand: "Jonak",
+    color: "beige",
+    imageUrl: null,
+    isFavorite: true,
+    isDemo: true,
+  },
+  {
+    id: -21,
+    name: "Sneakers Blanches",
+    category: "shoes",
+    brand: "Nike",
+    color: "white",
+    imageUrl: null,
+    isFavorite: false,
+    isDemo: true,
+  },
+  {
+    id: -22,
+    name: "Bottines Noires",
+    category: "shoes",
+    brand: "Sandro",
+    color: "black",
+    imageUrl: null,
+    isFavorite: true,
+    isDemo: true,
+  },
+  // Vêtements
+  {
+    id: -30,
     name: "Chemisier Soie Ivoire",
     category: "tops",
     brand: "Sandro",
     color: "beige",
     imageUrl: null,
-    season: "all",
-    occasion: "work",
     isFavorite: true,
     isDemo: true,
   },
   {
-    id: -2,
+    id: -31,
     name: "Pantalon Tailleur Marine",
     category: "bottoms",
     brand: "Maje",
     color: "navy",
     imageUrl: null,
-    season: "all",
-    occasion: "work",
     isFavorite: false,
     isDemo: true,
   },
   {
-    id: -3,
+    id: -32,
     name: "Robe Cocktail Noire",
     category: "dresses",
     brand: "Ba&sh",
     color: "black",
     imageUrl: null,
-    season: "all",
-    occasion: "party",
     isFavorite: true,
     isDemo: true,
   },
   {
-    id: -4,
+    id: -33,
     name: "Blazer Camel",
     category: "outerwear",
     brand: "The Kooples",
     color: "beige",
     imageUrl: null,
-    season: "fall",
-    occasion: "work",
     isFavorite: false,
     isDemo: true,
   },
+  // Accessoires
   {
-    id: -5,
-    name: "Escarpins Cuir Nude",
-    category: "shoes",
-    brand: "Jonak",
-    color: "beige",
+    id: -40,
+    name: "Sac Cuir Caramel",
+    category: "bags",
+    brand: "Polène",
+    color: "brown",
     imageUrl: null,
-    season: "all",
-    occasion: "formal",
     isFavorite: true,
+    isDemo: true,
+  },
+  {
+    id: -41,
+    name: "Ceinture Dorée",
+    category: "other",
+    brand: "Zara",
+    color: "gold",
+    imageUrl: null,
+    isFavorite: false,
     isDemo: true,
   },
 ];
 
-// CDN base URL for demo images
-const DEMO_CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
+const COLORS = [
+  { id: "black", label: "Noir", hex: "#000000" },
+  { id: "white", label: "Blanc", hex: "#FFFFFF" },
+  { id: "beige", label: "Beige", hex: "#D4A574" },
+  { id: "navy", label: "Marine", hex: "#1E3A5F" },
+  { id: "red", label: "Rouge", hex: "#EF4444" },
+  { id: "blue", label: "Bleu", hex: "#3B82F6" },
+  { id: "green", label: "Vert", hex: "#22C55E" },
+  { id: "pink", label: "Rose", hex: "#EC4899" },
+  { id: "purple", label: "Violet", hex: "#8B5CF6" },
+  { id: "orange", label: "Orange", hex: "#F97316" },
+  { id: "brown", label: "Marron", hex: "#92400E" },
+  { id: "gray", label: "Gris", hex: "#6B7280" },
+  { id: "gold", label: "Doré", hex: "#D4AF37" },
+  { id: "silver", label: "Argenté", hex: "#C0C0C0" },
+];
 
-// Demo images mapping (using CDN URLs)
-const DEMO_IMAGES: Record<number, any> = {
-  [-1]: { uri: `${DEMO_CDN}/top_f0aa9195.png` },
-  [-2]: { uri: `${DEMO_CDN}/bottom_35b18c4f.png` },
-  [-3]: { uri: `${DEMO_CDN}/dress_357ec580.png` },
-  [-4]: { uri: `${DEMO_CDN}/jacket_d81912f6.png` },
-  [-5]: { uri: `${DEMO_CDN}/heels_99098445.png` },
-};
-
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function DressingScreen() {
   const colors = useColors();
   const router = useRouter();
   const { user } = useAuth();
 
-  // State
+  const [activeSection, setActiveSection] = useState<DressingSection>("jewelry");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<Category | "all">("all");
-  const [selectedBrand, setSelectedBrand] = useState<string>("all");
-  const [selectedColor, setSelectedColor] = useState<string>("all");
-  const [minPrice, setMinPrice] = useState<string>("");
-  const [maxPrice, setMaxPrice] = useState<string>("");
-  const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
 
-  // API queries
   const { data: wardrobeItems = [], isLoading, refetch } = trpc.wardrobe.list.useQuery(
     undefined,
     { enabled: !!user }
   );
-
   const deleteItemMutation = trpc.wardrobe.delete.useMutation({
     onSuccess: () => refetch(),
   });
 
-  // Use demo items when user has no items or is not logged in
-  const displayItems = useMemo(() => {
-    if (!user || wardrobeItems.length === 0) {
-      return DEMO_WARDROBE;
-    }
-    return wardrobeItems;
+  const allItems: WardrobeItem[] = useMemo(() => {
+    if (!user || wardrobeItems.length === 0) return DEMO_ITEMS;
+    return wardrobeItems as WardrobeItem[];
   }, [user, wardrobeItems]);
 
   const isShowingDemo = !user || wardrobeItems.length === 0;
+  const currentSection = SECTIONS.find((s) => s.id === activeSection)!;
 
-  // Extract unique brands from items
-  const brands = useMemo(() => {
-    const uniqueBrands = new Set<string>();
-    displayItems.forEach((item) => {
-      if (item.brand) uniqueBrands.add(item.brand);
-    });
-    return ["all", ...Array.from(uniqueBrands).sort()];
-  }, [displayItems]);
-
-  // Filter items
-  const filteredItems = useMemo(() => {
-    return displayItems.filter((item) => {
-      // Search filter
+  const sectionItems = useMemo(() => {
+    return allItems.filter((item) => {
+      if (!currentSection.categories.includes(item.category)) return false;
       if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesName = item.name.toLowerCase().includes(query);
-        const matchesBrand = item.brand?.toLowerCase().includes(query);
-        if (!matchesName && !matchesBrand) return false;
+        const q = searchQuery.toLowerCase();
+        return (
+          item.name.toLowerCase().includes(q) ||
+          (item.brand?.toLowerCase().includes(q) ?? false)
+        );
       }
-
-      // Category filter
-      if (selectedCategory !== "all" && item.category !== selectedCategory) return false;
-
-      // Brand filter
-      if (selectedBrand !== "all" && item.brand !== selectedBrand) return false;
-
-      // Color filter
-      if (selectedColor !== "all" && item.color !== selectedColor) return false;
-
-      // Price filters
-      if (minPrice && item.price && item.price < parseInt(minPrice) * 100) return false;
-      if (maxPrice && item.price && item.price > parseInt(maxPrice) * 100) return false;
-
       return true;
     });
-  }, [wardrobeItems, searchQuery, selectedCategory, selectedBrand, selectedColor, minPrice, maxPrice]);
+  }, [allItems, currentSection, searchQuery]);
 
-  // Handlers
-  const handleHaptic = useCallback(() => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, []);
-
-  const handleAddItem = useCallback(() => {
-    handleHaptic();
-    setShowAddModal(true);
-  }, [handleHaptic]);
-
-  const handleAIStylist = useCallback(() => {
-    handleHaptic();
-    router.push("/ai-stylist" as any);
-  }, [handleHaptic, router]);
-
-  const toggleSelectionMode = useCallback(() => {
-    handleHaptic();
-    setSelectionMode(!selectionMode);
-    setSelectedItems([]);
-  }, [handleHaptic, selectionMode]);
-
-  const toggleItemSelection = useCallback((id: number) => {
-    handleHaptic();
-    setSelectedItems((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  }, [handleHaptic]);
-
-  const handleDeleteSelected = useCallback(async () => {
-    handleHaptic();
-    for (const id of selectedItems) {
-      await deleteItemMutation.mutateAsync({ id });
-    }
-    setSelectedItems([]);
-    setSelectionMode(false);
-  }, [handleHaptic, selectedItems, deleteItemMutation]);
-
-  const clearFilters = useCallback(() => {
-    setSelectedCategory("all");
-    setSelectedBrand("all");
-    setSelectedColor("all");
-    setMinPrice("");
-    setMaxPrice("");
-  }, []);
-
-  const hasActiveFilters = selectedCategory !== "all" || selectedBrand !== "all" || 
-    selectedColor !== "all" || minPrice !== "" || maxPrice !== "";
-
-  // Render item
-  const renderItem = useCallback(({ item }: { item: WardrobeItem }) => (
-    <TouchableOpacity
-      className="w-[48%] mb-4 bg-surface rounded-xl overflow-hidden border border-border"
-      style={{ opacity: selectionMode && !selectedItems.includes(item.id) ? 0.6 : 1 }}
-      onPress={() => {
-        if (selectionMode) {
-          toggleItemSelection(item.id);
-        } else {
-          handleHaptic();
-          // Navigate to item detail
-        }
-      }}
-      activeOpacity={0.8}
-    >
-      {/* Selection indicator */}
-      {selectionMode && (
-        <View className="absolute top-2 right-2 z-10">
-          <View
-            className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
-              selectedItems.includes(item.id)
-                ? "bg-primary border-primary"
-                : "bg-white/80 border-gray-300"
-            }`}
-          >
-            {selectedItems.includes(item.id) && (
-              <IconSymbol name="checkmark" size={14} color="#FFFFFF" />
-            )}
-          </View>
-        </View>
-      )}
-
-      {/* Image */}
-      <View className="aspect-square bg-gray-100 relative">
-        {item.imageUrl ? (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-        ) : DEMO_IMAGES[item.id] ? (
-          <Image
-            source={DEMO_IMAGES[item.id]}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-        ) : (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-4xl">
-              {CATEGORIES.find((c) => c.id === item.category)?.icon || "👗"}
-            </Text>
-          </View>
-        )}
-        {/* Try-on badge for demo items */}
-        {(item as any).isDemo && (
-          <View 
-            className="absolute bottom-2 left-2 right-2 rounded-lg py-1 px-2 flex-row items-center justify-center"
-            style={{ backgroundColor: colors.primary }}
-          >
-            <IconSymbol name="sparkles" size={12} color="#0A1A3B" />
-            <Text className="text-xs font-semibold ml-1" style={{ color: "#0A1A3B" }}>Essayer</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Info */}
-      <View className="p-3">
-        <Text className="text-foreground font-medium text-sm" numberOfLines={1}>
-          {item.name}
-        </Text>
-        {item.brand && (
-          <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>
-            {item.brand}
-          </Text>
-        )}
-        <View className="flex-row items-center justify-between mt-2">
-          {(item as any).isDemo ? (
-            <View className="bg-primary/20 rounded px-2 py-0.5">
-              <Text className="text-xs" style={{ color: colors.primary }}>Démo</Text>
-            </View>
-          ) : item.price ? (
-            <Text className="text-primary font-semibold text-sm">
-              {(item.price / 100).toFixed(0)}€
-            </Text>
-          ) : (
-            <View />
-          )}
-          {item.color && (
-            <View
-              className="w-4 h-4 rounded-full border border-border"
-              style={{
-                backgroundColor: COLORS.find((c) => c.id === item.color)?.hex || "#CCCCCC",
-              }}
-            />
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  ), [selectionMode, selectedItems, toggleItemSelection, handleHaptic]);
-
-  // Example items for empty state
-  const EXAMPLE_ITEMS = [
-    { id: "top", label: "Haut", image: { uri: `${DEMO_CDN}/top_f0aa9195.png` } },
-    { id: "bottom", label: "Bas", image: { uri: `${DEMO_CDN}/bottom_35b18c4f.png` } },
-    { id: "dress", label: "Robe", image: { uri: `${DEMO_CDN}/dress_357ec580.png` } },
-    { id: "jacket", label: "Veste", image: { uri: `${DEMO_CDN}/jacket_d81912f6.png` } },
-    { id: "shoes", label: "Chaussures", image: { uri: `${DEMO_CDN}/heels_99098445.png` } },
-  ];
-
-  // Empty state
-  const renderEmptyState = () => (
-    <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
-      <View className="items-center py-8">
-        <View className="w-20 h-20 rounded-full bg-gray-100 items-center justify-center mb-4">
-          <IconSymbol name="tshirt.fill" size={40} color={colors.muted} />
-        </View>
-        <Text className="text-xl font-semibold text-foreground mb-2">
-          Votre dressing est vide
-        </Text>
-        <Text className="text-muted text-center px-8 mb-4">
-          Ajoutez vos vêtements pour créer des looks parfaits avec vos bijoux
-        </Text>
-        <TouchableOpacity
-          className="bg-primary px-6 py-3 rounded-full flex-row items-center mb-6"
-          onPress={handleAddItem}
-          activeOpacity={0.8}
-        >
-          <IconSymbol name="plus" size={20} color="#FFFFFF" />
-          <Text className="text-white font-semibold ml-2">Ajouter un vêtement</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Example items section */}
-      <View className="px-4">
-        <Text className="text-lg font-semibold text-foreground mb-2">
-          Exemples de catégories
-        </Text>
-        <Text className="text-muted text-sm mb-4">
-          Voici les types de vêtements que vous pouvez ajouter à votre dressing
-        </Text>
-        <View className="flex-row flex-wrap justify-between">
-          {EXAMPLE_ITEMS.map((item) => (
-            <View
-              key={item.id}
-              className="w-[48%] bg-surface rounded-xl overflow-hidden border border-border mb-4"
-            >
-              <Image
-                source={item.image}
-                style={{ width: "100%", height: 150 }}
-                contentFit="cover"
-              />
-              <View className="p-3">
-                <Text className="text-sm font-medium text-foreground">{item.label}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-    </ScrollView>
+  const handleToggleFavorite = useCallback(
+    (id: number) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    },
+    []
   );
 
-  return (
-    <ScreenContainer>
-      {/* Header */}
-      <View className="px-4 pt-2 pb-4">
-        <View className="flex-row items-center justify-between mb-2">
-          <View>
-            <Text className="text-2xl font-bold text-foreground">Mon Dressing</Text>
-            <Text className="text-muted text-sm mt-1">
-              Gérez vos vêtements et créez des looks parfaits avec vos bijoux.
-            </Text>
-          </View>
-        </View>
+  const handleTryOn = useCallback(
+    (item: WardrobeItem) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push(
+        `/tryon?section=${activeSection}&itemId=${item.id}&itemName=${encodeURIComponent(item.name)}` as any
+      );
+    },
+    [activeSection, router]
+  );
 
-        {/* Action buttons */}
-        <View className="flex-row gap-3 mt-4">
-          <TouchableOpacity
-            className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
-            style={{ backgroundColor: "#F5E6D3" }}
-            onPress={handleAIStylist}
-            activeOpacity={0.8}
-          >
-            <IconSymbol name="sparkles" size={20} color="#D4AF37" />
-            <Text className="font-semibold ml-2" style={{ color: "#8B6914" }}>
-              AI Stylist
-            </Text>
-          </TouchableOpacity>
+  const handleDelete = useCallback(
+    (id: number) => {
+      if (id < 0) return;
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      deleteItemMutation.mutate({ id });
+    },
+    [deleteItemMutation]
+  );
 
-          <TouchableOpacity
-            className="flex-1 flex-row items-center justify-center py-3 rounded-xl bg-foreground"
-            onPress={handleAddItem}
-            activeOpacity={0.8}
-          >
-            <IconSymbol name="plus" size={20} color={colors.background} />
-            <Text className="font-semibold ml-2" style={{ color: colors.background }}>
-              Ajouter un vêtement
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Search and filters */}
-      <View className="px-4 pb-3">
-        {/* Search bar */}
-        <View className="flex-row items-center bg-surface rounded-xl px-4 py-3 border border-border">
-          <IconSymbol name="magnifyingglass" size={20} color={colors.muted} />
-          <TextInput
-            className="flex-1 ml-3 text-foreground"
-            placeholder="Rechercher (robe rouge, chemise soie...)"
-            placeholderTextColor={colors.muted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <IconSymbol name="xmark" size={18} color={colors.muted} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Filter row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mt-3"
-          contentContainerStyle={{ gap: 8 }}
+  // ─── Render item card ────────────────────────────────────────────────────────
+  const renderItem = useCallback(
+    ({ item }: { item: WardrobeItem }) => {
+      const isFav = favoriteIds.has(item.id) || (item.isFavorite ?? false);
+      return (
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
         >
-          {/* Category dropdown */}
-          <TouchableOpacity
-            className={`flex-row items-center px-4 py-2 rounded-full border ${
-              selectedCategory !== "all" ? "bg-primary border-primary" : "bg-surface border-border"
-            }`}
-            onPress={() => setShowFilters(true)}
+          {/* Image */}
+          <View
+            style={[
+              styles.cardImageContainer,
+              { backgroundColor: colors.background },
+            ]}
           >
-            <Text
-              className={`text-sm font-medium ${
-                selectedCategory !== "all" ? "text-white" : "text-foreground"
-              }`}
-            >
-              {CATEGORIES.find((c) => c.id === selectedCategory)?.label || "Catégories"}
-            </Text>
-            <IconSymbol
-              name="chevron.down"
-              size={14}
-              color={selectedCategory !== "all" ? "#FFFFFF" : colors.foreground}
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-
-          {/* Brand dropdown */}
-          <TouchableOpacity
-            className={`flex-row items-center px-4 py-2 rounded-full border ${
-              selectedBrand !== "all" ? "bg-primary border-primary" : "bg-surface border-border"
-            }`}
-            onPress={() => setShowFilters(true)}
-          >
-            <Text
-              className={`text-sm font-medium ${
-                selectedBrand !== "all" ? "text-white" : "text-foreground"
-              }`}
-            >
-              {selectedBrand !== "all" ? selectedBrand : "Marques"}
-            </Text>
-            <IconSymbol
-              name="chevron.down"
-              size={14}
-              color={selectedBrand !== "all" ? "#FFFFFF" : colors.foreground}
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-
-          {/* Color dropdown */}
-          <TouchableOpacity
-            className={`flex-row items-center px-4 py-2 rounded-full border ${
-              selectedColor !== "all" ? "bg-primary border-primary" : "bg-surface border-border"
-            }`}
-            onPress={() => setShowFilters(true)}
-          >
-            {selectedColor !== "all" && (
-              <View
-                className="w-4 h-4 rounded-full mr-2 border border-white/30"
-                style={{
-                  backgroundColor: COLORS.find((c) => c.id === selectedColor)?.hex,
-                }}
+            {item.imageUrl ? (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.cardImage}
+                contentFit="cover"
               />
+            ) : (
+              <View style={styles.cardImagePlaceholder}>
+                <Text style={styles.cardEmoji}>{currentSection.emoji}</Text>
+              </View>
             )}
-            <Text
-              className={`text-sm font-medium ${
-                selectedColor !== "all" ? "text-white" : "text-foreground"
-              }`}
-            >
-              {selectedColor !== "all"
-                ? COLORS.find((c) => c.id === selectedColor)?.label
-                : "Couleurs"}
-            </Text>
-            <IconSymbol
-              name="chevron.down"
-              size={14}
-              color={selectedColor !== "all" ? "#FFFFFF" : colors.foreground}
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-
-          {/* Price range */}
-          <TouchableOpacity
-            className={`flex-row items-center px-4 py-2 rounded-full border ${
-              minPrice || maxPrice ? "bg-primary border-primary" : "bg-surface border-border"
-            }`}
-            onPress={() => setShowFilters(true)}
-          >
-            <Text
-              className={`text-sm font-medium ${
-                minPrice || maxPrice ? "text-white" : "text-foreground"
-              }`}
-            >
-              {minPrice || maxPrice
-                ? `${minPrice || "0"}€ - ${maxPrice || "∞"}€`
-                : "Prix"}
-            </Text>
-            <IconSymbol
-              name="chevron.down"
-              size={14}
-              color={minPrice || maxPrice ? "#FFFFFF" : colors.foreground}
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-
-          {/* Clear filters */}
-          {hasActiveFilters && (
+            {/* Favorite */}
             <TouchableOpacity
-              className="flex-row items-center px-4 py-2 rounded-full bg-error/10 border border-error/20"
-              onPress={clearFilters}
+              style={styles.favBtn}
+              onPress={() => handleToggleFavorite(item.id)}
             >
-              <IconSymbol name="xmark" size={14} color={colors.error} />
-              <Text className="text-sm font-medium text-error ml-1">Effacer</Text>
+              <IconSymbol
+                name="heart.fill"
+                size={13}
+                color={isFav ? "#E53E3E" : "rgba(255,255,255,0.6)"}
+              />
             </TouchableOpacity>
-          )}
-        </ScrollView>
+            {/* Demo badge */}
+            {item.isDemo && (
+              <View
+                style={[
+                  styles.demoBadge,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text style={styles.demoBadgeText}>DÉMO</Text>
+              </View>
+            )}
+          </View>
 
-        {/* Selection mode toggle */}
-        {wardrobeItems.length > 0 && (
-          <View className="flex-row items-center justify-between mt-3">
-            <Text className="text-muted text-sm">
-              {filteredItems.length} article{filteredItems.length !== 1 ? "s" : ""}
-            </Text>
-            <TouchableOpacity
-              className="flex-row items-center"
-              onPress={toggleSelectionMode}
+          {/* Info */}
+          <View style={styles.cardContent}>
+            <Text
+              style={[styles.cardName, { color: colors.foreground }]}
+              numberOfLines={2}
             >
-              <Text className={`text-sm font-medium ${selectionMode ? "text-primary" : "text-muted"}`}>
-                {selectionMode ? "Annuler" : "Sélectionner"}
+              {item.name}
+            </Text>
+            {item.brand && (
+              <Text style={[styles.cardBrand, { color: colors.primary }]}>
+                {item.brand.toUpperCase()}
+              </Text>
+            )}
+            <Text style={[styles.cardCat, { color: colors.muted }]}>
+              {CATEGORY_LABELS[item.category]}
+            </Text>
+            {/* Try-on button */}
+            <TouchableOpacity
+              style={[styles.tryBtn, { borderColor: colors.primary }]}
+              onPress={() => handleTryOn(item)}
+            >
+              <IconSymbol name="wand.and.stars" size={11} color={colors.primary} />
+              <Text style={[styles.tryBtnText, { color: colors.primary }]}>
+                ESSAYER
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Delete */}
+          {!item.isDemo && (
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => handleDelete(item.id)}
+            >
+              <IconSymbol name="xmark" size={11} color={colors.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    },
+    [colors, currentSection, favoriteIds, handleToggleFavorite, handleTryOn, handleDelete]
+  );
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
+  return (
+    <ScreenContainer containerClassName="bg-background">
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <View>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+            MON DRESSING
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.primary }]}>
+            VIRTUEL
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.addBtn, { backgroundColor: colors.primary }]}
+          onPress={() => setShowAddModal(true)}
+        >
+          <IconSymbol name="plus" size={18} color={colors.background} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Section tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabsScroll}
+        contentContainerStyle={styles.tabsContent}
+      >
+        {SECTIONS.map((section) => {
+          const isActive = activeSection === section.id;
+          const count = allItems.filter((i) =>
+            section.categories.includes(i.category)
+          ).length;
+          return (
+            <TouchableOpacity
+              key={section.id}
+              style={[
+                styles.tab,
+                {
+                  borderBottomColor: isActive ? colors.primary : "transparent",
+                  borderBottomWidth: 2,
+                },
+              ]}
+              onPress={() => {
+                if (Platform.OS !== "web")
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setActiveSection(section.id);
+                setSearchQuery("");
+              }}
+            >
+              <Text style={styles.tabEmoji}>{section.emoji}</Text>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: isActive ? colors.primary : colors.muted },
+                ]}
+              >
+                {section.label}
+              </Text>
+              <View
+                style={[
+                  styles.tabBadge,
+                  {
+                    backgroundColor: isActive ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tabBadgeText,
+                    { color: isActive ? colors.background : colors.muted },
+                  ]}
+                >
+                  {count}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+      {/* Search */}
+      <View
+        style={[
+          styles.searchBar,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <IconSymbol name="magnifyingglass" size={15} color={colors.muted} />
+        <TextInput
+          style={[styles.searchInput, { color: colors.foreground }]}
+          placeholder={`Rechercher dans ${currentSection.label.toLowerCase()}…`}
+          placeholderTextColor={colors.muted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery("")}>
+            <IconSymbol name="xmark.circle.fill" size={15} color={colors.muted} />
+          </TouchableOpacity>
         )}
       </View>
 
       {/* Demo banner */}
       {isShowingDemo && (
-        <View className="mx-4 mb-3 p-3 rounded-xl" style={{ backgroundColor: "#FEF3C7" }}>
-          <View className="flex-row items-center">
-            <Text className="text-lg mr-2">✨</Text>
-            <View className="flex-1">
-              <Text className="text-sm font-medium" style={{ color: "#92400E" }}>
-                Mode démonstration
-              </Text>
-              <Text className="text-xs" style={{ color: "#B45309" }}>
-                Connectez-vous pour ajouter vos propres vêtements
-              </Text>
-            </View>
-          </View>
+        <View
+          style={[
+            styles.demoBanner,
+            {
+              backgroundColor: colors.primary + "15",
+              borderColor: colors.primary + "40",
+            },
+          ]}
+        >
+          <IconSymbol name="sparkles" size={13} color={colors.primary} />
+          <Text style={[styles.demoBannerText, { color: colors.primary }]}>
+            Connectez-vous pour sauvegarder votre dressing
+          </Text>
         </View>
       )}
 
       {/* Content */}
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.muted }]}>
+            Chargement…
+          </Text>
         </View>
-      ) : filteredItems.length === 0 ? (
-        renderEmptyState()
+      ) : sectionItems.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyEmoji}>{currentSection.emoji}</Text>
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+            Aucun article
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
+            Ajoutez vos {currentSection.label.toLowerCase()} pour les essayer
+            virtuellement
+          </Text>
+          <TouchableOpacity
+            style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+            onPress={() => setShowAddModal(true)}
+          >
+            <Text style={[styles.emptyBtnText, { color: colors.background }]}>
+              + AJOUTER
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
-          data={filteredItems}
+          data={sectionItems}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => String(item.id)}
           numColumns={2}
-          columnWrapperStyle={{ justifyContent: "space-between", paddingHorizontal: 16 }}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* Selection action bar */}
-      {selectionMode && selectedItems.length > 0 && (
-        <View
-          className="absolute bottom-0 left-0 right-0 bg-surface border-t border-border px-4 py-4"
-          style={{ paddingBottom: Platform.OS === "ios" ? 34 : 16 }}
-        >
-          <View className="flex-row items-center justify-between">
-            <Text className="text-foreground font-medium">
-              {selectedItems.length} sélectionné{selectedItems.length !== 1 ? "s" : ""}
-            </Text>
-            <TouchableOpacity
-              className="flex-row items-center bg-error px-4 py-2 rounded-full"
-              onPress={handleDeleteSelected}
-            >
-              <IconSymbol name="trash.fill" size={18} color="#FFFFFF" />
-              <Text className="text-white font-semibold ml-2">Supprimer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Filters Modal */}
-      <Modal
-        visible={showFilters}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowFilters(false)}
-      >
-        <View className="flex-1 bg-background">
-          {/* Modal header */}
-          <View className="flex-row items-center justify-between px-4 py-4 border-b border-border">
-            <TouchableOpacity onPress={() => setShowFilters(false)}>
-              <Text className="text-primary font-medium">Annuler</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold text-foreground">Filtres</Text>
-            <TouchableOpacity onPress={clearFilters}>
-              <Text className="text-error font-medium">Effacer</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView className="flex-1 px-4 py-4">
-            {/* Categories */}
-            <Text className="text-foreground font-semibold mb-3">Catégories</Text>
-            <View className="flex-row flex-wrap gap-2 mb-6">
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  className={`px-4 py-2 rounded-full border ${
-                    selectedCategory === cat.id
-                      ? "bg-primary border-primary"
-                      : "bg-surface border-border"
-                  }`}
-                  onPress={() => setSelectedCategory(cat.id)}
-                >
-                  <Text
-                    className={`text-sm font-medium ${
-                      selectedCategory === cat.id ? "text-white" : "text-foreground"
-                    }`}
-                  >
-                    {cat.icon} {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Brands */}
-            <Text className="text-foreground font-semibold mb-3">Marques</Text>
-            <View className="flex-row flex-wrap gap-2 mb-6">
-              {brands.map((brand) => (
-                <TouchableOpacity
-                  key={brand}
-                  className={`px-4 py-2 rounded-full border ${
-                    selectedBrand === brand
-                      ? "bg-primary border-primary"
-                      : "bg-surface border-border"
-                  }`}
-                  onPress={() => setSelectedBrand(brand)}
-                >
-                  <Text
-                    className={`text-sm font-medium ${
-                      selectedBrand === brand ? "text-white" : "text-foreground"
-                    }`}
-                  >
-                    {brand === "all" ? "Toutes" : brand}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Colors */}
-            <Text className="text-foreground font-semibold mb-3">Couleurs</Text>
-            <View className="flex-row flex-wrap gap-2 mb-6">
-              {COLORS.map((color) => (
-                <TouchableOpacity
-                  key={color.id}
-                  className={`flex-row items-center px-3 py-2 rounded-full border ${
-                    selectedColor === color.id
-                      ? "bg-primary border-primary"
-                      : "bg-surface border-border"
-                  }`}
-                  onPress={() => setSelectedColor(color.id)}
-                >
-                  {color.id !== "all" && (
-                    <View
-                      className="w-4 h-4 rounded-full mr-2 border border-gray-300"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                  )}
-                  <Text
-                    className={`text-sm font-medium ${
-                      selectedColor === color.id ? "text-white" : "text-foreground"
-                    }`}
-                  >
-                    {color.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Price range */}
-            <Text className="text-foreground font-semibold mb-3">Prix (€)</Text>
-            <View className="flex-row items-center gap-4 mb-6">
-              <View className="flex-1">
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="Min"
-                  placeholderTextColor={colors.muted}
-                  value={minPrice}
-                  onChangeText={setMinPrice}
-                  keyboardType="numeric"
-                />
-              </View>
-              <Text className="text-muted">-</Text>
-              <View className="flex-1">
-                <TextInput
-                  className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground"
-                  placeholder="Max"
-                  placeholderTextColor={colors.muted}
-                  value={maxPrice}
-                  onChangeText={setMaxPrice}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-          </ScrollView>
-
-          {/* Apply button */}
-          <View className="px-4 py-4 border-t border-border">
-            <TouchableOpacity
-              className="bg-primary py-4 rounded-xl items-center"
-              onPress={() => setShowFilters(false)}
-            >
-              <Text className="text-white font-semibold text-lg">
-                Appliquer les filtres
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Add Item Modal - Placeholder for now */}
-      <Modal
+      {/* Add Modal */}
+      <AddItemModal
         visible={showAddModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowAddModal(false)}
-      >
-        <AddItemModal onClose={() => setShowAddModal(false)} onSuccess={() => {
+        onClose={() => setShowAddModal(false)}
+        defaultSection={activeSection}
+        colors={colors}
+        onSuccess={() => {
           setShowAddModal(false);
           refetch();
-        }} />
-      </Modal>
+        }}
+      />
     </ScreenContainer>
   );
 }
 
-// Add Item Modal Component
-function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const colors = useColors();
+// ─── Add Item Modal ───────────────────────────────────────────────────────────
+function AddItemModal({
+  visible,
+  onClose,
+  defaultSection,
+  colors,
+  onSuccess,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  defaultSection: DressingSection;
+  colors: ReturnType<typeof import("@/hooks/use-colors").useColors>;
+  onSuccess: () => void;
+}) {
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<Category>("tops");
+  const [category, setCategory] = useState<WardrobeCategory>(
+    SECTION_SUBCATEGORIES[defaultSection][0].id
+  );
   const [brand, setBrand] = useState("");
-  const [color, setColor] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
   const [price, setPrice] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const addItemMutation = trpc.wardrobe.add.useMutation();
-  const uploadImageMutation = trpc.wardrobe.uploadImage.useMutation();
+  const addMutation = trpc.wardrobe.add.useMutation();
+  const uploadMutation = trpc.wardrobe.uploadImage.useMutation();
+
+  const subcats = SECTION_SUBCATEGORIES[defaultSection];
+  const currentSection = SECTIONS.find((s) => s.id === defaultSection)!;
 
   const handlePickImage = async () => {
-    try {
-      // Dynamic import to avoid issues on web
-      const ImagePicker = await import("expo-image-picker");
-      
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        setImageUri(asset.uri);
-
-        // Upload to server
-        if (asset.base64) {
-          setIsUploading(true);
-          try {
-            const uploadResult = await uploadImageMutation.mutateAsync({
-              base64Data: asset.base64,
-              mimeType: asset.mimeType || "image/jpeg",
-            });
-            setImageUri(uploadResult.url);
-          } catch (error) {
-            console.error("Failed to upload image:", error);
-            // Keep local URI as fallback
-          } finally {
-            setIsUploading(false);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to pick image:", error);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
     }
   };
 
   const handleTakePhoto = async () => {
-    try {
-      const ImagePicker = await import("expo-image-picker");
-      
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        alert("Permission d'accès à la caméra requise");
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        setImageUri(asset.uri);
-
-        if (asset.base64) {
-          setIsUploading(true);
-          try {
-            const uploadResult = await uploadImageMutation.mutateAsync({
-              base64Data: asset.base64,
-              mimeType: asset.mimeType || "image/jpeg",
-            });
-            setImageUri(uploadResult.url);
-          } catch (error) {
-            console.error("Failed to upload image:", error);
-          } finally {
-            setIsUploading(false);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to take photo:", error);
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) return;
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
     }
   };
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
-
     setIsSubmitting(true);
     try {
-      await addItemMutation.mutateAsync({
+      let uploadedUrl: string | undefined;
+      if (imageUri) {
+        setIsUploading(true);
+        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        const uploaded = await uploadMutation.mutateAsync({
+          base64Data: base64,
+          mimeType: "image/jpeg",
+        });
+        uploadedUrl = uploaded.url;
+        setIsUploading(false);
+      }
+      await addMutation.mutateAsync({
         name: name.trim(),
         category,
         brand: brand.trim() || undefined,
-        color: color || undefined,
-        price: price ? parseInt(price) * 100 : undefined,
-        imageUrl: imageUri || undefined,
+        color: selectedColor || undefined,
+        price: price ? parseFloat(price) * 100 : undefined,
+        imageUrl: uploadedUrl,
       });
+      setName("");
+      setBrand("");
+      setSelectedColor("");
+      setPrice("");
+      setImageUri(null);
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
-    } catch (error) {
-      console.error("Failed to add item:", error);
+    } catch {
+      // ignore
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
   return (
-    <View className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-4 border-b border-border">
-        <TouchableOpacity onPress={onClose}>
-          <Text className="text-primary font-medium">Annuler</Text>
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground">Nouveau vêtement</Text>
-        <TouchableOpacity onPress={handleSubmit} disabled={!name.trim() || isSubmitting || isUploading}>
-          <Text className={`font-medium ${name.trim() && !isSubmitting && !isUploading ? "text-primary" : "text-muted"}`}>
-            {isSubmitting ? "..." : "Ajouter"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        {/* Modal Header */}
+        <View
+          style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+        >
+          <TouchableOpacity onPress={onClose}>
+            <Text style={[styles.modalCancel, { color: colors.muted }]}>
+              Annuler
+            </Text>
+          </TouchableOpacity>
+          <View style={{ alignItems: "center" }}>
+            <Text style={styles.modalEmoji}>{currentSection.emoji}</Text>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              AJOUTER {currentSection.label}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={!name.trim() || isSubmitting}
+          >
+            <Text
+              style={[
+                styles.modalSave,
+                {
+                  color:
+                    name.trim() && !isSubmitting
+                      ? colors.primary
+                      : colors.muted,
+                },
+              ]}
+            >
+              {isSubmitting ? "…" : "Ajouter"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView className="flex-1 px-4 py-4">
-        {/* Photo */}
-        <View className="mb-6">
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Photo */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
+            PHOTO
+          </Text>
           {imageUri ? (
-            <View className="relative">
+            <View style={{ marginBottom: 20 }}>
               <Image
                 source={{ uri: imageUri }}
-                style={{ width: "100%", aspectRatio: 1, borderRadius: 16 }}
+                style={{ width: "100%", aspectRatio: 1, borderRadius: 8 }}
                 contentFit="cover"
               />
               {isUploading && (
-                <View className="absolute inset-0 bg-black/50 rounded-2xl items-center justify-center">
-                  <ActivityIndicator size="large" color="#FFFFFF" />
-                  <Text className="text-white mt-2">Upload en cours...</Text>
+                <View
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      borderRadius: 8,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  <ActivityIndicator color="#fff" />
+                  <Text style={{ color: "#fff", marginTop: 8, fontSize: 12 }}>
+                    Upload…
+                  </Text>
                 </View>
               )}
               <TouchableOpacity
-                className="absolute top-2 right-2 bg-black/50 rounded-full p-2"
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  borderRadius: 12,
+                  padding: 4,
+                }}
                 onPress={() => setImageUri(null)}
               >
-                <IconSymbol name="xmark" size={20} color="#FFFFFF" />
+                <IconSymbol name="xmark" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
           ) : (
-            <View className="flex-row gap-3">
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
               <TouchableOpacity
-                className="flex-1 aspect-square bg-surface rounded-2xl items-center justify-center border-2 border-dashed border-border"
+                style={[
+                  styles.photoBtn,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
                 onPress={handlePickImage}
               >
-                <IconSymbol name="photo.fill" size={36} color={colors.muted} />
-                <Text className="text-muted mt-2 text-sm">Galerie</Text>
+                <IconSymbol name="photo.fill" size={26} color={colors.muted} />
+                <Text style={[styles.photoBtnText, { color: colors.muted }]}>
+                  Galerie
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 aspect-square bg-surface rounded-2xl items-center justify-center border-2 border-dashed border-border"
+                style={[
+                  styles.photoBtn,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
                 onPress={handleTakePhoto}
               >
-                <IconSymbol name="camera.fill" size={36} color={colors.muted} />
-                <Text className="text-muted mt-2 text-sm">Caméra</Text>
+                <IconSymbol name="camera.fill" size={26} color={colors.muted} />
+                <Text style={[styles.photoBtnText, { color: colors.muted }]}>
+                  Caméra
+                </Text>
               </TouchableOpacity>
             </View>
           )}
-        </View>
 
-        {/* Name */}
-        <Text className="text-foreground font-medium mb-2">Nom *</Text>
-        <TextInput
-          className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground mb-4"
-          placeholder="Ex: Robe noire Zara"
-          placeholderTextColor={colors.muted}
-          value={name}
-          onChangeText={setName}
-        />
+          {/* Name */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
+            NOM *
+          </Text>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.foreground,
+              },
+            ]}
+            placeholder={currentSection.placeholder}
+            placeholderTextColor={colors.muted}
+            value={name}
+            onChangeText={setName}
+            returnKeyType="next"
+          />
 
-        {/* Category */}
-        <Text className="text-foreground font-medium mb-2">Catégorie *</Text>
-        <View className="flex-row flex-wrap gap-2 mb-4">
-          {CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              className={`px-4 py-2 rounded-full border ${
-                category === cat.id ? "bg-primary border-primary" : "bg-surface border-border"
-              }`}
-              onPress={() => setCategory(cat.id as Category)}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  category === cat.id ? "text-white" : "text-foreground"
-                }`}
-              >
-                {cat.icon} {cat.label}
+          {/* Sub-category (only if multiple) */}
+          {subcats.length > 1 && (
+            <>
+              <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
+                CATÉGORIE
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Brand */}
-        <Text className="text-foreground font-medium mb-2">Marque</Text>
-        <TextInput
-          className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground mb-4"
-          placeholder="Ex: Zara, H&M, Chanel..."
-          placeholderTextColor={colors.muted}
-          value={brand}
-          onChangeText={setBrand}
-        />
-
-        {/* Color */}
-        <Text className="text-foreground font-medium mb-2">Couleur</Text>
-        <View className="flex-row flex-wrap gap-2 mb-4">
-          {COLORS.filter((c) => c.id !== "all").map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              className={`w-10 h-10 rounded-full border-2 items-center justify-center ${
-                color === c.id ? "border-primary" : "border-transparent"
-              }`}
-              onPress={() => setColor(c.id)}
-            >
               <View
-                className="w-8 h-8 rounded-full border border-gray-200"
-                style={{ backgroundColor: c.hex }}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginBottom: 20,
+                }}
+              >
+                {subcats.map((sc) => (
+                  <TouchableOpacity
+                    key={sc.id}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor:
+                          category === sc.id
+                            ? colors.primary
+                            : colors.surface,
+                        borderColor:
+                          category === sc.id ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setCategory(sc.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color:
+                            category === sc.id
+                              ? colors.background
+                              : colors.foreground,
+                        },
+                      ]}
+                    >
+                      {sc.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
 
-        {/* Price */}
-        <Text className="text-foreground font-medium mb-2">Prix (€)</Text>
-        <TextInput
-          className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground mb-4"
-          placeholder="Ex: 49"
-          placeholderTextColor={colors.muted}
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-        />
-      </ScrollView>
-    </View>
+          {/* Brand */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
+            MARQUE
+          </Text>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.foreground,
+              },
+            ]}
+            placeholder="Ex: Chanel, Zara, Nike…"
+            placeholderTextColor={colors.muted}
+            value={brand}
+            onChangeText={setBrand}
+            returnKeyType="next"
+          />
+
+          {/* Color */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
+            COULEUR
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 8,
+              marginBottom: 20,
+            }}
+          >
+            {COLORS.map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                style={[
+                  styles.colorDot,
+                  {
+                    backgroundColor: c.hex,
+                    borderWidth: selectedColor === c.id ? 3 : 1,
+                    borderColor:
+                      selectedColor === c.id ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => setSelectedColor(c.id)}
+              />
+            ))}
+          </View>
+
+          {/* Price */}
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>
+            PRIX (€)
+          </Text>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.foreground,
+              },
+            ]}
+            placeholder="Ex: 89"
+            placeholderTextColor={colors.muted}
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="numeric"
+            returnKeyType="done"
+          />
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 0.5,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "300",
+    letterSpacing: 4,
+    lineHeight: 22,
+  },
+  headerSubtitle: {
+    fontSize: 8,
+    fontWeight: "600",
+    letterSpacing: 3,
+    marginTop: 2,
+  },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabsScroll: { maxHeight: 72 },
+  tabsContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 4,
+  },
+  tab: {
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginRight: 4,
+    gap: 2,
+  },
+  tabEmoji: { fontSize: 20, lineHeight: 24 },
+  tabLabel: { fontSize: 8, fontWeight: "600", letterSpacing: 1.5 },
+  tabBadge: {
+    minWidth: 18,
+    height: 14,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  tabBadgeText: { fontSize: 8, fontWeight: "600" },
+  separator: { height: 0.5, marginHorizontal: 20 },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: { flex: 1, fontSize: 12, fontWeight: "300", letterSpacing: 0.5 },
+  demoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  demoBannerText: { fontSize: 11, fontWeight: "400", flex: 1 },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  loadingText: { fontSize: 13, letterSpacing: 1 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    gap: 8,
+  },
+  emptyEmoji: { fontSize: 48, marginBottom: 8 },
+  emptyTitle: { fontSize: 15, fontWeight: "300", letterSpacing: 2 },
+  emptySubtitle: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    letterSpacing: 0.3,
+  },
+  emptyBtn: { marginTop: 16, paddingHorizontal: 24, paddingVertical: 12 },
+  emptyBtnText: { fontSize: 10, fontWeight: "600", letterSpacing: 2 },
+  grid: { paddingHorizontal: 20, paddingBottom: 32 },
+  row: { gap: 12, marginBottom: 12 },
+  card: { flex: 1, borderWidth: 1, overflow: "hidden", position: "relative" },
+  cardImageContainer: { aspectRatio: 1, position: "relative" },
+  cardImage: { width: "100%", height: "100%" },
+  cardImagePlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardEmoji: { fontSize: 36 },
+  favBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  demoBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  demoBadgeText: {
+    fontSize: 7,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 1,
+  },
+  cardContent: { padding: 10, gap: 2 },
+  cardName: { fontSize: 11, fontWeight: "400", letterSpacing: 0.3, lineHeight: 15 },
+  cardBrand: { fontSize: 8, fontWeight: "600", letterSpacing: 1.5 },
+  cardCat: { fontSize: 9, letterSpacing: 0.5, marginBottom: 4 },
+  tryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    borderWidth: 1,
+    gap: 4,
+  },
+  tryBtnText: { fontSize: 8, fontWeight: "600", letterSpacing: 1.5 },
+  deleteBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Modal
+  modalContainer: { flex: 1 },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+  },
+  modalEmoji: { fontSize: 18, lineHeight: 22 },
+  modalTitle: { fontSize: 11, fontWeight: "400", letterSpacing: 2.5 },
+  modalCancel: { fontSize: 14 },
+  modalSave: { fontSize: 14, fontWeight: "600" },
+  fieldLabel: {
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 13,
+    marginBottom: 20,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: 1,
+  },
+  chipText: { fontSize: 11, fontWeight: "500", letterSpacing: 0.5 },
+  colorDot: { width: 32, height: 32, borderRadius: 16 },
+  photoBtn: {
+    flex: 1,
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    gap: 6,
+  },
+  photoBtnText: { fontSize: 11, fontWeight: "400", letterSpacing: 0.5 },
+});
