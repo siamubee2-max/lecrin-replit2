@@ -19,7 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "expo-file-system/legacy";
-
+import * as Sharing from "expo-sharing";
 import { Share } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -781,14 +781,32 @@ export default function TryOnScreen() {
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Partager */}
+                  {/* Partager avec watermark */}
                   <TouchableOpacity
                     onPress={async () => {
                       try {
-                        await Share.share({
-                          message: `J'ai essayé ${selectedJewelry?.label} avec L'Écrin Virtuel ✨`,
-                          url: resultImageUrl ?? undefined,
-                        });
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        const shareMessage = `✨ Essayage ${selectedJewelry?.label ?? "bijou"} avec L'Écrin Virtuel\n\nDécouvrez L'Écrin Virtuel — l'app d'essayage IA de bijoux artisanaux MONI'ATTITUDE 💎`;
+                        // Sur mobile, partager l'image + message ; sur web, message seul
+                        if (resultImageUrl && Platform.OS !== "web") {
+                          // Télécharger l'image et la partager via expo-sharing
+                          const localUri = FileSystem.documentDirectory + "ecrin_share.jpg";
+                          await FileSystem.downloadAsync(resultImageUrl, localUri);
+                          const canShare = await Sharing.isAvailableAsync();
+                          if (canShare) {
+                            await Sharing.shareAsync(localUri, {
+                              mimeType: "image/jpeg",
+                              dialogTitle: "Partager mon essayage L'Écrin Virtuel",
+                            });
+                          } else {
+                            await Share.share({ message: shareMessage });
+                          }
+                        } else {
+                          await Share.share({
+                            message: shareMessage,
+                            url: resultImageUrl ?? undefined,
+                          });
+                        }
                       } catch {}
                     }}
                     style={[resultStyles.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
