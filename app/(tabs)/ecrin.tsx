@@ -1,5 +1,5 @@
 import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform, Modal, KeyboardAvoidingView, Alert, ActivityIndicator } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase, type SupabaseJewelry } from "@/lib/supabase";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
@@ -9,6 +9,8 @@ import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/use-auth";
 
 const JEWELRY_TYPES = ["Tous", "earrings", "necklace", "ring", "bracelet", "anklet"];
 const JEWELRY_TYPE_LABELS: Record<string, string> = {
@@ -58,11 +60,41 @@ function supabaseToLocal(j: SupabaseJewelry): JewelryItem {
 
 export default function EcrinScreen() {
   const colors = useColors();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("Tous");
   const [showFilters, setShowFilters] = useState(false);
   const [jewelry, setJewelry] = useState<JewelryItem[]>([]);
   const [isLoadingSupabase, setIsLoadingSupabase] = useState(true);
+
+  // tRPC hooks for persistent collection (requires auth)
+  const collectionQuery = trpc.collection.list.useQuery(undefined, {
+    enabled: !!user,
+  });
+  const addToCollectionMutation = trpc.collection.add.useMutation();
+  const removeFromCollectionMutation = trpc.collection.remove.useMutation();
+  const updateCollectionMutation = trpc.collection.update.useMutation();
+
+  // Merge collection items when loaded
+  useEffect(() => {
+    if (!collectionQuery.data) return;
+    const collectionItems: JewelryItem[] = collectionQuery.data.map((item) => ({
+      id: `user_${item.id}`,
+      name: item.name,
+      type: item.type,
+      brand: item.brand ?? null,
+      image: item.imageUri ? { uri: item.imageUri } : null,
+      isFavorite: item.isFavorite ?? false,
+      metal: item.metal ?? null,
+      isDemo: false,
+      collection: item.collection ?? null,
+      tags: item.tags ? [item.tags] : null,
+    }));
+    setJewelry(prev => {
+      const demoItems = prev.filter(j => j.isDemo);
+      return [...demoItems, ...collectionItems];
+    });
+  }, [collectionQuery.data]);
 
   // Load jewelry from Supabase on mount
   useEffect(() => {
@@ -158,32 +190,53 @@ export default function EcrinScreen() {
     setNewJewelryImage(null);
   };
 
-  const handleSaveNewJewelry = () => {
+  const handleSaveNewJewelry = async () => {
     if (!newJewelryName.trim()) return;
     
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     
+    // Optimistic local update
+    const tempId = `temp_${Date.now()}`;
     const newItem: JewelryItem = {
-      id: Date.now().toString(),
+      id: tempId,
       name: newJewelryName.trim(),
       type: newJewelryType,
       brand: newJewelryBrand.trim() || "Custom",
-      image: newJewelryImage ? { uri: newJewelryImage } : { uri: "" },
+      image: newJewelryImage ? { uri: newJewelryImage } : null,
       isFavorite: false,
       metal: "Gold",
       isDemo: false,
       collection: null,
       tags: null,
     };
-    
     setJewelry(prev => [newItem, ...prev]);
     setNewJewelryName("");
     setNewJewelryType("Necklace");
     setNewJewelryBrand("");
     setNewJewelryImage(null);
     setShowAddModal(false);
+
+    // Persist to server if authenticated
+    if (user) {
+      try {
+        const result = await addToCollectionMutation.mutateAsync({
+          name: newItem.name,
+          type: newItem.type,
+          brand: newItem.brand ?? undefined,
+          imageUri: newItem.image?.uri ?? undefined,
+          metal: newItem.metal ?? undefined,
+        });
+        // Replace temp ID with real server ID
+        setJewelry(prev => prev.map(j =>
+          j.id === tempId ? { ...j, id: `user_${result.id}` } : j
+        ));
+        collectionQuery.refetch();
+      } catch (e) {
+        console.warn("Failed to persist jewelry:", e);
+      }
+    }
   };
 
   const toggleFavorite = (id: string) => {

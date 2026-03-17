@@ -910,6 +910,37 @@ export default function BoutiqueScreen() {
             </View>
           )}
         </View>
+
+        {/* ─── Devenir Partenaire ─────────────────────────────────────────── */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 32, alignItems: "center" }}>
+          <View style={[{ width: 40, height: 1, marginBottom: 24 }, { backgroundColor: colors.border }]} />
+          <Text style={[{ fontSize: 9, letterSpacing: 3, fontWeight: "700", marginBottom: 12 }, { color: colors.primary }]}>
+            VOUS ÊTES CRÉATEUR ?
+          </Text>
+          <Text style={[{ fontSize: 20, fontWeight: "700", letterSpacing: 0.5, textAlign: "center", marginBottom: 8 }, { color: colors.foreground }]}>
+            Rejoignez L'Écrin Virtuel
+          </Text>
+          <Text style={[{ fontSize: 13, lineHeight: 20, textAlign: "center", marginBottom: 24, maxWidth: 280 }, { color: colors.muted }]}>
+            Présentez vos créations à notre communauté et offrez une expérience d'essayage unique par IA.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/partner")}
+            style={[{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              paddingHorizontal: 28,
+              paddingVertical: 16,
+              borderRadius: 14,
+            }, { backgroundColor: colors.foreground }]}
+            activeOpacity={0.85}
+          >
+            <IconSymbol name="sparkles" size={16} color={colors.background} />
+            <Text style={[{ fontSize: 13, fontWeight: "700", letterSpacing: 1.5 }, { color: colors.background }]}>
+              DEVENIR PARTENAIRE
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
       
       {/* Jewelry Detail Modal */}

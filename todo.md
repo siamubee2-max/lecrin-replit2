@@ -594,3 +594,27 @@
 - [x] Redesigner Communauté
 - [x] Redesigner Paramètres
 - [x] Ajouter barre de progression essayage IA
+
+## Devenir Partenaire
+- [ ] Créer l'écran partner.tsx avec formulaire de candidature (style luxe)
+- [ ] Ajouter la route API pour soumettre une candidature partenaire
+- [ ] Intégrer l'accès depuis la Boutique (bouton "Devenir Partenaire")
+- [ ] Ajouter l'accès depuis les Paramètres
+
+## Améliorations Prioritaires
+- [ ] Connecter galerie photo / caméra dans l'essayage virtuel (expo-image-picker)
+- [ ] Upload de la photo personnelle vers le serveur pour l'essayage IA
+- [ ] Rendre Mon Écrin persistant dans Supabase (ajout, suppression, sync)
+- [ ] Créer l'écran Devenir Partenaire (partner.tsx) avec formulaire luxe
+- [ ] Route API pour soumettre une candidature partenaire (email + Supabase)
+- [ ] Accès Devenir Partenaire depuis la Boutique et les Paramètres
+
+## Améliorations Prioritaires (Mars 2026)
+- [x] Connecter la caméra et la galerie photo dans l'écran d'essayage virtuel
+- [x] Rendre Mon Écrin persistant via Supabase (tRPC collection.add/remove)
+- [x] Créer l'écran Devenir Partenaire avec formulaire de candidature luxe
+- [x] Ajouter le bouton Devenir Partenaire dans la Boutique
+- [x] Barre de progression animée pendant l'essayage IA
+- [x] Interface luxe style Dior (noir, crème, or) sur tous les écrans
+- [x] Connexion aux 39 bijoux MONI'ATTITUDE depuis Supabase
+- [x] Restauration de l'onglet Communauté
