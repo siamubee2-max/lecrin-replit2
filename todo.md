@@ -676,3 +676,9 @@
 - [x] Routes tRPC wardrobe.add/list/delete/uploadImage déjà disponibles (réutilisées)
 - [x] Navigation depuis dressing vers essayage avec paramètres de mode (section=shoes|clothing|accessories)
 - [x] Sélecteur de mode dans l'écran Essayage (Bijoux / Chaussures / Vêtements / Accessoires)
+
+## Améliorations Dressing Virtuel v2 (18 mars 2026)
+- [x] Générer images PNG chaussures de démo (escarpins, sneakers, bottines, sandales)
+- [x] Intégrer les chaussures de démo dans la galerie d'essayage mode Chaussures
+- [x] Connecter résultat essayage → Dressing (bouton "Ajouter au Dressing" selon catégorie)
+- [x] Ajouter filtre Favoris (bouton cœur rouge) dans chaque onglet du Dressing

@@ -275,6 +275,7 @@ export default function DressingScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const { data: wardrobeItems = [], isLoading, refetch } = trpc.wardrobe.list.useQuery(
     undefined,
@@ -295,6 +296,10 @@ export default function DressingScreen() {
   const sectionItems = useMemo(() => {
     return allItems.filter((item) => {
       if (!currentSection.categories.includes(item.category)) return false;
+      if (showFavoritesOnly) {
+        const isFav = favoriteIds.has(item.id) || (item.isFavorite ?? false);
+        if (!isFav) return false;
+      }
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
@@ -304,7 +309,7 @@ export default function DressingScreen() {
       }
       return true;
     });
-  }, [allItems, currentSection, searchQuery]);
+  }, [allItems, currentSection, searchQuery, showFavoritesOnly, favoriteIds]);
 
   const handleToggleFavorite = useCallback(
     (id: number) => {
@@ -520,27 +525,49 @@ export default function DressingScreen() {
 
       <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-      {/* Search */}
-      <View
-        style={[
-          styles.searchBar,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
-      >
-        <IconSymbol name="magnifyingglass" size={15} color={colors.muted} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.foreground }]}
-          placeholder={`Rechercher dans ${currentSection.label.toLowerCase()}…`}
-          placeholderTextColor={colors.muted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <IconSymbol name="xmark.circle.fill" size={15} color={colors.muted} />
-          </TouchableOpacity>
-        )}
+      {/* Search + Favoris filter */}
+      <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}>
+        <View
+          style={[
+            styles.searchBar,
+            { flex: 1, backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <IconSymbol name="magnifyingglass" size={15} color={colors.muted} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.foreground }]}
+            placeholder={`Rechercher dans ${currentSection.label.toLowerCase()}…`}
+            placeholderTextColor={colors.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <IconSymbol name="xmark.circle.fill" size={15} color={colors.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {/* Bouton Favoris */}
+        <TouchableOpacity
+          style={[
+            styles.favFilterBtn,
+            {
+              backgroundColor: showFavoritesOnly ? "#E53E3E" : colors.surface,
+              borderColor: showFavoritesOnly ? "#E53E3E" : colors.border,
+            },
+          ]}
+          onPress={() => {
+            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowFavoritesOnly((prev) => !prev);
+          }}
+        >
+          <IconSymbol
+            name="heart.fill"
+            size={16}
+            color={showFavoritesOnly ? "#FFFFFF" : colors.muted}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Demo banner */}
@@ -1184,4 +1211,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   photoBtnText: { fontSize: 11, fontWeight: "400", letterSpacing: 0.5 },
+  favFilterBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

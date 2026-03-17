@@ -193,6 +193,34 @@ const CLOTHING_MANNEQUIN_SECTIONS = [
   },
 ];
 
+// ─── Chaussures de démonstration ─────────────────────────────────────────────
+const SHOES_DEMO = [
+  {
+    id: "heels-gold",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_heels_gold-5ktPRGoZ7VXeYgEdLP5D3k.png",
+    label: "Escarpins Dorés",
+    brand: "L'Écrin",
+  },
+  {
+    id: "sneakers-white",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_sneakers_white-TcUCe77Tti8vbH2Tg2aasU.png",
+    label: "Sneakers Blancs",
+    brand: "L'Écrin",
+  },
+  {
+    id: "boots-black",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_boots_black-h7zsKaSzi9qv5jNSQAHbHy.png",
+    label: "Bottines Noires",
+    brand: "L'Écrin",
+  },
+  {
+    id: "sandals-nude",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_sandals_nude-A8rHiR6HNekahFBBff3Anu.png",
+    label: "Sandales Nude",
+    brand: "L'Écrin",
+  },
+];
+
 type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories";
 
 const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabel: string; mannequinSections: typeof MANNEQUIN_SECTIONS; emoji: string }> = {
@@ -664,7 +692,11 @@ export default function TryOnScreen() {
         visible={showJewelryModal}
         title={tryOnMode === "jewelry" ? `Galerie — ${currentType.label}` : `Galerie — ${MODE_CONFIG[tryOnMode].itemLabel}`}
         subtitle={tryOnMode === "jewelry" ? "Sélectionnez un bijou à essayer" : tryOnMode === "shoes" ? "Sélectionnez une chaussure à essayer" : tryOnMode === "clothing" ? "Sélectionnez un vêtement à essayer" : "Sélectionnez un accessoire à essayer"}
-        sections={tryOnMode === "jewelry" ? [{ title: currentType.label, data: jewelryOptions }] : [{ title: MODE_CONFIG[tryOnMode].itemLabel, data: [] }]}
+        sections={tryOnMode === "jewelry"
+          ? [{ title: currentType.label, data: jewelryOptions }]
+          : tryOnMode === "shoes"
+          ? [{ title: "Chaussures de démonstration", data: SHOES_DEMO }]
+          : [{ title: MODE_CONFIG[tryOnMode].itemLabel, data: [] }]}
         onSelect={handleSelectJewelry}
         onClose={() => setShowJewelryModal(false)}
         imageMode="contain"
@@ -767,6 +799,41 @@ export default function TryOnScreen() {
                   </TouchableOpacity>
                 </View>
 
+                {/* Sauvegarder dans le Dressing */}
+                {tryOnMode !== "jewelry" && (
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (isSaved) return;
+                      try {
+                        const categoryMap: Record<TryOnMode, string> = {
+                          jewelry: "jewelry",
+                          shoes: "shoes",
+                          clothing: "clothing",
+                          accessories: "accessories",
+                        };
+                        await addToCollectionMutation.mutateAsync({
+                          name: selectedJewelry?.label ?? "Article essayé",
+                          type: categoryMap[tryOnMode],
+                          imageUri: resultImageUrl ?? undefined,
+                        });
+                        setIsSaved(true);
+                        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        Alert.alert("✨ Sauvegardé !", `${selectedJewelry?.label} a été ajouté à votre Dressing.`);
+                      } catch {
+                        Alert.alert("Erreur", "Impossible de sauvegarder dans le Dressing.");
+                      }
+                    }}
+                    style={[resultStyles.communityBtn, { backgroundColor: isSaved ? colors.success : colors.foreground, borderWidth: 0, marginBottom: 8 }]}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ fontSize: 16 }}>
+                      {tryOnMode === "shoes" ? "👠" : tryOnMode === "clothing" ? "👗" : "👜"}
+                    </Text>
+                    <Text style={[resultStyles.communityBtnText, { color: colors.background }]}>
+                      {isSaved ? "Sauvegardé dans le Dressing ✓" : `Ajouter au Dressing ${tryOnMode === "shoes" ? "Chaussures" : tryOnMode === "clothing" ? "Vêtements" : "Accessoires"}`}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 {/* Publier dans la Communauté */}
                 <TouchableOpacity
                   onPress={() => {
