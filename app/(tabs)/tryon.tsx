@@ -1,898 +1,711 @@
-import { Text, View, TouchableOpacity, ScrollView, FlatList, Dimensions, StyleSheet, ActivityIndicator } from "react-native";
-import { useState, useEffect, useRef } from "react";
-import ViewShot from "react-native-view-shot";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
+import React, { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+  Modal,
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  Dimensions,
+  Alert,
+} from "react-native";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-import { ShareModal } from "@/components/share-modal";
-import { useFavorites } from "@/lib/favorites-context";
-import { useScreenshot } from "@/hooks/use-screenshot";
-import { trpc } from "@/lib/trpc";
-import { supabase, type SupabaseBodyPart } from "@/lib/supabase";
-import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/photo-editor";
-import { ImageCropper, type TransformOptions } from "@/components/image-cropper";
-import { AIPositionedJewelry } from "@/components/ai-positioned-jewelry";
-import { type JewelryType as AIJewelryType, type JewelryPosition } from "@/hooks/use-ai-positioning";
-import { WatermarkFull } from "@/components/watermark";
 
-// Jewelry styles (metal types)
-type JewelryStyle = "gold" | "silver" | "rosegold";
+const CDN = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943";
 
-const JEWELRY_STYLES: { id: JewelryStyle; name: string; color: string }[] = [
-  { id: "gold", name: "Or", color: "#FFD700" },
-  { id: "silver", name: "Argent", color: "#C0C0C0" },
-  { id: "rosegold", name: "Or Rose", color: "#E8B4B8" },
+// ─── Mannequins ────────────────────────────────────────────────────────────────
+const MANNEQUIN_SECTIONS = [
+  {
+    title: "Visages & Oreilles",
+    data: [
+      { id: "face-1", uri: `${CDN}/AdlrDYXkOyPhDCRC.jpg`, label: "Visage 1" },
+      { id: "face-2", uri: `${CDN}/pmqnnFKjXVuQOvRn.jpg`, label: "Visage 2" },
+      { id: "face-3", uri: `${CDN}/stRulhTckXsGxDQi.jpg`, label: "Visage 3" },
+      { id: "face-4", uri: `${CDN}/aNpFyVQfcOhjIwdS.jpg`, label: "Visage 4" },
+      { id: "rousse", uri: `${CDN}/cyJJDUWYzkgzSTbF.jpg`, label: "Modèle Rousse" },
+    ],
+  },
+  {
+    title: "Mains",
+    data: [
+      { id: "hand-1", uri: `${CDN}/btMXmGHNLbTjRmEE.jpg`, label: "Main 1" },
+      { id: "hand-2", uri: `${CDN}/jyiRZUGrdRTgSIXJ.jpg`, label: "Main 2" },
+      { id: "hand-store", uri: `${CDN}/FpgJONMhzLalyhTi.jpg`, label: "Main 3" },
+    ],
+  },
+  {
+    title: "Poignets",
+    data: [
+      { id: "wrist-1", uri: `${CDN}/xXJqyGvkbrFwBBHV.jpg`, label: "Poignet 1" },
+      { id: "wrist-2", uri: `${CDN}/MNVdSmIpPxYSClIs.jpg`, label: "Poignet 2" },
+    ],
+  },
+  {
+    title: "Chevilles",
+    data: [
+      { id: "ankle-1", uri: `${CDN}/OdSiQtPIdenBVntk.jpg`, label: "Cheville 1" },
+    ],
+  },
+  {
+    title: "Corps entier",
+    data: [
+      { id: "femme-jeans", uri: `${CDN}/abbVLmuyWSwhhikh.jpg`, label: "Femme Jeans" },
+      { id: "femme-robe", uri: `${CDN}/OxGFokpAzdVyeaCp.jpg`, label: "Femme Robe" },
+      { id: "femme-rousse", uri: `${CDN}/JrHRSXiGdwkxFloI.jpg`, label: "Femme Rousse" },
+      { id: "femme-short-blonde", uri: `${CDN}/WJYefCuswobmjOFn.jpg`, label: "Femme Short Blonde" },
+      { id: "femme-short-brune", uri: `${CDN}/NiGpqbuSbzvVeGpE.jpg`, label: "Femme Short Brune" },
+      { id: "homme-sport", uri: `${CDN}/FAAIQjDUYqvqrnSP.jpg`, label: "Homme Sport" },
+      { id: "homme-casual", uri: `${CDN}/iEKDtQHwyiIzFBLs.jpg`, label: "Homme Casual" },
+      { id: "homme-basket", uri: `${CDN}/uEwQwHLXMbeskowf.jpg`, label: "Homme Basket" },
+    ],
+  },
 ];
 
-// CDN base URL for jewelry images
-const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
-
-// Import jewelry images by style (using CDN URLs)
-const JEWELRY_IMAGES_BY_STYLE: Record<JewelryStyle, Record<string, any>> = {
-  gold: {
-    necklace: { uri: `${CDN}/necklace_7177dd4f.png` },
-    earrings: { uri: `${CDN}/earrings_d519be16.png` },
-    ring: { uri: `${CDN}/ring_98bc5b36.png` },
-    bracelet: { uri: `${CDN}/bracelet_a20f8e1b.png` },
-    anklet: { uri: `${CDN}/anklet_898db7b9.png` },
-    brooch: { uri: `${CDN}/necklace_7177dd4f.png` }, // Use necklace for full set
-  },
-  silver: {
-    necklace: { uri: `${CDN}/necklace_272e5538.png` },
-    earrings: { uri: `${CDN}/earrings_5f6e88c0.png` },
-    ring: { uri: `${CDN}/ring_98d1f1c4.png` },
-    bracelet: { uri: `${CDN}/bracelet_2e01c216.png` },
-    anklet: { uri: `${CDN}/anklet_49ad301c.png` },
-    brooch: { uri: `${CDN}/necklace_272e5538.png` },
-  },
-  rosegold: {
-    necklace: { uri: `${CDN}/necklace_17a308e7.png` },
-    earrings: { uri: `${CDN}/earrings_d76acdc3.png` },
-    ring: { uri: `${CDN}/ring_c4986919.png` },
-    bracelet: { uri: `${CDN}/bracelet_8332e426.png` },
-    anklet: { uri: `${CDN}/anklet_ce49b8e0.png` },
-    brooch: { uri: `${CDN}/necklace_17a308e7.png` },
-  },
+// ─── Bijoux par type ───────────────────────────────────────────────────────────
+const JEWELRY_BY_TYPE: Record<string, { id: string; uri: string; label: string }[]> = {
+  earrings: [
+    { id: "plume-bleu", uri: `${CDN}/mUaeVRKTyNsSwydj.png`, label: "Plume Bleu" },
+    { id: "lapis", uri: `${CDN}/DbsZECnmnScwGXrK.png`, label: "Lapis Lazuli" },
+    { id: "rose", uri: `${CDN}/MHrMUbGtWuDsPAWp.png`, label: "Créoles Roses" },
+    { id: "terracotta", uri: `${CDN}/QXWjEMeEMxnUaJWM.png`, label: "Terracotta" },
+    { id: "lune", uri: `${CDN}/cWuBMzcdacdWSBif.png`, label: "Lune et Étoiles" },
+    { id: "vert", uri: `${CDN}/vDUNWJgUqNeqgxuD.png`, label: "Créoles Vertes" },
+    { id: "resine-vert", uri: `${CDN}/BQcYjBycBufjuRzd.png`, label: "Résine Verte" },
+    { id: "etoile-rose", uri: `${CDN}/lNdRViMTySQvUjlT.png`, label: "Étoile Rose" },
+    { id: "orange", uri: `${CDN}/KguAeTqThjCsvecs.png`, label: "Arches Orange" },
+    { id: "violet", uri: `${CDN}/gvMlujGZrGdQxNrU.png`, label: "Pointe Violette" },
+    { id: "bleu-clair", uri: `${CDN}/YIEQPKPDArbEBfgo.png`, label: "Géométrique Bleu" },
+    { id: "geometrique", uri: `${CDN}/mEFFJpvLNjtkSKFp.png`, label: "Géométrique Or" },
+    { id: "creole-orange", uri: `${CDN}/ksjchgAauBTgoIRP.png`, label: "Créoles Orange" },
+    { id: "etoile-blanc", uri: `${CDN}/NHrMayoaxkGwRAzw.png`, label: "Étoile Blanc" },
+    { id: "cuir-rose", uri: `${CDN}/iXSRVmYBQKSVkIgb.png`, label: "Cuir Rose" },
+    { id: "fleur-vie", uri: `${CDN}/mKMdkYLxQkBcagIz.png`, label: "Fleur de Vie" },
+    { id: "eventail", uri: `${CDN}/CSMPqWqsSMHWRAJD.png`, label: "Éventail Or" },
+    { id: "rectangle", uri: `${CDN}/ywEJZiJNFCWSyekZ.png`, label: "Rectangle Cuivre" },
+    { id: "noir-or", uri: `${CDN}/vqeMhpwfZUJaaVDJ.png`, label: "Noir et Or" },
+    { id: "moniattitude-1", uri: `${CDN}/StedFUyGMBUqcAEe.png`, label: "Moni'Attitude" },
+  ],
+  necklace: [
+    { id: "necklace-1", uri: `${CDN}/pIwhbFaxajqlBLDM.jpg`, label: "Collier 1" },
+    { id: "moni-necklace", uri: `${CDN}/jGuXuEkhGyksTrjf.png`, label: "Moni'Attitude Collier" },
+  ],
+  bracelet: [
+    { id: "bracelet-1", uri: `${CDN}/UpdTPopWOOkisAfZ.jpg`, label: "Bracelet 1" },
+    { id: "bracelet-2", uri: `${CDN}/LRXLSFlVyKYRjWpN.jpg`, label: "Bracelet 2" },
+    { id: "bracelet-3", uri: `${CDN}/cShFnzrgsYCAyoJP.jpg`, label: "Bracelet 3" },
+    { id: "moni-bracelet-bleu", uri: `${CDN}/YtSJSMdauwcduZlE.png`, label: "Bracelet Bleu Étoile" },
+    { id: "moni-bracelet-set", uri: `${CDN}/QFSIpqZaBEqDrjMr.png`, label: "Bracelet Moni'Attitude" },
+  ],
+  ring: [
+    { id: "ring-luxury", uri: `${CDN}/bpNfAkbDYoWBSChW.jpg`, label: "Bague Luxe" },
+  ],
+  anklet: [
+    { id: "anklet-silver", uri: `${CDN}/QGrKcPORwuBopwXN.jpg`, label: "Chaîne Argent" },
+    { id: "anklet-gold", uri: `${CDN}/JCdnbNtrgayfIQha.jpg`, label: "Or Pierres Précieuses" },
+  ],
+  set: [
+    { id: "jewelry-set", uri: `${CDN}/QruapqyLkIGpMclo.jpg`, label: "Parure Or" },
+    { id: "moni-set", uri: `${CDN}/hjdHxGFegLggYIVj.png`, label: "Moni'Attitude Set" },
+    { id: "moni-bracelet-set", uri: `${CDN}/QFSIpqZaBEqDrjMr.png`, label: "Set Bracelets" },
+  ],
 };
 
-// Legacy import for fallback (CDN URLs)
-const JEWELRY_IMAGES = {
-  necklace: { uri: `${CDN}/necklace_bd6660e2.png` },
-  earrings: { uri: `${CDN}/earrings_ca44164c.png` },
-  ring: { uri: `${CDN}/ring_1387f5ad.png` },
-  bracelet: { uri: `${CDN}/bracelet_9eb16d6e.png` },
-  anklet: { uri: `${CDN}/anklet_a3ab66ce.png` },
-  brooch: { uri: `${CDN}/necklace_bd6660e2.png` },
-};
-
-// Mapping between jewelry types and body part types
-const JEWELRY_TO_BODY_PART: Record<string, string> = {
-  necklace: "neck",
-  earrings: "earrings",
-  ring: "ring",
-  bracelet: "wrist",
-  brooch: "full",
-  anklet: "foot",
-};
-
-// Jewelry positioning configuration for each type (percentages as decimals)
-const JEWELRY_POSITIONS: Record<string, { topPercent: number; size: number; offsetX: number }> = {
-  necklace: { topPercent: 0.35, size: 180, offsetX: 0 },
-  earrings: { topPercent: 0.20, size: 120, offsetX: 0 },
-  ring: { topPercent: 0.55, size: 80, offsetX: 0 },
-  bracelet: { topPercent: 0.45, size: 140, offsetX: 0 },
-  anklet: { topPercent: 0.65, size: 120, offsetX: 0 },
-  brooch: { topPercent: 0.40, size: 200, offsetX: 0 },
-};
-
+// ─── Types de bijoux ───────────────────────────────────────────────────────────
 const JEWELRY_TYPES = [
-  { id: "necklace", name: "Collier / Pendentif", icon: "📿", bodyType: "neck" },
-  { id: "earrings", name: "Boucles d'oreilles", icon: "💎", bodyType: "earrings" },
-  { id: "ring", name: "Bague", icon: "💍", bodyType: "ring" },
-  { id: "bracelet", name: "Bracelet", icon: "⌚", bodyType: "wrist" },
-  { id: "anklet", name: "Chevillière", icon: "🦶", bodyType: "foot" },
-  { id: "brooch", name: "Parure complète", icon: "✨", bodyType: "full" },
-];
+  { key: "earrings", label: "Boucles d'oreilles" },
+  { key: "necklace", label: "Colliers" },
+  { key: "bracelet", label: "Bracelets" },
+  { key: "ring", label: "Bagues" },
+  { key: "anklet", label: "Chevillières" },
+  { key: "set", label: "Parures" },
+] as const;
 
-interface BodyPart {
-  id: number;
-  externalId: string | null;
-  name: string;
-  type: "face" | "neck" | "bust_with_hands" | "left_ear_profile" | "right_ear_profile" | "left_wrist" | "right_wrist" | "left_hand" | "right_hand" | "left_ankle" | "right_ankle" | "full_body" | "earrings" | "ring" | "wrist" | "foot" | "full";
-  imageUrl: string;
-  userId: number | null;
-  isDemo: boolean | null;
-  createdAt: Date;
-}
-
-// Edit flow steps
-type EditStep = "none" | "crop" | "filter";
+type JewelryTypeKey = typeof JEWELRY_TYPES[number]["key"];
+type GalleryItem = { id: string; uri: string; label: string };
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function TryOnScreen() {
   const colors = useColors();
-  const router = useRouter();
-  const params = useLocalSearchParams<{ demoJewelryId?: string; demoJewelryName?: string; demoJewelryType?: string }>();
-  
-  // Check if we're in demo mode (coming from Mon Écrin with a demo jewelry)
-  const isDemoMode = !!params.demoJewelryId;
-  const demoJewelryName = params.demoJewelryName || "";
-  
-  // Map demo jewelry type to internal type
-  const mapDemoTypeToInternal = (demoType?: string): string => {
-    const mapping: Record<string, string> = {
-      "Necklace": "necklace",
-      "Earrings": "earrings",
-      "Ring": "ring",
-      "Bracelet": "bracelet",
-      "Brooch": "brooch",
-    };
-    return mapping[demoType || ""] || "necklace";
-  };
-  
-  const [selectedType, setSelectedType] = useState<string>(mapDemoTypeToInternal(params.demoJewelryType));
-  const [selectedStyle, setSelectedStyle] = useState<JewelryStyle>("gold");
-  const [selectedModel, setSelectedModel] = useState<BodyPart | null>(null);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [jewelrySize, setJewelrySize] = useState(1);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [useAIPositioning, setUseAIPositioning] = useState(true);
-  const [aiPosition, setAiPosition] = useState<JewelryPosition | null>(null);
-  const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
-  
-  // Photo Editor state
-  const [editStep, setEditStep] = useState<EditStep>("none");
-  const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
-  const [croppedImageUri, setCroppedImageUri] = useState<string | null>(null);
-  const [appliedFilter, setAppliedFilter] = useState<FilterType>("original");
-  const [appliedRetouch, setAppliedRetouch] = useState<RetouchOptions | null>(null);
-  const [appliedTransform, setAppliedTransform] = useState<TransformOptions | null>(null);
-  
-  const { addFavorite, incrementTryOnCount } = useFavorites();
-  const { viewShotRef, isCapturing, capture, shareCapture, saveToGallery, lastCaptureUri } = useScreenshot({ format: 'png', quality: 1 });
+  const insets = useSafeAreaInsets();
 
-  // Fetch body parts from tRPC API (local server)
-  const { data: trpcBodyParts } = trpc.bodyParts.list.useQuery();
+  const [selectedJewelryType, setSelectedJewelryType] = useState<JewelryTypeKey>("earrings");
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const [selectedJewelry, setSelectedJewelry] = useState<GalleryItem | null>(null);
+  const [showMannequinModal, setShowMannequinModal] = useState(false);
+  const [showJewelryModal, setShowJewelryModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch body parts from Supabase (primary source)
-  const [supabaseBodyParts, setSupabaseBodyParts] = useState<SupabaseBodyPart[]>([]);
-  const [isLoadingBodyParts, setIsLoadingBodyParts] = useState(true);
+  const currentType = JEWELRY_TYPES.find(t => t.key === selectedJewelryType)!;
+  const jewelryOptions = JEWELRY_BY_TYPE[selectedJewelryType] || [];
 
-  useEffect(() => {
-    async function loadBodyParts() {
-      setIsLoadingBodyParts(true);
-      try {
-        const { data, error } = await supabase
-          .from("body_parts")
-          .select("*")
-          .is("user_id", null)
-          .order("name");
-        if (!error && data) {
-          setSupabaseBodyParts(data);
-        }
-      } catch (e) {
-        console.error("Supabase body parts error:", e);
-      } finally {
-        setIsLoadingBodyParts(false);
-      }
+  const handlePickFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission requise", "Autorisez l'accès à votre galerie photos.");
+      return;
     }
-    loadBodyParts();
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setUserPhoto(result.assets[0].uri);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission requise", "Autorisez l'accès à votre caméra.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setUserPhoto(result.assets[0].uri);
+    }
+  };
+
+  const handleSelectMannequin = useCallback((item: GalleryItem) => {
+    setUserPhoto(item.uri);
+    setShowMannequinModal(false);
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  // Map Supabase body parts to the BodyPart interface used in the UI
-  const allBodyParts: BodyPart[] = supabaseBodyParts.map((bp) => ({
-    id: parseInt(bp.id) || Math.random() * 10000,
-    externalId: bp.id,
-    name: bp.name,
-    type: bp.type as BodyPart["type"],
-    imageUrl: bp.image_url,
-    userId: null,
-    isDemo: true,
-    createdAt: new Date(bp.created_at),
-  }));
+  const handleSelectJewelry = useCallback((item: GalleryItem) => {
+    setSelectedJewelry(item);
+    setShowJewelryModal(false);
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
-  // Filter body parts by selected jewelry type
-  const bodyPartType = JEWELRY_TO_BODY_PART[selectedType];
-  const filteredModels = allBodyParts.filter((part) => part.type === bodyPartType);
-
-  const handleTypeSelect = (typeId: string) => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleTryOn = async () => {
+    if (!userPhoto) {
+      Alert.alert("Photo manquante", "Veuillez sélectionner votre photo ou un mannequin.");
+      return;
     }
-    setSelectedType(typeId);
-    setSelectedModel(null); // Reset model when type changes
-  };
-
-  const handleStyleSelect = (styleId: JewelryStyle) => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!selectedJewelry) {
+      Alert.alert("Bijou manquant", "Veuillez sélectionner un bijou à essayer.");
+      return;
     }
-    setSelectedStyle(styleId);
-  };
-
-  const handleModelSelect = (model: BodyPart) => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    setSelectedModel(model);
-  };
-
-  const handleNext = () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    if (currentStep === 1 && selectedType) {
-      setCurrentStep(2);
-    } else if (currentStep === 2 && selectedModel) {
-      setCurrentStep(3);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleSizeChange = (delta: number) => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    setJewelrySize(prev => Math.max(0.5, Math.min(2, prev + delta)));
-  };
-
-  // Capture and start edit flow (crop first, then filter)
-  const handleCaptureForEdit = async () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    
-    const capturedUri = await capture();
-    
-    if (capturedUri) {
-      setCapturedImageUri(capturedUri);
-      setCroppedImageUri(null);
-      setEditStep("crop"); // Start with cropping
-    }
-  };
-
-  // After cropping, move to filter step
-  const handleCropApply = (transformedUri: string, options: TransformOptions) => {
-    setCroppedImageUri(transformedUri);
-    setAppliedTransform(options);
-    setEditStep("filter"); // Move to filter step
-  };
-
-  // Cancel cropping
-  const handleCropCancel = () => {
-    setEditStep("none");
-    setCapturedImageUri(null);
-    setCroppedImageUri(null);
-  };
-
-  // Save edited photo (after filtering)
-  const handleSaveEditedPhoto = async (editedUri: string, options: RetouchOptions, filter: FilterType) => {
-    setEditStep("none");
-    setIsSaving(true);
-    setAppliedFilter(filter);
-    setAppliedRetouch(options);
-    
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    
-    await incrementTryOnCount();
-    
-    // Sauvegarder dans la galerie
-    await saveToGallery();
-    
-    setTimeout(() => {
-      setIsSaving(false);
-      setCapturedImageUri(null);
-      setCroppedImageUri(null);
-      router.push("/(tabs)/gallery");
-    }, 1000);
-  };
-
-  // Cancel photo editing (from filter step)
-  const handleFilterCancel = () => {
-    // Go back to crop step
-    setEditStep("crop");
-    setCroppedImageUri(null);
-  };
-
-  // Quick save without editing
-  const handleQuickSave = async () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    
-    setIsSaving(true);
-    
-    const capturedUri = await capture();
-    
-    if (capturedUri) {
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-      
-      await incrementTryOnCount();
-      await saveToGallery();
-      
-      setTimeout(() => {
-        setIsSaving(false);
-        router.push("/(tabs)/gallery");
-      }, 1000);
-    } else {
-      setIsSaving(false);
-    }
-  };
-
-  const handleShare = () => {
-    setShowShareModal(true);
-  };
-
-  // Capture l'image et ouvre le modal de partage
-  const handleShareWithCapture = async () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    
-    // Capturer l'image d'abord
-    const capturedUri = await capture();
-    
-    if (capturedUri) {
-      // Ouvrir le modal de partage avec l'image capturée
-      setShowShareModal(true);
-    }
-  };
-
-  const handleAddToFavorites = async () => {
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    
-    const selectedJewelry = JEWELRY_TYPES.find(j => j.id === selectedType);
-    const selectedStyleInfo = JEWELRY_STYLES.find(s => s.id === selectedStyle);
-    
-    await addFavorite({
-      jewelryType: `${selectedJewelry?.name || 'Bijou'} - ${selectedStyleInfo?.name || 'Or'}`,
-      jewelryIcon: selectedJewelry?.icon || '💍',
-      modelName: selectedModel?.name || 'Modèle',
-      imageUri: selectedModel?.imageUrl || '',
-    });
-    
-    setIsFavorited(true);
-    setTimeout(() => setIsFavorited(false), 2000);
-  };
-
-  // Get jewelry image based on selected style
-  const getJewelryImage = () => {
-    try {
-      return JEWELRY_IMAGES_BY_STYLE[selectedStyle][selectedType];
-    } catch {
-      // Fallback to legacy images
-      return JEWELRY_IMAGES[selectedType as keyof typeof JEWELRY_IMAGES];
-    }
-  };
-
-  const jewelryPosition = JEWELRY_POSITIONS[selectedType] || JEWELRY_POSITIONS.necklace;
-  const jewelryImage = getJewelryImage();
-
-  // Show Image Cropper
-  if (editStep === "crop" && capturedImageUri) {
-    return (
-      <ImageCropper
-        imageUri={capturedImageUri}
-        onApply={handleCropApply}
-        onCancel={handleCropCancel}
-        visible={true}
-      />
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsProcessing(true);
+    await new Promise(r => setTimeout(r, 1500));
+    setIsProcessing(false);
+    Alert.alert(
+      "✨ Essayage Virtuel",
+      "Votre photo et le bijou sont prêts. L'essayage par IA sera disponible dans la prochaine mise à jour.",
+      [{ text: "OK" }]
     );
-  }
+  };
 
-  // Show Photo Editor (after cropping)
-  if (editStep === "filter" && (croppedImageUri || capturedImageUri)) {
-    return (
-      <PhotoEditor
-        imageUri={croppedImageUri || capturedImageUri!}
-        onSave={handleSaveEditedPhoto}
-        onCancel={handleFilterCancel}
-        visible={true}
-      />
-    );
-  }
+  const canTryOn = !!userPhoto && !!selectedJewelry && !isProcessing;
 
-  // Step 3: AR Try-on View
-  if (currentStep === 3 && selectedModel) {
-    return (
-      <ScreenContainer edges={["top", "left", "right", "bottom"]} className="bg-background">
-        <View className="flex-1">
-          {/* Header */}
-          <View className="flex-row items-center justify-between px-4 py-2">
-            <TouchableOpacity
-              onPress={handleBack}
-              className="w-10 h-10 rounded-full bg-surface items-center justify-center active:opacity-70"
-            >
-              <IconSymbol name="chevron.left" size={20} color={colors.foreground} />
-            </TouchableOpacity>
-            
-            <Text className="text-lg font-semibold text-foreground">
-              Essayage Virtuel
-            </Text>
-            
-            <View className="flex-row">
-              <TouchableOpacity
-                onPress={handleAddToFavorites}
-                className="w-10 h-10 rounded-full items-center justify-center active:opacity-70 mr-2"
-                style={{ backgroundColor: isFavorited ? '#EF4444' : colors.surface }}
-              >
-                <IconSymbol 
-                  name={isFavorited ? "heart.fill" : "heart"} 
-                  size={20} 
-                  color={isFavorited ? "#FFFFFF" : colors.foreground} 
-                />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                onPress={handleShare}
-                className="w-10 h-10 rounded-full bg-surface items-center justify-center active:opacity-70"
-              >
-                <IconSymbol name="square.and.arrow.up" size={20} color={colors.foreground} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Style Selector - Horizontal Pills */}
-          <View className="px-4 py-2">
-            <View className="flex-row justify-center gap-2">
-              {JEWELRY_STYLES.map((style) => (
-                <TouchableOpacity
-                  key={style.id}
-                  onPress={() => handleStyleSelect(style.id)}
-                  className={`flex-row items-center px-4 py-2 rounded-full border ${
-                    selectedStyle === style.id ? 'border-primary' : 'border-border'
-                  }`}
-                  style={selectedStyle === style.id ? { backgroundColor: colors.primary + '20' } : { backgroundColor: colors.surface }}
-                >
-                  <View 
-                    className="w-4 h-4 rounded-full mr-2 border border-border"
-                    style={{ backgroundColor: style.color }}
-                  />
-                  <Text 
-                    className={`text-sm font-medium ${selectedStyle === style.id ? 'text-primary' : 'text-foreground'}`}
-                  >
-                    {style.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* AR View with Real Model Image - Wrapped in ViewShot for capture */}
-          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1 }} style={{ flex: 1, marginHorizontal: 16, marginVertical: 8 }}>
-            <View className="flex-1 rounded-3xl overflow-hidden bg-surface border border-border">
-              {useAIPositioning ? (
-                /* AI-Powered Positioning */
-                <AIPositionedJewelry
-                  modelImageUrl={selectedModel.imageUrl}
-                  jewelryImage={jewelryImage}
-                  jewelryType={selectedType as AIJewelryType}
-                  manualSize={jewelrySize}
-                  onAnalysisComplete={(success, position) => {
-                    setIsAIAnalyzing(false);
-                    setAiPosition(position);
-                  }}
-                  showDebugOverlay={false}
-                />
-              ) : (
-                /* Manual/Static Positioning (Fallback) */
-                <View className="flex-1">
-                  {/* Model Image */}
-                  <Image
-                    source={
-                      typeof selectedModel.imageUrl === 'number' 
-                        ? selectedModel.imageUrl 
-                        : (typeof selectedModel.imageUrl === 'object' && 'uri' in selectedModel.imageUrl)
-                          ? selectedModel.imageUrl
-                          : { uri: selectedModel.imageUrl }
-                    }
-                    style={StyleSheet.absoluteFillObject}
-                    contentFit="cover"
-                    transition={300}
-                  />
-                  
-                  {/* Jewelry Overlay - Static positioning */}
-                  <View 
-                    className="absolute items-center justify-center"
-                    style={{ 
-                      top: `${jewelryPosition.topPercent * 100}%` as any,
-                      left: '50%' as any,
-                      transform: [
-                        { translateX: -jewelryPosition.size * jewelrySize / 2 + jewelryPosition.offsetX },
-                        { scale: jewelrySize },
-                      ],
-                    }}
-                  >
-                    <Image
-                      source={jewelryImage}
-                      style={{
-                        width: jewelryPosition.size,
-                        height: jewelryPosition.size,
-                      }}
-                      contentFit="contain"
-                      transition={200}
-                    />
-                  </View>
-                </View>
-              )}
-
-              {/* Watermark */}
-              <WatermarkFull position="top-right" opacity={0.6} theme="light" />
-
-              {/* Info Overlay */}
-              <View className="absolute bottom-4 left-4 right-4">
-                <View className="bg-background/90 rounded-xl px-4 py-3">
-                  <View className="flex-row items-center">
-                    <View className="w-14 h-14 rounded-lg bg-surface items-center justify-center mr-3 overflow-hidden">
-                      <Image
-                        source={jewelryImage}
-                        style={{ width: 40, height: 40 }}
-                        contentFit="contain"
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-xs text-muted">
-                        {JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name.toUpperCase()} SUR :
-                      </Text>
-                      <Text className="text-sm font-semibold text-foreground">
-                        {selectedModel.name}
-                      </Text>
-                    </View>
-                    {/* AI Toggle */}
-                    <TouchableOpacity
-                      onPress={() => setUseAIPositioning(!useAIPositioning)}
-                      className={`px-3 py-1.5 rounded-full ${useAIPositioning ? 'bg-primary' : 'bg-surface border border-border'}`}
-                    >
-                      <Text className={`text-xs font-medium ${useAIPositioning ? 'text-background' : 'text-muted'}`}>
-                        {useAIPositioning ? 'IA ✓' : 'IA'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </ViewShot>
-
-          {/* Controls */}
-          <View className="px-6 pb-6">
-            {/* Size Controls */}
-            <View className="flex-row items-center justify-center mb-4">
-              <TouchableOpacity
-                onPress={() => handleSizeChange(-0.1)}
-                className="w-12 h-12 rounded-full bg-surface border border-border items-center justify-center"
-              >
-                <IconSymbol name="minus" size={20} color={colors.foreground} />
-              </TouchableOpacity>
-              
-              <View className="mx-6 items-center">
-                <Text className="text-sm text-muted">Taille</Text>
-                <Text className="text-lg font-semibold text-foreground">
-                  {Math.round(jewelrySize * 100)}%
-                </Text>
-              </View>
-              
-              <TouchableOpacity
-                onPress={() => handleSizeChange(0.1)}
-                className="w-12 h-12 rounded-full bg-surface border border-border items-center justify-center"
-              >
-                <IconSymbol name="plus" size={20} color={colors.foreground} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Action Buttons */}
-            <View className="flex-row gap-3 mb-3">
-              <TouchableOpacity
-                onPress={handleCaptureForEdit}
-                disabled={isCapturing || isSaving}
-                className="flex-1 bg-primary py-4 rounded-xl items-center active:opacity-80"
-              >
-                {isCapturing ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="text-background font-semibold">
-                    Éditer & Sauvegarder
-                  </Text>
-                )}
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                onPress={handleQuickSave}
-                disabled={isCapturing || isSaving}
-                className="flex-1 bg-surface border border-border py-4 rounded-xl items-center active:opacity-80"
-              >
-                {isSaving ? (
-                  <ActivityIndicator color={colors.foreground} />
-                ) : (
-                  <Text className="text-foreground font-semibold">
-                    Sauvegarde rapide
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Share Button */}
-            <TouchableOpacity
-              onPress={handleShareWithCapture}
-              disabled={isCapturing || isSaving}
-              className="flex-row items-center justify-center bg-surface border border-primary py-4 rounded-xl active:opacity-80"
-            >
-              <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
-              <Text className="text-primary font-semibold ml-2">
-                Partager sur les réseaux sociaux
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Share Modal */}
-        <ShareModal
-          visible={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          imageUri={lastCaptureUri || undefined}
-          title={`${JEWELRY_TYPES.find(j => j.id === selectedType)?.name || "Bijou"} - ${JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name || "Or"}`}
-          message={`Découvrez mon essayage virtuel de ${JEWELRY_TYPES.find(j => j.id === selectedType)?.name || "bijou"} en ${JEWELRY_STYLES.find(s => s.id === selectedStyle)?.name || "or"} avec L'Écrin Virtuel ! 💍✨`}
-        />
-      </ScreenContainer>
-    );
-  }
-
-  // Step 2: Select Model
-  if (currentStep === 2) {
-    return (
-      <ScreenContainer edges={["top", "left", "right"]} className="p-6">
-        <View className="flex-1">
-          {/* Header */}
-          <View className="flex-row items-center mb-6">
-            <TouchableOpacity
-              onPress={handleBack}
-              className="w-10 h-10 rounded-full bg-surface items-center justify-center mr-4 active:opacity-70"
-            >
-              <IconSymbol name="chevron.left" size={20} color={colors.foreground} />
-            </TouchableOpacity>
-            <View className="flex-1">
-              <Text className="text-2xl font-bold text-foreground">
-                Choisir un Modèle
-              </Text>
-              <Text className="text-sm text-muted">
-                {JEWELRY_TYPES.find(j => j.id === selectedType)?.name}
-              </Text>
-            </View>
-          </View>
-
-          {/* Style Selector */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-muted mb-2">Style du bijou</Text>
-            <View className="flex-row gap-2">
-              {JEWELRY_STYLES.map((style) => (
-                <TouchableOpacity
-                  key={style.id}
-                  onPress={() => handleStyleSelect(style.id)}
-                  className={`flex-row items-center px-4 py-2 rounded-full border ${
-                    selectedStyle === style.id ? 'border-primary' : 'border-border'
-                  }`}
-                  style={selectedStyle === style.id ? { backgroundColor: colors.primary + '20' } : { backgroundColor: colors.surface }}
-                >
-                  <View 
-                    className="w-4 h-4 rounded-full mr-2 border border-border"
-                    style={{ backgroundColor: style.color }}
-                  />
-                  <Text 
-                    className={`text-sm font-medium ${selectedStyle === style.id ? 'text-primary' : 'text-foreground'}`}
-                  >
-                    {style.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Models Grid */}
-          {isLoadingBodyParts ? (
-            <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text className="text-muted mt-4">Chargement des modèles...</Text>
-            </View>
-          ) : filteredModels.length === 0 ? (
-            <View className="flex-1 items-center justify-center">
-              <Text className="text-6xl mb-4">📷</Text>
-              <Text className="text-lg font-semibold text-foreground text-center mb-2">
-                Aucun modèle disponible
-              </Text>
-              <Text className="text-sm text-muted text-center">
-                Ajoutez des photos dans l{"'"}onglet Galerie pour commencer
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={filteredModels}
-              numColumns={2}
-              keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={{ paddingBottom: 100 }}
-              columnWrapperStyle={{ gap: 12 }}
-              ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-              renderItem={({ item }) => {
-                // Support both local require() images and remote URLs
-                // If imageUrl is already an object {uri: ...}, use it directly
-                // If it's a number (require()), use it directly
-                // If it's a string, wrap it in {uri: ...}
-                const imageSource = typeof item.imageUrl === 'number' 
-                  ? item.imageUrl 
-                  : (typeof item.imageUrl === 'object' && item.imageUrl !== null && 'uri' in item.imageUrl)
-                    ? item.imageUrl
-                    : { uri: item.imageUrl };
-                return (
-                <TouchableOpacity
-                  onPress={() => handleModelSelect(item)}
-                  className={`flex-1 rounded-2xl overflow-hidden border-2 ${
-                    selectedModel?.id === item.id ? "border-primary" : "border-transparent"
-                  }`}
-                  style={{ aspectRatio: 3/4 }}
-                >
-                  <Image
-                    source={imageSource}
-                    style={StyleSheet.absoluteFillObject}
-                    contentFit="cover"
-                    transition={200}
-                  />
-                  <View className="absolute bottom-0 left-0 right-0 bg-background/80 px-3 py-2">
-                    <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    {item.isDemo && (
-                      <Text className="text-xs text-muted">Démo</Text>
-                    )}
-                  </View>
-                  {selectedModel?.id === item.id && (
-                    <View className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary items-center justify-center">
-                      <IconSymbol name="checkmark" size={14} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-              }}
-            />
-          )}
-
-          {/* Next Button */}
-          <View className="absolute bottom-6 left-0 right-0 px-6">
-            <TouchableOpacity
-              onPress={handleNext}
-              disabled={!selectedModel}
-              className={`py-4 rounded-xl items-center ${
-                selectedModel ? "bg-primary" : "bg-surface"
-              }`}
-            >
-              <Text className={`font-semibold ${selectedModel ? "text-background" : "text-muted"}`}>
-                Essayer ce bijou
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScreenContainer>
-    );
-  }
-
-  // Step 1: Select Jewelry Type
   return (
-    <ScreenContainer edges={["top", "left", "right"]} className="p-6">
-      <View className="flex-1">
-        {/* Demo Mode Banner */}
-        {isDemoMode && (
-          <View 
-            className="mb-4 p-3 rounded-xl flex-row items-center"
-            style={{ backgroundColor: colors.primary + "20" }}
-          >
-            <IconSymbol name="sparkles" size={20} color={colors.primary} />
-            <View className="ml-3 flex-1">
-              <Text className="font-semibold" style={{ color: colors.primary }}>Mode Démonstration</Text>
-              <Text className="text-sm text-muted">Essayez {'"'}{demoJewelryName}{'"'} sur une photo</Text>
-            </View>
-          </View>
-        )}
-        
+    <ScreenContainer>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+      >
         {/* Header */}
-        <View className="mb-6">
-          <Text className="text-3xl font-bold text-foreground mb-2">
-            Essayage Virtuel
-          </Text>
-          <Text className="text-base text-muted">
-            {isDemoMode ? "Choisissez un modèle ou prenez une photo" : "Sélectionnez le type de bijou à essayer"}
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+          <Text style={[styles.title, { color: colors.foreground }]}>Essayage Virtuel</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>
+            Visualisez un bijou sur vous avant d'acheter
           </Text>
         </View>
 
-        {/* Jewelry Types Grid */}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-          <View className="flex-row flex-wrap gap-4">
-            {JEWELRY_TYPES.map((type) => (
+        {/* Sélecteur de type de bijou */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+        >
+          {JEWELRY_TYPES.map((type) => {
+            const isSelected = selectedJewelryType === type.key;
+            return (
               <TouchableOpacity
-                key={type.id}
-                onPress={() => handleTypeSelect(type.id)}
-                className={`w-[47%] rounded-2xl p-4 border-2 ${
-                  selectedType === type.id
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-surface"
-                }`}
+                key={type.key}
+                onPress={() => {
+                  setSelectedJewelryType(type.key);
+                  setSelectedJewelry(null);
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                style={[
+                  styles.typeChip,
+                  {
+                    backgroundColor: isSelected ? colors.foreground : "transparent",
+                    borderColor: isSelected ? colors.foreground : colors.border,
+                  },
+                ]}
               >
-                <Text className="text-4xl mb-3">{type.icon}</Text>
-                <Text className="text-base font-semibold text-foreground">
-                  {type.name}
+                <Text
+                  style={[
+                    styles.typeChipText,
+                    { color: isSelected ? colors.background : colors.foreground },
+                  ]}
+                >
+                  {type.label}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Style Preview */}
-          {selectedType && (
-            <View className="mt-6">
-              <Text className="text-lg font-semibold text-foreground mb-3">
-                Aperçu des styles
-              </Text>
-              <View className="flex-row gap-3">
-                {JEWELRY_STYLES.map((style) => (
-                  <TouchableOpacity
-                    key={style.id}
-                    onPress={() => handleStyleSelect(style.id)}
-                    className={`flex-1 rounded-xl p-3 border-2 items-center ${
-                      selectedStyle === style.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-surface"
-                    }`}
-                  >
-                    <View className="w-16 h-16 rounded-lg bg-background items-center justify-center mb-2 overflow-hidden">
-                      <Image
-                        source={JEWELRY_IMAGES_BY_STYLE[style.id][selectedType]}
-                        style={{ width: 48, height: 48 }}
-                        contentFit="contain"
-                      />
-                    </View>
-                    <View 
-                      className="w-6 h-6 rounded-full border border-border mb-1"
-                      style={{ backgroundColor: style.color }}
-                    />
-                    <Text className={`text-sm font-medium ${selectedStyle === style.id ? 'text-primary' : 'text-foreground'}`}>
-                      {style.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
+            );
+          })}
         </ScrollView>
 
-        {/* Next Button */}
-        <View className="absolute bottom-6 left-0 right-0 px-6">
-          <TouchableOpacity
-            onPress={handleNext}
-            disabled={!selectedType}
-            className={`py-4 rounded-xl items-center ${
-              selectedType ? "bg-primary" : "bg-surface"
-            }`}
-          >
-            <Text className={`font-semibold ${selectedType ? "text-background" : "text-muted"}`}>
-              Continuer
+        {/* Zone principale : Photo + Bijou côte à côte */}
+        <View style={styles.photosRow}>
+          {/* ── Votre photo ── */}
+          <View style={styles.photoCol}>
+            <Text style={[styles.photoLabel, { color: colors.muted }]}>VOTRE PHOTO</Text>
+
+            {/* Grande zone photo */}
+            <TouchableOpacity
+              onPress={() => setShowMannequinModal(true)}
+              style={[
+                styles.photoBox,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: userPhoto ? colors.primary : colors.border,
+                  borderWidth: userPhoto ? 2 : 1,
+                },
+              ]}
+              activeOpacity={0.85}
+            >
+              {userPhoto ? (
+                <Image
+                  source={{ uri: userPhoto }}
+                  style={StyleSheet.absoluteFillObject}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={styles.emptyBox}>
+                  <View style={[styles.emptyIcon, { backgroundColor: colors.border }]}>
+                    <IconSymbol name="person.fill" size={28} color={colors.muted} />
+                  </View>
+                  <Text style={[styles.emptyText, { color: colors.muted }]}>
+                    Appuyez pour choisir
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Boutons photo */}
+            <View style={styles.btnRow}>
+              <TouchableOpacity
+                onPress={handleTakePhoto}
+                style={[styles.smallBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <IconSymbol name="camera.fill" size={13} color={colors.primary} />
+                <Text style={[styles.smallBtnText, { color: colors.primary }]}>Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handlePickFromGallery}
+                style={[styles.smallBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <IconSymbol name="photo.fill" size={13} color={colors.primary} />
+                <Text style={[styles.smallBtnText, { color: colors.primary }]}>Galerie</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowMannequinModal(true)}
+              style={[styles.fullBtn, { backgroundColor: colors.foreground }]}
+            >
+              <IconSymbol name="person.2.fill" size={14} color={colors.background} />
+              <Text style={[styles.fullBtnText, { color: colors.background }]}>
+                Galerie Mannequins
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Le bijou ── */}
+          <View style={styles.photoCol}>
+            <Text style={[styles.photoLabel, { color: colors.muted }]}>
+              {currentType.label.toUpperCase()}
             </Text>
-          </TouchableOpacity>
+
+            {/* Grande zone bijou */}
+            <TouchableOpacity
+              onPress={() => setShowJewelryModal(true)}
+              style={[
+                styles.photoBox,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: selectedJewelry ? colors.primary : colors.border,
+                  borderWidth: selectedJewelry ? 2 : 1,
+                },
+              ]}
+              activeOpacity={0.85}
+            >
+              {selectedJewelry ? (
+                <Image
+                  source={{ uri: selectedJewelry.uri }}
+                  style={StyleSheet.absoluteFillObject}
+                  contentFit="contain"
+                />
+              ) : (
+                <View style={styles.emptyBox}>
+                  <View style={[styles.emptyIcon, { backgroundColor: colors.border }]}>
+                    <IconSymbol name="sparkles" size={28} color={colors.muted} />
+                  </View>
+                  <Text style={[styles.emptyText, { color: colors.muted }]}>
+                    Appuyez pour choisir
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {selectedJewelry && (
+              <Text style={[styles.selectedLabel, { color: colors.primary }]} numberOfLines={1}>
+                {selectedJewelry.label}
+              </Text>
+            )}
+
+            <TouchableOpacity
+              onPress={() => setShowJewelryModal(true)}
+              style={[
+                styles.fullBtn,
+                { backgroundColor: colors.foreground, marginTop: selectedJewelry ? 6 : 34 },
+              ]}
+            >
+              <IconSymbol name="diamond.fill" size={14} color={colors.background} />
+              <Text style={[styles.fullBtnText, { color: colors.background }]}>
+                Galerie Bijoux
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+
+        {/* Bouton Essayer */}
+        <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
+          <TouchableOpacity
+            onPress={handleTryOn}
+            disabled={!canTryOn}
+            style={[
+              styles.tryOnBtn,
+              {
+                backgroundColor: canTryOn ? colors.foreground : colors.border,
+                opacity: canTryOn ? 1 : 0.6,
+              },
+            ]}
+            activeOpacity={0.85}
+          >
+            {isProcessing ? (
+              <>
+                <ActivityIndicator size="small" color={colors.background} />
+                <Text style={[styles.tryOnBtnText, { color: colors.background }]}>
+                  Traitement en cours...
+                </Text>
+              </>
+            ) : (
+              <>
+                <IconSymbol
+                  name="sparkles"
+                  size={20}
+                  color={canTryOn ? colors.background : colors.muted}
+                />
+                <Text
+                  style={[
+                    styles.tryOnBtnText,
+                    { color: canTryOn ? colors.background : colors.muted },
+                  ]}
+                >
+                  Essayer ce bijou
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {!canTryOn && !isProcessing && (
+            <Text style={[styles.hintText, { color: colors.muted }]}>
+              {!userPhoto
+                ? "Sélectionnez d'abord votre photo ou un mannequin"
+                : "Sélectionnez ensuite un bijou à essayer"}
+            </Text>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* ─── Modal Mannequins ─────────────────────────────────────────────────── */}
+      <GalleryModal
+        visible={showMannequinModal}
+        title="Galerie Mannequins"
+        subtitle="Choisissez votre photo ou un mannequin"
+        sections={MANNEQUIN_SECTIONS}
+        onSelect={handleSelectMannequin}
+        onClose={() => setShowMannequinModal(false)}
+        imageMode="cover"
+        colors={colors}
+      />
+
+      {/* ─── Modal Bijoux ─────────────────────────────────────────────────────── */}
+      <GalleryModal
+        visible={showJewelryModal}
+        title={`Galerie — ${currentType.label}`}
+        subtitle="Sélectionnez un bijou à essayer"
+        sections={[{ title: currentType.label, data: jewelryOptions }]}
+        onSelect={handleSelectJewelry}
+        onClose={() => setShowJewelryModal(false)}
+        imageMode="contain"
+        colors={colors}
+      />
     </ScreenContainer>
   );
 }
+
+// ─── Composant GalleryModal ────────────────────────────────────────────────────
+function GalleryModal({
+  visible,
+  title,
+  subtitle,
+  sections,
+  onSelect,
+  onClose,
+  imageMode,
+  colors,
+}: {
+  visible: boolean;
+  title: string;
+  subtitle: string;
+  sections: { title: string; data: GalleryItem[] }[];
+  onSelect: (item: GalleryItem) => void;
+  onClose: () => void;
+  imageMode: "cover" | "contain";
+  colors: ReturnType<typeof useColors>;
+}) {
+  const allItems = sections.flatMap(s => s.data);
+  const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        {/* Header modal */}
+        <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>{title}</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.muted }]}>{subtitle}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            style={[styles.closeBtn, { backgroundColor: colors.surface }]}
+          >
+            <IconSymbol name="xmark" size={16} color={colors.foreground} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Grille */}
+        <FlatList
+          data={allItems}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={{ padding: 12, paddingBottom: 40, gap: 12 }}
+          columnWrapperStyle={{ gap: 12 }}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => onSelect(item)}
+              style={[
+                styles.galleryItem,
+                {
+                  width: ITEM_SIZE,
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              <View style={{ width: ITEM_SIZE, height: ITEM_SIZE }}>
+                <Image
+                  source={{ uri: item.uri }}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit={imageMode}
+                />
+              </View>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 6 }}>
+                <Text
+                  style={[styles.galleryLabel, { color: colors.foreground }]}
+                  numberOfLines={1}
+                >
+                  {item.label}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  typeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  typeChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  photosRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 12,
+    marginTop: 4,
+  },
+  photoCol: {
+    flex: 1,
+  },
+  photoLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  photoBox: {
+    aspectRatio: 3 / 4,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
+  },
+  emptyBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 11,
+    textAlign: "center",
+    paddingHorizontal: 8,
+  },
+  btnRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 8,
+  },
+  smallBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  smallBtnText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  fullBtn: {
+    marginTop: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+  },
+  fullBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  selectedLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 6,
+  },
+  tryOnBtn: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  tryOnBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  hintText: {
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  // Modal
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  galleryItem: {
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+  galleryLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+});
