@@ -564,3 +564,9 @@
 - [x] Refaire l'écran d'essayage avec interface 2 blocs (photo + bijou) + galeries modales
 - [x] Intégrer les 19 mannequins (visages, mains, poignets, chevilles, corps entier)
 - [x] Intégrer les 30+ bijoux MONI'ATTITUDE (boucles, colliers, bracelets, bagues, chevillières, parures)
+
+## Connexion Essayage IA
+- [x] Analyser l'API d'essayage du serveur (tRPC + LLM Vision)
+- [x] Connecter le bouton "Essayer ce bijou" à l'API IA
+- [x] Afficher le résultat généré par l'IA dans l'écran
+- [x] Ajouter un indicateur de progression pendant le traitement

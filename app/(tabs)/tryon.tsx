@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
 
 const CDN = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943";
 
@@ -145,6 +146,10 @@ export default function TryOnScreen() {
   const [showMannequinModal, setShowMannequinModal] = useState(false);
   const [showJewelryModal, setShowJewelryModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+
+  const tryOnMutation = trpc.virtualTryOn.generate.useMutation();
 
   const currentType = JEWELRY_TYPES.find(t => t.key === selectedJewelryType)!;
   const jewelryOptions = JEWELRY_BY_TYPE[selectedJewelryType] || [];
@@ -205,13 +210,23 @@ export default function TryOnScreen() {
     }
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsProcessing(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setIsProcessing(false);
-    Alert.alert(
-      "✨ Essayage Virtuel",
-      "Votre photo et le bijou sont prêts. L'essayage par IA sera disponible dans la prochaine mise à jour.",
-      [{ text: "OK" }]
-    );
+    setResultImageUrl(null);
+    try {
+      const result = await tryOnMutation.mutateAsync({
+        modelImageUrl: userPhoto,
+        jewelryImageUrl: selectedJewelry.uri,
+        jewelryType: selectedJewelryType,
+        jewelryName: selectedJewelry.label,
+      });
+      setResultImageUrl(result.resultImageUrl ?? null);
+      setShowResultModal(true);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Une erreur est survenue";
+      Alert.alert("Erreur", `L'essayage a échoué : ${message}`);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const canTryOn = !!userPhoto && !!selectedJewelry && !isProcessing;
@@ -463,6 +478,75 @@ export default function TryOnScreen() {
         imageMode="contain"
         colors={colors}
       />
+
+      {/* ─── Modal Résultat Essayage ─────────────────────────────────────────── */}
+      <Modal
+        visible={showResultModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowResultModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                ✨ Résultat de l'essayage
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: colors.muted }]}>
+                {selectedJewelry?.label}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowResultModal(false)}
+              style={[styles.closeBtn, { backgroundColor: colors.surface }]}
+            >
+              <IconSymbol name="xmark" size={16} color={colors.foreground} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ padding: 16, alignItems: "center", paddingBottom: 40 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {resultImageUrl ? (
+              <>
+                <Image
+                  source={{ uri: resultImageUrl }}
+                  style={{
+                    width: "100%",
+                    aspectRatio: 3 / 4,
+                    borderRadius: 20,
+                    marginBottom: 16,
+                  }}
+                  contentFit="cover"
+                />
+                <Text style={[{ fontSize: 14, color: colors.muted, textAlign: "center", marginBottom: 20 }]}>
+                  Voici comment le bijou vous irait. Appuyez sur "Nouvel essayage" pour en essayer un autre.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowResultModal(false);
+                    setResultImageUrl(null);
+                  }}
+                  style={[styles.tryOnBtn, { backgroundColor: colors.foreground, width: "100%" }]}
+                >
+                  <IconSymbol name="sparkles" size={18} color={colors.background} />
+                  <Text style={[styles.tryOnBtnText, { color: colors.background }]}>
+                    Nouvel essayage
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={{ alignItems: "center", paddingTop: 60 }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[{ marginTop: 16, color: colors.muted, fontSize: 14 }]}>
+                  Génération en cours...
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
