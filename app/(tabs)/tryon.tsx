@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
+  Animated,
 } from "react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -148,8 +149,37 @@ export default function TryOnScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [progressStep, setProgressStep] = useState(0);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const tryOnMutation = trpc.virtualTryOn.generate.useMutation();
+
+  const PROGRESS_STEPS = [
+    "Analyse du bijou…",
+    "Détection du corps…",
+    "Positionnement intelligent…",
+    "Génération du rendu…",
+    "Finalisation…",
+  ];
+
+  useEffect(() => {
+    if (!isProcessing) {
+      setProgressStep(0);
+      progressAnim.setValue(0);
+      return;
+    }
+    // Animate progress bar from 0 to 0.9 over ~12s (real completion sets to 1)
+    Animated.timing(progressAnim, {
+      toValue: 0.9,
+      duration: 12000,
+      useNativeDriver: false,
+    }).start();
+    // Cycle through steps
+    const stepInterval = setInterval(() => {
+      setProgressStep((prev) => (prev < PROGRESS_STEPS.length - 1 ? prev + 1 : prev));
+    }, 2400);
+    return () => clearInterval(stepInterval);
+  }, [isProcessing]);
 
   const currentType = JEWELRY_TYPES.find(t => t.key === selectedJewelryType)!;
   const jewelryOptions = JEWELRY_BY_TYPE[selectedJewelryType] || [];
@@ -218,6 +248,12 @@ export default function TryOnScreen() {
         jewelryType: selectedJewelryType,
         jewelryName: selectedJewelry.label,
       });
+      // Complete progress bar to 100%
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: false,
+      }).start();
       setResultImageUrl(result.resultImageUrl ?? null);
       setShowResultModal(true);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -425,7 +461,7 @@ export default function TryOnScreen() {
               <>
                 <ActivityIndicator size="small" color={colors.background} />
                 <Text style={[styles.tryOnBtnText, { color: colors.background }]}>
-                  Traitement en cours...
+                  {PROGRESS_STEPS[progressStep]}
                 </Text>
               </>
             ) : (
@@ -446,6 +482,40 @@ export default function TryOnScreen() {
               </>
             )}
           </TouchableOpacity>
+
+          {isProcessing && (
+            <View style={{ marginTop: 16 }}>
+              {/* Track */}
+              <View
+                style={{
+                  height: 2,
+                  backgroundColor: colors.border,
+                  borderRadius: 1,
+                  overflow: "hidden",
+                }}
+              >
+                <Animated.View
+                  style={{
+                    height: 2,
+                    backgroundColor: colors.primary,
+                    borderRadius: 1,
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0%", "100%"],
+                    }),
+                  }}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.hintText,
+                  { color: colors.muted, marginTop: 8, textAlign: "center" },
+                ]}
+              >
+                {`${progressStep + 1} / ${PROGRESS_STEPS.length} — ${PROGRESS_STEPS[progressStep]}`}
+              </Text>
+            </View>
+          )}
 
           {!canTryOn && !isProcessing && (
             <Text style={[styles.hintText, { color: colors.muted }]}>
