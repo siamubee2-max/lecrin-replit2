@@ -546,3 +546,7 @@
 - [x] Mettre à jour les body_parts dans Supabase Ecrin avec les vraies photos mannequins CDN
 - [x] Connecter l'écran d'essayage aux bijoux réels de Supabase
 - [x] Connecter Mon Écrin aux bijoux de Supabase (lecture + ajout)
+
+## Bug : Onglet Communauté disparu
+- [x] Diagnostiquer pourquoi l'onglet Communauté a disparu
+- [x] Restaurer l'onglet Communauté dans la barre de navigation
