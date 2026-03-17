@@ -174,9 +174,6 @@ export type InsertCreatorJewelry = typeof creatorJewelry.$inferInsert;
 
 /**
  * Body parts for virtual try-on (demo models and user uploads)
- * Types: face, neck, bust_with_hands, left_ear_profile, right_ear_profile, 
- * left_wrist, right_wrist, left_hand, right_hand, left_ankle, right_ankle, full_body
- * Legacy types kept for compatibility: earrings, ring, wrist, foot, full
  */
 export const bodyParts = mysqlTable("bodyParts", {
   id: int("id").autoincrement().primaryKey(),
@@ -184,19 +181,17 @@ export const bodyParts = mysqlTable("bodyParts", {
   externalId: varchar("externalId", { length: 64 }).unique(),
   /** Display name */
   name: varchar("name", { length: 255 }).notNull(),
-  /** Body part type - expanded to match Base44 wardrobe types */
+  /** Body part type */
   type: mysqlEnum("type", [
-    // New types from Base44
-    "face", "neck", "bust_with_hands", 
+    "face", "neck", "bust_with_hands",
     "left_ear_profile", "right_ear_profile",
-    "left_wrist", "right_wrist", 
+    "left_wrist", "right_wrist",
     "left_hand", "right_hand",
-    "left_ankle", "right_ankle", 
+    "left_ankle", "right_ankle",
     "full_body",
-    // Legacy types kept for compatibility
     "earrings", "ring", "wrist", "foot", "full"
   ]).notNull(),
-  /** Image URL (Google Drive, S3, or other) */
+  /** Image URL */
   imageUrl: text("imageUrl").notNull(),
   /** Optional user ID if user-uploaded (null for demo models) */
   userId: int("userId"),
@@ -210,42 +205,26 @@ export type InsertBodyPart = typeof bodyParts.$inferInsert;
 
 /**
  * Wardrobe items (Mon Dressing) - User's clothing collection
- * For creating looks with jewelry
  */
 export const wardrobeItems = mysqlTable("wardrobeItems", {
   id: int("id").autoincrement().primaryKey(),
-  /** User who owns this item */
   userId: int("userId").notNull(),
-  /** Item name */
   name: varchar("name", { length: 255 }).notNull(),
-  /** Category: tops, bottoms, dresses, outerwear, shoes, accessories */
   category: mysqlEnum("category", [
-    "tops", "bottoms", "dresses", "outerwear", 
+    "tops", "bottoms", "dresses", "outerwear",
     "shoes", "bags", "accessories", "other"
   ]).notNull(),
-  /** Brand name */
   brand: varchar("brand", { length: 128 }),
-  /** Primary color */
   color: varchar("color", { length: 64 }),
-  /** Secondary color */
   secondaryColor: varchar("secondaryColor", { length: 64 }),
-  /** Material/fabric */
   material: varchar("material", { length: 128 }),
-  /** Size */
   size: varchar("size", { length: 32 }),
-  /** Price in cents (to avoid floating point issues) */
   price: int("price"),
-  /** Image URL */
   imageUrl: text("imageUrl"),
-  /** Season: spring, summer, fall, winter, all */
   season: mysqlEnum("season", ["spring", "summer", "fall", "winter", "all"]).default("all"),
-  /** Occasion: casual, work, formal, sport, party */
   occasion: mysqlEnum("occasion", ["casual", "work", "formal", "sport", "party", "all"]).default("all"),
-  /** Is favorite */
   isFavorite: boolean("isFavorite").default(false),
-  /** Tags for search (comma-separated) */
   tags: text("tags"),
-  /** Notes */
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -256,31 +235,19 @@ export type InsertWardrobeItem = typeof wardrobeItems.$inferInsert;
 
 /**
  * Saved looks (AI Stylist suggestions)
- * Combinations of wardrobe items and jewelry
  */
 export const savedLooks = mysqlTable("savedLooks", {
   id: int("id").autoincrement().primaryKey(),
-  /** User who created/saved this look */
   userId: int("userId").notNull(),
-  /** Look name */
   name: varchar("name", { length: 255 }).notNull(),
-  /** Description */
   description: text("description"),
-  /** Occasion: casual, work, formal, sport, party */
   occasion: mysqlEnum("occasion", ["casual", "work", "formal", "sport", "party", "all"]).default("all"),
-  /** Season: spring, summer, fall, winter, all */
   season: mysqlEnum("season", ["spring", "summer", "fall", "winter", "all"]).default("all"),
-  /** JSON array of wardrobe item IDs */
   wardrobeItemIds: text("wardrobeItemIds"),
-  /** JSON array of jewelry item IDs */
   jewelryItemIds: text("jewelryItemIds"),
-  /** Preview image URL (generated composite) */
   previewImageUrl: text("previewImageUrl"),
-  /** AI-generated styling tips */
   stylingTips: text("stylingTips"),
-  /** Is AI-generated suggestion */
   isAiGenerated: boolean("isAiGenerated").default(false),
-  /** Is favorite */
   isFavorite: boolean("isFavorite").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -294,23 +261,14 @@ export type InsertSavedLook = typeof savedLooks.$inferInsert;
  */
 export const partnerBrands = mysqlTable("partnerBrands", {
   id: int("id").autoincrement().primaryKey(),
-  /** Brand name */
   name: varchar("name", { length: 255 }).notNull(),
-  /** Brand slug for URLs */
   slug: varchar("slug", { length: 128 }).notNull().unique(),
-  /** Brand description */
   description: text("description"),
-  /** Brand logo URL */
   logoUrl: text("logoUrl"),
-  /** Brand website URL */
   websiteUrl: varchar("websiteUrl", { length: 512 }),
-  /** Is premium partner */
   isPremium: boolean("isPremium").default(false),
-  /** Is featured on homepage */
   isFeatured: boolean("isFeatured").default(false),
-  /** Brand specialty (e.g., "bijoux artisanaux", "haute joaillerie") */
   specialty: varchar("specialty", { length: 255 }),
-  /** Country of origin */
   country: varchar("country", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -324,43 +282,24 @@ export type InsertPartnerBrand = typeof partnerBrands.$inferInsert;
  */
 export const partnerJewelry = mysqlTable("partnerJewelry", {
   id: int("id").autoincrement().primaryKey(),
-  /** Brand ID */
   brandId: int("brandId").notNull(),
-  /** Jewelry name */
   name: varchar("name", { length: 255 }).notNull(),
-  /** Type of jewelry (necklace, earrings, ring, bracelet, anklet, brooch, set) */
   type: mysqlEnum("type", ["necklace", "earrings", "ring", "bracelet", "anklet", "brooch", "set"]).notNull(),
-  /** Description */
   description: text("description"),
-  /** Price in cents (e.g., 1800 = 18.00€) */
   priceInCents: int("priceInCents"),
-  /** Currency code */
   currency: varchar("currency", { length: 3 }).default("EUR"),
-  /** Main image URL */
   imageUrl: text("imageUrl"),
-  /** Additional images (JSON array of URLs) */
   additionalImages: text("additionalImages"),
-  /** Product URL on brand's website */
   productUrl: varchar("productUrl", { length: 512 }),
-  /** Metal type (gold, silver, rose_gold, platinum, other) */
   metalType: mysqlEnum("metalType", ["gold", "silver", "rose_gold", "platinum", "brass", "copper", "resin", "polymer", "other"]),
-  /** Gem type (diamond, ruby, sapphire, emerald, pearl, none, other) */
   gemType: mysqlEnum("gemType", ["diamond", "ruby", "sapphire", "emerald", "pearl", "crystal", "none", "other"]),
-  /** Collection name */
   collection: varchar("collection", { length: 128 }),
-  /** Tags (JSON array of strings) */
   tags: text("tags"),
-  /** Is available for purchase */
   isAvailable: boolean("isAvailable").default(true),
-  /** Is available for virtual try-on */
   isTryOnEnabled: boolean("isTryOnEnabled").default(true),
-  /** Try-on overlay image URL (PNG with transparency) */
   tryOnImageUrl: text("tryOnImageUrl"),
-  /** Number of views */
   viewCount: int("viewCount").default(0),
-  /** Number of try-ons */
   tryOnCount: int("tryOnCount").default(0),
-  /** Number of clicks to product page */
   clickCount: int("clickCount").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -381,3 +320,73 @@ export const partnerJewelryFavorites = mysqlTable("partnerJewelryFavorites", {
 
 export type PartnerJewelryFavorite = typeof partnerJewelryFavorites.$inferSelect;
 export type InsertPartnerJewelryFavorite = typeof partnerJewelryFavorites.$inferInsert;
+
+/**
+ * Partner applications - candidatures pour devenir partenaire
+ */
+export const partnerApplications = mysqlTable("partnerApplications", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Brand / creator name */
+  brandName: varchar("brandName", { length: 255 }).notNull(),
+  /** Contact person name */
+  contactName: varchar("contactName", { length: 255 }).notNull(),
+  /** Contact email */
+  email: varchar("email", { length: 320 }).notNull(),
+  /** Website or Instagram URL */
+  websiteUrl: varchar("websiteUrl", { length: 512 }),
+  /** Jewelry types offered (comma-separated) */
+  jewelryTypes: text("jewelryTypes"),
+  /** Price range */
+  priceRange: varchar("priceRange", { length: 128 }),
+  /** Message / description */
+  message: text("message"),
+  /** Application status */
+  status: varchar("status", { length: 32 }).default("pending"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PartnerApplication = typeof partnerApplications.$inferSelect;
+export type InsertPartnerApplication = typeof partnerApplications.$inferInsert;
+
+/**
+ * Community posts - publications de la communauté
+ */
+export const communityPosts = mysqlTable("communityPosts", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Author user ID (null for anonymous/demo posts) */
+  userId: int("userId"),
+  /** Author display name */
+  authorName: varchar("authorName", { length: 255 }).notNull(),
+  /** Author avatar URL */
+  authorAvatar: text("authorAvatar"),
+  /** Post content text */
+  content: text("content").notNull(),
+  /** Main image URL */
+  imageUrl: text("imageUrl"),
+  /** Jewelry type tag */
+  jewelryType: varchar("jewelryType", { length: 64 }),
+  /** Number of likes */
+  likesCount: int("likesCount").default(0).notNull(),
+  /** Number of comments */
+  commentsCount: int("commentsCount").default(0).notNull(),
+  /** Is pinned (featured) */
+  isPinned: boolean("isPinned").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = typeof communityPosts.$inferInsert;
+
+/**
+ * Community post likes
+ */
+export const communityPostLikes = mysqlTable("communityPostLikes", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("postId").notNull(),
+  userId: int("userId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CommunityPostLike = typeof communityPostLikes.$inferSelect;
+export type InsertCommunityPostLike = typeof communityPostLikes.$inferInsert;

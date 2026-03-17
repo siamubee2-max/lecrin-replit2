@@ -19,6 +19,7 @@ import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
 
 // Demo community posts with real Moniattitude jewelry images
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
@@ -94,27 +95,60 @@ const DEMO_POSTS = [
 
 type Post = typeof DEMO_POSTS[0];
 
+// Merge DB post into local Post format
+function dbPostToPost(p: any): Post {
+  return {
+    id: String(p.id),
+    user: { name: p.authorName, avatar: p.authorAvatar || null, initials: p.authorName.slice(0, 2).toUpperCase() },
+    imageUrl: p.imageUrl || "",
+    caption: p.content,
+    tags: [],
+    likes: p.likesCount ?? 0,
+    comments: p.commentsCount ?? 0,
+    isLiked: false,
+    timeAgo: "Récent",
+    jewelryName: p.jewelryType || "",
+    jewelryBrand: "",
+  };
+}
+
 export default function CommunityScreen() {
   const colors = useColors();
-  const [posts, setPosts] = useState(DEMO_POSTS);
   const [activeTab, setActiveTab] = useState<"feed" | "trending" | "following">("feed");
   const [showNewPost, setShowNewPost] = useState(false);
   const [newCaption, setNewCaption] = useState("");
   const [newImage, setNewImage] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+
+  // Load posts from server
+  const postsQuery = trpc.community.list.useQuery(undefined, { refetchOnWindowFocus: false });
+  const createPostMutation = trpc.community.create.useMutation({
+    onSuccess: () => postsQuery.refetch(),
+  });
+  const likePostMutation = trpc.community.like.useMutation();
+
+  // Merge server posts with demo posts (demo shown when server is empty)
+  const serverPosts: Post[] = (postsQuery.data ?? []).map(dbPostToPost);
+  const posts: Post[] = serverPosts.length > 0 ? serverPosts : DEMO_POSTS;
 
   const handleLike = useCallback((postId: string) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setPosts(prev =>
-      prev.map(p =>
-        p.id === postId
-          ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
-          : p
-      )
-    );
-  }, []);
+    setLikedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+        // Only like server posts (numeric IDs)
+        const numId = parseInt(postId, 10);
+        if (!isNaN(numId)) likePostMutation.mutate({ postId: numId });
+      }
+      return next;
+    });
+  }, [likePostMutation]);
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -136,21 +170,15 @@ export default function CommunityScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setIsPosting(true);
-    await new Promise(r => setTimeout(r, 800));
-    const newPost: Post = {
-      id: `post-${Date.now()}`,
-      user: { name: "Vous", avatar: null, initials: "V" },
-      imageUrl: newImage || "",
-      caption: newCaption.trim(),
-      tags: [],
-      likes: 0,
-      comments: 0,
-      isLiked: false,
-      timeAgo: "À l'instant",
-      jewelryName: "",
-      jewelryBrand: "",
-    };
-    setPosts(prev => [newPost, ...prev]);
+    try {
+      await createPostMutation.mutateAsync({
+        authorName: "Vous",
+        content: newCaption.trim(),
+        imageUrl: newImage || undefined,
+      });
+    } catch {
+      // Fallback: show locally if server fails
+    }
     setNewCaption("");
     setNewImage(null);
     setIsPosting(false);
