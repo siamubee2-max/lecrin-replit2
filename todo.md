@@ -570,3 +570,27 @@
 - [x] Connecter le bouton "Essayer ce bijou" à l'API IA
 - [x] Afficher le résultat généré par l'IA dans l'écran
 - [x] Ajouter un indicateur de progression pendant le traitement
+
+## Barre de progression essayage IA
+- [ ] Ajouter une barre de progression animée pendant le traitement IA
+
+## Redesign Luxe (style Dior)
+- [ ] Refondre la palette : noir profond, crème ivoire, or champagne
+- [ ] Redesigner l'écran d'accueil (Home)
+- [ ] Redesigner la barre de navigation (tab bar)
+- [ ] Redesigner l'écran d'essayage virtuel
+- [ ] Redesigner Mon Écrin
+- [ ] Redesigner la Boutique
+- [ ] Redesigner la Communauté
+- [ ] Redesigner l'écran Plus / Profil
+
+## Redesign Interface Luxe (style Dior)
+- [x] Refondre la palette de couleurs (noir profond, crème, or)
+- [x] Redesigner la navigation (tab bar luxe)
+- [x] Redesigner l'écran d'accueil
+- [x] Redesigner l'écran d'essayage virtuel
+- [x] Redesigner Mon Écrin
+- [x] Redesigner Boutique
+- [x] Redesigner Communauté
+- [x] Redesigner Paramètres
+- [x] Ajouter barre de progression essayage IA

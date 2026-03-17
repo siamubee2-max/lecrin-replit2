@@ -221,83 +221,64 @@ export default function EcrinScreen() {
   });
 
   return (
-    <ScreenContainer className="bg-background">
-      <View className="flex-1">
-        {/* Header */}
-        <View className="px-4 pt-4 pb-2">
-          <Text className="text-3xl font-bold text-foreground">Mon Écrin</Text>
-          <Text className="text-base text-muted mt-1">
-            {isLoadingSupabase ? "Chargement du catalogue..." : `${jewelry.length} bijoux MONI'ATTITUDE`}
-          </Text>
-        </View>
-
-        {/* Add Button */}
-        <View className="px-4 py-3">
+    <ScreenContainer containerClassName="bg-background">
+      <View style={{ flex: 1 }}>
+        {/* Header luxe */}
+        <View style={ecrinStyles.header}>
+          <View>
+            <Text style={[ecrinStyles.title, { color: colors.foreground }]}>MON ÉCRIN</Text>
+            <Text style={[ecrinStyles.subtitle, { color: colors.primary }]}>
+              {isLoadingSupabase ? "Chargement..." : `${jewelry.length} pièces`}
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={handleAddJewelry}
-            className="flex-row items-center justify-center py-3 rounded-xl"
-            style={{ backgroundColor: colors.foreground }}
+            style={[ecrinStyles.addBtn, { borderColor: colors.primary }]}
           >
-            <IconSymbol name="plus" size={20} color={colors.background} />
-            <Text className="text-base font-semibold ml-2" style={{ color: colors.background }}>
-              Ajouter un bijou
-            </Text>
+            <IconSymbol name="plus" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
+        <View style={[ecrinStyles.headerLine, { backgroundColor: colors.border }]} />
 
-        {/* Search and Filters */}
-        <View className="px-4">
-          {/* Search Bar */}
-          <View 
-            className="flex-row items-center px-4 py-3 rounded-xl mb-3"
-            style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
-          >
-            <IconSymbol name="magnifyingglass" size={20} color={colors.muted} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name, tags, description..."
-              placeholderTextColor={colors.muted}
-              className="flex-1 ml-3 text-base"
-              style={{ color: colors.foreground }}
-            />
-          </View>
+        {/* Search Bar */}
+        <View style={[ecrinStyles.searchRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <IconSymbol name="magnifyingglass" size={16} color={colors.muted} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Rechercher un bijou..."
+            placeholderTextColor={colors.muted}
+            style={[ecrinStyles.searchInput, { color: colors.foreground }]}
+          />
+        </View>
 
-          {/* Type Filter Pills */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            className="mb-3"
-          >
-            {JEWELRY_TYPES.map((type) => (
-              <TouchableOpacity
-                key={type}
-                onPress={() => setSelectedType(type)}
-                className="px-4 py-2 rounded-full mr-2"
+        {/* Type Filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
+        >
+          {JEWELRY_TYPES.map((type) => (
+            <TouchableOpacity
+              key={type}
+              onPress={() => setSelectedType(type)}
+              style={[
+                ecrinStyles.filterChip,
+                { borderColor: selectedType === type ? colors.primary : colors.border },
+                selectedType === type && { backgroundColor: colors.foreground },
+              ]}
+            >
+              <Text
                 style={[
-                  { borderWidth: 1, borderColor: colors.border },
-                  selectedType === type && { backgroundColor: colors.foreground }
+                  ecrinStyles.filterChipText,
+                  { color: selectedType === type ? colors.background : colors.muted },
                 ]}
               >
-                <Text 
-                  className="text-sm font-medium"
-                  style={{ color: selectedType === type ? colors.background : colors.foreground }}
-                >
-                  {JEWELRY_TYPE_LABELS[type] || type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Advanced Filters */}
-          <View className="flex-row flex-wrap gap-2 mb-4">
-            <FilterDropdown label="All Metals" colors={colors} />
-            <FilterDropdown label="All Gems" colors={colors} />
-            <FilterDropdown label="All Brands" colors={colors} />
-            <FilterDropdown label="All Collections" colors={colors} />
-            <FilterDropdown label="Price Range" colors={colors} />
-          </View>
-        </View>
+                {JEWELRY_TYPE_LABELS[type] || type}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* Jewelry Grid */}
         {isLoadingSupabase ? (
@@ -310,7 +291,7 @@ export default function EcrinScreen() {
             data={filteredJewelry}
             keyExtractor={(item) => item.id}
             numColumns={2}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 100 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
             columnWrapperStyle={{ justifyContent: "space-between" }}
             renderItem={({ item }) => (
               <JewelryCard
@@ -516,11 +497,10 @@ export default function EcrinScreen() {
 function FilterDropdown({ label, colors }: { label: string; colors: ReturnType<typeof useColors> }) {
   return (
     <TouchableOpacity
-      className="flex-row items-center px-3 py-2 rounded-lg"
-      style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+      style={[ecrinStyles.filterChip, { borderColor: colors.border }]}
     >
-      <Text className="text-sm text-foreground mr-1">{label}</Text>
-      <IconSymbol name="chevron.down" size={14} color={colors.muted} />
+      <Text style={[ecrinStyles.filterChipText, { color: colors.muted }]}>{label}</Text>
+      <IconSymbol name="chevron.down" size={12} color={colors.muted} />
     </TouchableOpacity>
   );
 }
@@ -537,16 +517,12 @@ function JewelryCard({
   onTryOn?: () => void;
 }) {
   return (
-    <View 
-      className="w-[48%] rounded-2xl overflow-hidden mb-3"
-      style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
-    >
+    <View style={[ecrinStyles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Image */}
-      <TouchableOpacity 
-        className="aspect-square items-center justify-center relative"
-        style={{ backgroundColor: colors.background }}
+      <TouchableOpacity
+        style={[ecrinStyles.cardImage, { backgroundColor: colors.background }]}
         onPress={onTryOn}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
       >
         {item.image ? (
           <Image
@@ -555,47 +531,152 @@ function JewelryCard({
             contentFit="cover"
           />
         ) : (
-          <Text className="text-4xl">💍</Text>
+          <IconSymbol name="diamond.fill" size={32} color={colors.border} />
         )}
+        {/* Favori */}
         <TouchableOpacity
           onPress={onToggleFavorite}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full items-center justify-center"
-          style={{ backgroundColor: "rgba(255,255,255,0.9)" }}
+          style={ecrinStyles.favoriteBtn}
         >
-          <IconSymbol 
-            name={item.isFavorite ? "heart.fill" : "heart"} 
-            size={18} 
-            color={item.isFavorite ? "#EF4444" : colors.muted} 
+          <IconSymbol
+            name={item.isFavorite ? "heart.fill" : "heart"}
+            size={14}
+            color={item.isFavorite ? "#C9A96E" : colors.muted}
           />
         </TouchableOpacity>
-        {/* Try-on badge for demo items */}
+        {/* Badge Essayer */}
         {item.isDemo && (
-          <View 
-            className="absolute bottom-2 left-2 right-2 rounded-lg py-1 px-2 flex-row items-center justify-center"
-            style={{ backgroundColor: colors.primary }}
-          >
-            <IconSymbol name="sparkles" size={12} color="#0A1A3B" />
-            <Text className="text-xs font-semibold ml-1" style={{ color: "#0A1A3B" }}>Essayer</Text>
+          <View style={[ecrinStyles.tryBadge, { backgroundColor: colors.primary }]}>
+            <Text style={[ecrinStyles.tryBadgeText, { color: colors.foreground }]}>ESSAYER</Text>
           </View>
         )}
       </TouchableOpacity>
-      
+
       {/* Info */}
-      <View className="p-3">
-        <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+      <View style={ecrinStyles.cardInfo}>
+        <Text style={[ecrinStyles.cardName, { color: colors.foreground }]} numberOfLines={1}>
           {item.name}
         </Text>
-        <View className="flex-row items-center justify-between mt-1">
-          <Text className="text-xs text-muted">{item.brand}</Text>
-          {item.isDemo && (
-            <View className="bg-primary/20 rounded px-2 py-0.5">
-              <Text className="text-xs" style={{ color: colors.primary }}>Démo</Text>
-            </View>
-          )}
-        </View>
+        <Text style={[ecrinStyles.cardBrand, { color: colors.muted }]} numberOfLines={1}>
+          {item.brand || ""}
+        </Text>
       </View>
     </View>
   );
 }
+
+const ecrinStyles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "300",
+    letterSpacing: 4,
+    lineHeight: 24,
+  },
+  subtitle: {
+    fontSize: 9,
+    fontWeight: "400",
+    letterSpacing: 3,
+    marginTop: 2,
+  },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerLine: {
+    height: 0.5,
+    marginHorizontal: 20,
+    marginBottom: 8,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "300",
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  filterChipText: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  card: {
+    width: "48%",
+    marginBottom: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  cardImage: {
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  favoriteBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tryBadge: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 5,
+    alignItems: "center",
+  },
+  tryBadgeText: {
+    fontSize: 8,
+    fontWeight: "600",
+    letterSpacing: 2,
+  },
+  cardInfo: {
+    padding: 10,
+  },
+  cardName: {
+    fontSize: 11,
+    fontWeight: "400",
+    letterSpacing: 0.3,
+  },
+  cardBrand: {
+    fontSize: 9,
+    fontWeight: "300",
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+});
 
 const styles = StyleSheet.create({});

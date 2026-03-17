@@ -11,6 +11,7 @@ import {
   Linking,
   ActivityIndicator,
   Platform,
+  StyleSheet,
 } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -334,6 +335,147 @@ function parseTags(tags: string | null): string[] {
   }
 }
 
+const boutiqueStyles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "300",
+    letterSpacing: 4,
+    lineHeight: 24,
+  },
+  subtitle: {
+    fontSize: 9,
+    fontWeight: "400",
+    letterSpacing: 3,
+    marginTop: 2,
+  },
+  visitBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: 1,
+  },
+  visitBtnText: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 2,
+  },
+  headerLine: {
+    height: 0.5,
+    marginHorizontal: 20,
+    marginBottom: 4,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "300",
+    letterSpacing: 0.5,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 2,
+  },
+  grid: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  // JewelryCard
+  card: {
+    width: "47%",
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  cardFavBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  cardContent: {
+    padding: 10,
+  },
+  cardName: {
+    fontSize: 11,
+    fontWeight: "400",
+    letterSpacing: 0.3,
+    lineHeight: 15,
+  },
+  cardBrand: {
+    fontSize: 8,
+    fontWeight: "500",
+    letterSpacing: 1.5,
+    marginTop: 2,
+  },
+  cardTryBtn: {
+    marginTop: 8,
+    paddingVertical: 6,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  cardTryBtnText: {
+    fontSize: 8,
+    fontWeight: "500",
+    letterSpacing: 2,
+  },
+  // BrandCard
+  brandCard: {
+    width: 160,
+    borderWidth: 1,
+    padding: 14,
+    marginRight: 12,
+  },
+  brandInitial: {
+    width: 50,
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandInitialText: {
+    fontSize: 20,
+    fontWeight: "300",
+  },
+  brandName: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  brandDesc: {
+    fontSize: 10,
+    fontWeight: "300",
+    lineHeight: 14,
+  },
+});
+
 // Brand Card Component
 function BrandCard({ brand, onPress }: { brand: PartnerBrand; onPress: () => void }) {
   const colors = useColors();
@@ -341,41 +483,30 @@ function BrandCard({ brand, onPress }: { brand: PartnerBrand; onPress: () => voi
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-surface rounded-2xl p-4 mr-4"
-      style={{ width: 200 }}
+      style={[boutiqueStyles.brandCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
       activeOpacity={0.7}
     >
-      <View className="items-center mb-3">
+      <View style={{ alignItems: "center", marginBottom: 10 }}>
         {brand.logoUrl ? (
           <Image
             source={{ uri: brand.logoUrl }}
-            style={{ width: 80, height: 80, borderRadius: 40 }}
+            style={{ width: 60, height: 60 }}
             contentFit="cover"
           />
         ) : (
-          <View 
-            className="items-center justify-center rounded-full"
-            style={{ width: 80, height: 80, backgroundColor: colors.border }}
-          >
-            <Text className="text-2xl font-bold text-muted">
+          <View style={[boutiqueStyles.brandInitial, { backgroundColor: colors.border }]}>
+            <Text style={[boutiqueStyles.brandInitialText, { color: colors.muted }]}>
               {brand.name.charAt(0).toUpperCase()}
             </Text>
           </View>
         )}
       </View>
       
-      <View className="flex-row items-center justify-between mb-1">
-        <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
-          {brand.name}
-        </Text>
-        {brand.isPremium && (
-          <View className="bg-primary/20 px-2 py-0.5 rounded">
-            <Text className="text-xs text-primary font-medium">premium</Text>
-          </View>
-        )}
-      </View>
+      <Text style={[boutiqueStyles.brandName, { color: colors.foreground }]} numberOfLines={1}>
+        {brand.name}
+      </Text>
       
-      <Text className="text-xs text-muted mb-3" numberOfLines={2}>
+      <Text style={[boutiqueStyles.brandDesc, { color: colors.muted }]} numberOfLines={2}>
         {brand.specialty || brand.description}
       </Text>
       
@@ -417,11 +548,11 @@ function JewelryCard({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-surface rounded-2xl overflow-hidden mb-4"
+      style={[boutiqueStyles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
       activeOpacity={0.7}
     >
       {/* Image */}
-      <View className="relative">
+      <View style={{ position: "relative" }}>
         {jewelry.imageUrl ? (
           <Image
             source={typeof jewelry.imageUrl === 'string' ? { uri: jewelry.imageUrl } : jewelry.imageUrl}
@@ -443,59 +574,37 @@ function JewelryCard({
             e.stopPropagation();
             onFavoriteToggle();
           }}
-          className="absolute top-3 right-3 w-9 h-9 rounded-full items-center justify-center"
-          style={{ backgroundColor: "rgba(255,255,255,0.9)" }}
+          style={boutiqueStyles.cardFavBtn}
           activeOpacity={0.7}
         >
           <IconSymbol 
             name={isFavorite ? "heart.fill" : "heart"} 
-            size={20} 
-            color={isFavorite ? "#EF4444" : colors.muted} 
+            size={16} 
+            color={isFavorite ? "#C9A96E" : "#fff"} 
           />
         </TouchableOpacity>
       </View>
       
       {/* Content */}
-      <View className="p-3">
-        <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
+      <View style={boutiqueStyles.cardContent}>
+        <Text style={[boutiqueStyles.cardName, { color: colors.foreground }]} numberOfLines={2}>
           {jewelry.name}
         </Text>
-        
-        <Text className="text-xs text-primary font-medium uppercase mt-0.5">
-          {brand?.name || "Marque"}
+        <Text style={[boutiqueStyles.cardBrand, { color: colors.primary }]}>
+          {(brand?.name || "MONI'ATTITUDE").toUpperCase()}
         </Text>
-        
-        {/* Tags */}
-        {tags.length > 0 && (
-          <View className="flex-row flex-wrap mt-2 gap-1">
-            {tags.slice(0, 3).map((tag, index) => (
-              <View key={index} className="bg-background px-2 py-0.5 rounded">
-                <Text className="text-xs text-muted">{tag}</Text>
-              </View>
-            ))}
-          </View>
+        {jewelry.isTryOnEnabled && (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onTryOn();
+            }}
+            style={[boutiqueStyles.cardTryBtn, { borderColor: colors.primary }]}
+            activeOpacity={0.7}
+          >
+            <Text style={[boutiqueStyles.cardTryBtnText, { color: colors.primary }]}>ESSAYER</Text>
+          </TouchableOpacity>
         )}
-        
-        {/* Price and Try-on */}
-        <View className="flex-row items-center justify-between mt-3">
-          <Text className="text-lg font-bold text-foreground">
-            {formatPrice(jewelry.priceInCents, jewelry.currency)}
-          </Text>
-          
-          {jewelry.isTryOnEnabled && (
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                onTryOn();
-              }}
-              className="bg-primary px-3 py-1.5 rounded-lg flex-row items-center"
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="camera.fill" size={14} color="#fff" />
-              <Text className="text-xs text-white font-medium ml-1">Essayer</Text>
-            </TouchableOpacity>
-          )}
-        </View>
       </View>
     </TouchableOpacity>
   );
@@ -699,117 +808,70 @@ export default function BoutiqueScreen() {
   }, []);
   
   return (
-    <ScreenContainer>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Hero Header */}
-        <View className="bg-foreground mx-4 mt-4 rounded-2xl p-6">
-          <View className="flex-row items-center mb-2">
-            <IconSymbol name="crown.fill" size={16} color={colors.primary} />
-            <Text className="text-xs text-primary font-medium ml-1">
-              Marques & Créateurs Partenaires
-            </Text>
+    <ScreenContainer containerClassName="bg-background">
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Header luxe */}
+        <View style={boutiqueStyles.header}>
+          <View>
+            <Text style={[boutiqueStyles.title, { color: colors.foreground }]}>BOUTIQUE</Text>
+            <Text style={[boutiqueStyles.subtitle, { color: colors.primary }]}>MONI'ATTITUDE</Text>
           </View>
-          
-          <Text className="text-2xl font-bold text-background mb-2">
-            Boutique Style Sélectionné
-          </Text>
-          
-          <Text className="text-sm text-background/70 mb-4">
-            Découvrez des collections exclusives de marques de luxe et de stylistes experts.
-            Achetez le look en un clic.
-          </Text>
-          
           <TouchableOpacity
-            onPress={() => {}}
-            className="bg-background self-start px-4 py-2 rounded-lg flex-row items-center"
-            activeOpacity={0.7}
+            onPress={() => handleVisitBrand(DEMO_BRAND)}
+            style={[boutiqueStyles.visitBtn, { borderColor: colors.primary }]}
           >
-            <IconSymbol name="sparkles" size={16} color={colors.foreground} />
-            <Text className="text-sm text-foreground font-medium ml-2">
-              Explorer les Collections
-            </Text>
+            <Text style={[boutiqueStyles.visitBtnText, { color: colors.primary }]}>VISITER</Text>
           </TouchableOpacity>
         </View>
-        
-        {/* Featured Brands */}
-        <View className="mt-6 px-4">
-          <View className="flex-row items-center mb-4">
-            <IconSymbol name="crown.fill" size={18} color={colors.primary} />
-            <Text className="text-lg font-bold text-foreground ml-2">
-              Partenaires Vedettes
-            </Text>
-          </View>
-          
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {brands.filter(b => b.isFeatured).map(brand => (
-              <BrandCard 
-                key={brand.id} 
-                brand={brand} 
-                onPress={() => handleVisitBrand(brand)}
-              />
-            ))}
-          </ScrollView>
+        <View style={[boutiqueStyles.headerLine, { backgroundColor: colors.border }]} />
+
+        {/* Search Bar */}
+        <View style={[boutiqueStyles.searchRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <IconSymbol name="magnifyingglass" size={16} color={colors.muted} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Rechercher..."
+            placeholderTextColor={colors.muted}
+            style={[boutiqueStyles.searchInput, { color: colors.foreground }]}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <IconSymbol name="xmark" size={14} color={colors.muted} />
+            </TouchableOpacity>
+          )}
         </View>
-        
-        {/* Search and Filters */}
-        <View className="mt-6 px-4">
-          {/* Search Bar */}
-          <View className="flex-row items-center bg-surface rounded-xl px-4 py-3 mb-4">
-            <IconSymbol name="magnifyingglass" size={20} color={colors.muted} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Rechercher par nom, tags, description..."
-              placeholderTextColor={colors.muted}
-              className="flex-1 ml-3 text-base text-foreground"
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <IconSymbol name="xmark" size={18} color={colors.muted} />
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          {/* Type Pills */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-            {JEWELRY_TYPES.map(type => (
-              <TouchableOpacity
-                key={type.value}
-                onPress={() => setSelectedType(type.value)}
-                className={`px-4 py-2 rounded-full mr-2 ${
-                  selectedType === type.value ? 'bg-foreground' : 'bg-surface border border-border'
-                }`}
-                activeOpacity={0.7}
-              >
-                <Text className={`text-sm font-medium ${
-                  selectedType === type.value ? 'text-background' : 'text-foreground'
-                }`}>
-                  {type.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          {/* Dropdown Filters */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <FilterDropdown
-              label="Métaux"
-              value={selectedMetal}
-              options={METAL_TYPES}
-              onChange={(v) => setSelectedMetal(v as MetalType | "all")}
-            />
-            <FilterDropdown
-              label="Pierres"
-              value={selectedGem}
-              options={GEM_TYPES}
-              onChange={(v) => setSelectedGem(v as GemType | "all")}
-            />
-          </ScrollView>
-        </View>
-        
+
+        {/* Type Filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
+        >
+          {JEWELRY_TYPES.map(type => (
+            <TouchableOpacity
+              key={type.value}
+              onPress={() => setSelectedType(type.value)}
+              style={[
+                boutiqueStyles.filterChip,
+                { borderColor: selectedType === type.value ? colors.primary : colors.border },
+                selectedType === type.value && { backgroundColor: colors.foreground },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                boutiqueStyles.filterChipText,
+                { color: selectedType === type.value ? colors.background : colors.muted },
+              ]}>
+                {type.label.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {/* Jewelry Grid */}
-        <View className="mt-6 px-4 pb-8">
+        <View style={boutiqueStyles.grid}>
           {isLoading ? (
             <View className="items-center py-12">
               <ActivityIndicator size="large" color={colors.primary} />
@@ -825,27 +887,25 @@ export default function BoutiqueScreen() {
               </Text>
             </View>
           ) : (
-            <View className="flex-row flex-wrap justify-between">
+            <View style={boutiqueStyles.grid}>
               {filteredJewelry.map(item => (
-                <View key={item.id} style={{ width: "48%" }}>
-                  <JewelryCard
-                    jewelry={item}
-                    brand={getBrand(item.brandId)}
-                    isFavorite={favorites.has(item.id)}
-                    onPress={() => {
-                      // Track product view
-                      analytics.trackProductViewed({
-                        productId: String(item.id),
-                        productName: item.name,
-                        collection: item.collection || undefined,
-                        category: item.type,
-                      });
-                      setSelectedJewelry(item);
-                    }}
-                    onFavoriteToggle={() => toggleFavorite(item.id)}
-                    onTryOn={() => handleTryOn(item)}
-                  />
-                </View>
+                <JewelryCard
+                  key={item.id}
+                  jewelry={item}
+                  brand={getBrand(item.brandId)}
+                  isFavorite={favorites.has(item.id)}
+                  onPress={() => {
+                    analytics.trackProductViewed({
+                      productId: String(item.id),
+                      productName: item.name,
+                      collection: item.collection || undefined,
+                      category: item.type,
+                    });
+                    setSelectedJewelry(item);
+                  }}
+                  onFavoriteToggle={() => toggleFavorite(item.id)}
+                  onTryOn={() => handleTryOn(item)}
+                />
               ))}
             </View>
           )}

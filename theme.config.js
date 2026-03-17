@@ -1,15 +1,23 @@
 /** @type {const} */
 const themeColors = {
-  // Elegant beige/cream and gold theme - Luxurious Parisian boutique style
-  primary: { light: '#D4AF37', dark: '#E5C158' },        // Luxurious gold accent
-  background: { light: '#F5F0E8', dark: '#0A1A3B' },     // Warm beige cream / Deep navy blue
-  surface: { light: '#FAF7F2', dark: '#122952' },        // Light cream / Navy surface
-  foreground: { light: '#0A1A3B', dark: '#F5F0E8' },     // Navy text / Cream text
-  muted: { light: '#6B5D4D', dark: '#A89B8A' },          // Warm brown-gray / Light warm gray
-  border: { light: '#E8DFD0', dark: '#1E3A6B' },         // Beige gold border / Navy border
-  success: { light: '#22C55E', dark: '#4ADE80' },        // Success states
-  warning: { light: '#F59E0B', dark: '#FBBF24' },        // Warning states
-  error: { light: '#EF4444', dark: '#F87171' },          // Error states
+  // Couleur d'accent principale — or champagne luxe
+  primary:    { light: '#B8975A', dark: '#C9A96E' },
+  // Fond principal — noir profond (dark) / crème ivoire (light)
+  background: { light: '#FAF8F4', dark: '#0A0A0A' },
+  // Surfaces élevées — blanc cassé (light) / noir charbon (dark)
+  surface:    { light: '#F2EDE4', dark: '#141414' },
+  // Texte principal — noir absolu (light) / crème (dark)
+  foreground: { light: '#0A0A0A', dark: '#F5F0E8' },
+  // Texte secondaire — gris foncé (light) / gris clair (dark)
+  muted:      { light: '#6B6560', dark: '#9A9490' },
+  // Bordures fines — sable (light) / anthracite (dark)
+  border:     { light: '#D9D0C3', dark: '#2A2A2A' },
+  // Or pour les accents décoratifs
+  gold:       { light: '#B8975A', dark: '#C9A96E' },
+  // États sémantiques
+  success:    { light: '#4A7C59', dark: '#6AAF7A' },
+  warning:    { light: '#B8975A', dark: '#C9A96E' },
+  error:      { light: '#8B3A3A', dark: '#C97070' },
 };
 
 module.exports = { themeColors };

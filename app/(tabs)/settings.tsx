@@ -1,8 +1,7 @@
-import { Text, View, TouchableOpacity, ScrollView, Switch, Linking, Alert } from "react-native";
 import { useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, Linking, Alert, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -99,30 +98,29 @@ export default function SettingsScreen() {
   const currentLanguage = LANGUAGES.find(l => l.code === currentLang);
 
   return (
-    <ScreenContainer className="bg-background">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="px-4 py-4">
-          <Text className="text-3xl font-bold text-foreground">Paramètres</Text>
+    <ScreenContainer containerClassName="bg-background">
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Header luxe */}
+        <View style={settingsStyles.header}>
+          <Text style={[settingsStyles.title, { color: colors.foreground }]}>PARAMÈTRES</Text>
+          <Text style={[settingsStyles.subtitle, { color: colors.primary }]}>ÉCRIN VIRTUEL</Text>
         </View>
+        <View style={[settingsStyles.headerLine, { backgroundColor: colors.border }]} />
 
         {/* Subscription Section */}
-        <View className="px-4 mb-4">
+        <View style={settingsStyles.section}>
+          <Text style={[settingsStyles.sectionLabel, { color: colors.muted }]}>ABONNEMENT</Text>
           <TouchableOpacity
             onPress={() => setShowSubscription(!showSubscription)}
-            className="flex-row items-center justify-between p-4 rounded-2xl"
-            style={{ backgroundColor: colors.primary + '15', borderColor: colors.primary, borderWidth: 1 }}
+            style={[settingsStyles.row, { backgroundColor: colors.surface, borderColor: colors.primary }]}
           >
-            <View className="flex-row items-center">
-              <Text className="text-2xl mr-3">👑</Text>
-              <View>
-                <Text className="text-lg font-bold text-foreground">Abonnement Premium</Text>
-                <Text className="text-sm text-muted">Débloquez toutes les fonctionnalités</Text>
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>PREMIUM</Text>
+              <Text style={[settingsStyles.rowSubtitle, { color: colors.muted }]}>Débloquez toutes les fonctionnalités</Text>
             </View>
             <IconSymbol 
               name={showSubscription ? "chevron.up" : "chevron.down"} 
-              size={20} 
+              size={16} 
               color={colors.primary} 
             />
           </TouchableOpacity>
@@ -423,3 +421,58 @@ function LinkRow({
     </TouchableOpacity>
   );
 }
+
+const settingsStyles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "300",
+    letterSpacing: 4,
+    lineHeight: 24,
+  },
+  subtitle: {
+    fontSize: 9,
+    fontWeight: "400",
+    letterSpacing: 3,
+    marginTop: 2,
+  },
+  headerLine: {
+    height: 0.5,
+    marginHorizontal: 20,
+    marginBottom: 4,
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  sectionLabel: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 2,
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  rowTitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 1,
+  },
+  rowSubtitle: {
+    fontSize: 10,
+    fontWeight: "300",
+    marginTop: 2,
+    letterSpacing: 0.3,
+  },
+});
