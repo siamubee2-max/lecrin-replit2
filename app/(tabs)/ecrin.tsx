@@ -1,5 +1,6 @@
-import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform, Modal, KeyboardAvoidingView, Alert } from "react-native";
-import { useState } from "react";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform, Modal, KeyboardAvoidingView, Alert, ActivityIndicator } from "react-native";
+import { useState, useEffect } from "react";
+import { supabase, type SupabaseJewelry } from "@/lib/supabase";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
@@ -9,7 +10,15 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 
-const JEWELRY_TYPES = ["All Types", "Necklace", "Earrings", "Ring", "Bracelet", "Brooch"];
+const JEWELRY_TYPES = ["Tous", "earrings", "necklace", "ring", "bracelet", "anklet"];
+const JEWELRY_TYPE_LABELS: Record<string, string> = {
+  "Tous": "Tous",
+  "earrings": "Boucles d'oreilles",
+  "necklace": "Colliers",
+  "ring": "Bagues",
+  "bracelet": "Bracelets",
+  "anklet": "Chevillières",
+};
 
 const FILTERS = {
   metals: ["All Metals", "Gold", "Silver", "Platinum", "Rose Gold"],
@@ -18,66 +27,64 @@ const FILTERS = {
   collections: ["All Collections", "Summer 2025", "Classic", "Modern"],
 };
 
-// Demo jewelry items with real images (no prices for demo items)
-const DEMO_JEWELRY = [
-  {
-    id: "demo-1",
-    name: "Collier Pendentif Or",
-    type: "Necklace",
-    brand: "Moniattitude",
-    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/necklace_98314c60.png" },
-    isFavorite: true,
-    metal: "Gold",
+// Supabase jewelry type mapped to local display format
+type JewelryItem = {
+  id: string;
+  name: string;
+  type: string;
+  brand: string | null;
+  image: { uri: string } | null;
+  isFavorite: boolean;
+  metal: string | null;
+  isDemo: boolean;
+  collection: string | null;
+  tags: string[] | null;
+};
+
+function supabaseToLocal(j: SupabaseJewelry): JewelryItem {
+  return {
+    id: j.id,
+    name: j.name,
+    type: j.type,
+    brand: j.brand,
+    image: j.image_url ? { uri: j.image_url } : null,
+    isFavorite: j.is_favorite ?? false,
+    metal: j.metal,
     isDemo: true,
-  },
-  {
-    id: "demo-2",
-    name: "Boucles d'Oreilles Diamant",
-    type: "Earrings",
-    brand: "Moniattitude",
-    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/earrings_c42a49a8.png" },
-    isFavorite: false,
-    metal: "Gold",
-    isDemo: true,
-  },
-  {
-    id: "demo-3",
-    name: "Bague Solitaire",
-    type: "Ring",
-    brand: "Custom",
-    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/ring_02068a5c.png" },
-    isFavorite: true,
-    metal: "Gold",
-    isDemo: true,
-  },
-  {
-    id: "demo-4",
-    name: "Bracelet Chaîne Or",
-    type: "Bracelet",
-    brand: "Moniattitude",
-    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/bracelet_0cceb60d.png" },
-    isFavorite: false,
-    metal: "Gold",
-    isDemo: true,
-  },
-  {
-    id: "demo-5",
-    name: "Chevillière Élégante",
-    type: "Bracelet",
-    brand: "Custom",
-    image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/anklet_25156a89.png" },
-    isFavorite: false,
-    metal: "Gold",
-    isDemo: true,
-  },
-];
+    collection: j.collection,
+    tags: j.tags,
+  };
+}
 
 export default function EcrinScreen() {
   const colors = useColors();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState("All Types");
+  const [selectedType, setSelectedType] = useState("Tous");
   const [showFilters, setShowFilters] = useState(false);
-  const [jewelry, setJewelry] = useState(DEMO_JEWELRY);
+  const [jewelry, setJewelry] = useState<JewelryItem[]>([]);
+  const [isLoadingSupabase, setIsLoadingSupabase] = useState(true);
+
+  // Load jewelry from Supabase on mount
+  useEffect(() => {
+    async function loadJewelry() {
+      setIsLoadingSupabase(true);
+      try {
+        const { data, error } = await supabase
+          .from("jewelry")
+          .select("*")
+          .order("type")
+          .order("name");
+        if (!error && data) {
+          setJewelry(data.map(supabaseToLocal));
+        }
+      } catch (e) {
+        console.error("Supabase load error:", e);
+      } finally {
+        setIsLoadingSupabase(false);
+      }
+    }
+    loadJewelry();
+  }, []);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newJewelryName, setNewJewelryName] = useState("");
   const [newJewelryType, setNewJewelryType] = useState("Necklace");
@@ -158,7 +165,7 @@ export default function EcrinScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     
-    const newItem = {
+    const newItem: JewelryItem = {
       id: Date.now().toString(),
       name: newJewelryName.trim(),
       type: newJewelryType,
@@ -167,6 +174,8 @@ export default function EcrinScreen() {
       isFavorite: false,
       metal: "Gold",
       isDemo: false,
+      collection: null,
+      tags: null,
     };
     
     setJewelry(prev => [newItem, ...prev]);
@@ -188,7 +197,7 @@ export default function EcrinScreen() {
     );
   };
 
-  const handleTryOnDemo = (item: typeof DEMO_JEWELRY[0]) => {
+  const handleTryOnDemo = (item: JewelryItem) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -204,8 +213,10 @@ export default function EcrinScreen() {
   };
 
   const filteredJewelry = jewelry.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === "All Types" || item.type === selectedType;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.brand || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.collection || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = selectedType === "Tous" || item.type === selectedType;
     return matchesSearch && matchesType;
   });
 
@@ -216,7 +227,7 @@ export default function EcrinScreen() {
         <View className="px-4 pt-4 pb-2">
           <Text className="text-3xl font-bold text-foreground">Mon Écrin</Text>
           <Text className="text-base text-muted mt-1">
-            Cataloguez vos bijoux précieux. L{"'"}IA vous aidera à les organiser et à trouver des correspondances.
+            {isLoadingSupabase ? "Chargement du catalogue..." : `${jewelry.length} bijoux MONI'ATTITUDE`}
           </Text>
         </View>
 
@@ -272,7 +283,7 @@ export default function EcrinScreen() {
                   className="text-sm font-medium"
                   style={{ color: selectedType === type ? colors.background : colors.foreground }}
                 >
-                  {type}
+                  {JEWELRY_TYPE_LABELS[type] || type}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -289,7 +300,12 @@ export default function EcrinScreen() {
         </View>
 
         {/* Jewelry Grid */}
-        {filteredJewelry.length > 0 ? (
+        {isLoadingSupabase ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text className="text-muted mt-4">Chargement du catalogue MONI'ATTITUDE...</Text>
+          </View>
+        ) : filteredJewelry.length > 0 ? (
           <FlatList
             data={filteredJewelry}
             keyExtractor={(item) => item.id}
@@ -301,7 +317,7 @@ export default function EcrinScreen() {
                 item={item}
                 colors={colors}
                 onToggleFavorite={() => toggleFavorite(item.id)}
-                onTryOn={item.isDemo ? () => handleTryOnDemo(item) : undefined}
+                onTryOn={() => handleTryOnDemo(item as any)}
               />
             )}
           />
@@ -515,7 +531,7 @@ function JewelryCard({
   onToggleFavorite,
   onTryOn,
 }: { 
-  item: typeof DEMO_JEWELRY[0]; 
+  item: JewelryItem; 
   colors: ReturnType<typeof useColors>;
   onToggleFavorite: () => void;
   onTryOn?: () => void;

@@ -13,6 +13,7 @@ import { ShareModal } from "@/components/share-modal";
 import { useFavorites } from "@/lib/favorites-context";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { trpc } from "@/lib/trpc";
+import { supabase, type SupabaseBodyPart } from "@/lib/supabase";
 import { PhotoEditor, type FilterType, type RetouchOptions } from "@/components/photo-editor";
 import { ImageCropper, type TransformOptions } from "@/components/image-cropper";
 import { AIPositionedJewelry } from "@/components/ai-positioned-jewelry";
@@ -158,38 +159,49 @@ export default function TryOnScreen() {
   const { addFavorite, incrementTryOnCount } = useFavorites();
   const { viewShotRef, isCapturing, capture, shareCapture, saveToGallery, lastCaptureUri } = useScreenshot({ format: 'png', quality: 1 });
 
-  // Fetch body parts from API
-  const { data: allBodyParts, isLoading: isLoadingBodyParts } = trpc.bodyParts.list.useQuery();
+  // Fetch body parts from tRPC API (local server)
+  const { data: trpcBodyParts } = trpc.bodyParts.list.useQuery();
 
-  // Demo images using AI-generated body part photos (no jewelry, suitable for virtual try-on)
-  const LOCAL_DEMO_IMAGES: Record<string, any> = {
-    "earrings": [
-      { id: "demo_ear_1", name: "Oreille 1", type: "earrings", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_ear_female_light-oKyQzhjaEeMaTVQE2RSjzv.png" }, isDemo: true },
-      { id: "demo_ear_2", name: "Oreille 2", type: "earrings", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_ear_female_dark-b3hHnGt8vPVuRfUentdNM5.png" }, isDemo: true },
-    ],
-    "neck": [
-      { id: "demo_neck_1", name: "Cou 1", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_female_light-fi7h3coGBhB7QXE5m8Ubdd.png" }, isDemo: true },
-      { id: "demo_neck_2", name: "Cou 2", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_female_medium-V6NKontzEYLKqDzsbp5b6i.png" }, isDemo: true },
-      { id: "demo_neck_3", name: "Cou 3", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_female_dark-dUGtrfRqepNU8BoNZR8LSB.png" }, isDemo: true },
-      { id: "demo_neck_4", name: "Cou Homme", type: "neck", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_neck_male_light-4JdnQugvs9BoU6rsnXh4Yi.png" }, isDemo: true },
-    ],
-    "ring": [
-      { id: "demo_ring_1", name: "Main 1", type: "ring", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_hand_female_light-2PbB4bSWex8tzUnZHJD9te.png" }, isDemo: true },
-      { id: "demo_ring_2", name: "Main Homme", type: "ring", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_hand_male_light-huy4w46aFJPQan5jbwUG5M.png" }, isDemo: true },
-    ],
-    "wrist": [
-      { id: "demo_wrist_1", name: "Poignet 1", type: "wrist", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_wrist_female_light-PwZU2jSds6D2sgBQSMaqYG.png" }, isDemo: true },
-    ],
-    "foot": [
-      { id: "demo_foot_1", name: "Cheville 1", type: "foot", imageUrl: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/body_ankle_female_light-YZJjUmhcgVcmwqT7UqoGWz.png" }, isDemo: true },
-    ],
-  };
+  // Fetch body parts from Supabase (primary source)
+  const [supabaseBodyParts, setSupabaseBodyParts] = useState<SupabaseBodyPart[]>([]);
+  const [isLoadingBodyParts, setIsLoadingBodyParts] = useState(true);
+
+  useEffect(() => {
+    async function loadBodyParts() {
+      setIsLoadingBodyParts(true);
+      try {
+        const { data, error } = await supabase
+          .from("body_parts")
+          .select("*")
+          .is("user_id", null)
+          .order("name");
+        if (!error && data) {
+          setSupabaseBodyParts(data);
+        }
+      } catch (e) {
+        console.error("Supabase body parts error:", e);
+      } finally {
+        setIsLoadingBodyParts(false);
+      }
+    }
+    loadBodyParts();
+  }, []);
+
+  // Map Supabase body parts to the BodyPart interface used in the UI
+  const allBodyParts: BodyPart[] = supabaseBodyParts.map((bp) => ({
+    id: parseInt(bp.id) || Math.random() * 10000,
+    externalId: bp.id,
+    name: bp.name,
+    type: bp.type as BodyPart["type"],
+    imageUrl: bp.image_url,
+    userId: null,
+    isDemo: true,
+    createdAt: new Date(bp.created_at),
+  }));
 
   // Filter body parts by selected jewelry type
-  // Use local demo images as fallback
   const bodyPartType = JEWELRY_TO_BODY_PART[selectedType];
-  const apiModels = allBodyParts?.filter((part) => part.type === bodyPartType) || [];
-  const filteredModels = apiModels.length > 0 ? apiModels : (LOCAL_DEMO_IMAGES[bodyPartType] || []);
+  const filteredModels = allBodyParts.filter((part) => part.type === bodyPartType);
 
   const handleTypeSelect = (typeId: string) => {
     if (Platform.OS !== "web") {
