@@ -1,9 +1,16 @@
-import { Text, View, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from "react-native";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
+import { Image } from "expo-image";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -19,25 +26,19 @@ export default function LoginScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const loginUrl = getLoginUrl();
-      
+
       if (Platform.OS === "web") {
-        // Web: redirect to OAuth portal
         window.location.href = loginUrl;
       } else {
-        // Native: open OAuth in browser
-        const result = await WebBrowser.openAuthSessionAsync(
-          loginUrl,
-          undefined,
-          { showInRecents: true }
-        );
-        
+        const result = await WebBrowser.openAuthSessionAsync(loginUrl, undefined, {
+          showInRecents: true,
+        });
         if (result.type === "success") {
-          // OAuth callback will handle the rest via deep link
           console.log("[Login] OAuth session completed successfully");
         }
       }
@@ -56,113 +57,102 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScreenContainer edges={["top", "left", "right", "bottom"]} className="bg-background">
-      <View className="flex-1 px-6">
-        {/* Header */}
-        <View className="flex-row items-center justify-between py-4">
-          <TouchableOpacity onPress={handleSkip} className="p-2 -ml-2">
-            <IconSymbol name="xmark" size={24} color={colors.foreground} />
+    <ScreenContainer
+      edges={["top", "left", "right", "bottom"]}
+      containerClassName="bg-background"
+    >
+      <View style={styles.container}>
+        {/* ── Header ────────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleSkip} style={styles.closeBtn}>
+            <IconSymbol name="xmark" size={16} color={colors.muted} />
           </TouchableOpacity>
         </View>
 
-        {/* Logo and Title */}
-        <View className="items-center mt-8 mb-12">
+        {/* ── Logo & Titre ───────────────────────────────────────────────── */}
+        <View style={styles.logoSection}>
           <Image
             source={require("@/assets/images/icon.png")}
             style={styles.logo}
-            resizeMode="contain"
+            contentFit="contain"
           />
-          <Text className="text-3xl font-bold text-foreground mt-6">
-            L{"'"}Écrin <Text style={{ color: colors.primary }}>Virtuel</Text>
-          </Text>
-          <Text className="text-base text-muted text-center mt-3 px-4">
-            Connectez-vous pour synchroniser vos favoris sur tous vos appareils
+          <View style={[styles.goldLine, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.brandName, { color: colors.foreground }]}>L'ÉCRIN</Text>
+          <Text style={[styles.brandSub, { color: colors.primary }]}>VIRTUEL</Text>
+          <Text style={[styles.tagline, { color: colors.muted }]}>
+            Synchronisez votre collection sur tous vos appareils
           </Text>
         </View>
 
-        {/* Benefits */}
-        <View className="mb-8">
-          <BenefitItem
-            icon="❤️"
-            title="Synchronisez vos favoris"
-            description="Retrouvez vos essayages préférés sur tous vos appareils"
+        {/* ── Avantages ─────────────────────────────────────────────────── */}
+        <View style={styles.benefits}>
+          <BenefitRow
+            icon="diamond.fill"
+            label="Mon Écrin synchronisé"
+            desc="Votre collection accessible partout"
             colors={colors}
           />
-          <BenefitItem
-            icon="💎"
-            title="Sauvegardez votre écrin"
-            description="Votre collection de bijoux toujours accessible"
+          <View style={[styles.benefitDivider, { backgroundColor: colors.border }]} />
+          <BenefitRow
+            icon="heart.fill"
+            label="Essayages sauvegardés"
+            desc="Retrouvez vos résultats préférés"
             colors={colors}
           />
-          <BenefitItem
-            icon="👑"
-            title="Gérez votre abonnement"
-            description="Accédez à toutes les fonctionnalités premium"
+          <View style={[styles.benefitDivider, { backgroundColor: colors.border }]} />
+          <BenefitRow
+            icon="person.2.fill"
+            label="Communauté exclusive"
+            desc="Partagez vos looks avec la communauté"
             colors={colors}
           />
         </View>
 
-        {/* Login Buttons */}
-        <View className="gap-3">
+        {/* ── Boutons de connexion ───────────────────────────────────────── */}
+        <View style={styles.actions}>
+          {/* Connexion principale */}
           <TouchableOpacity
             onPress={handleLogin}
             disabled={isLoading}
-            className="flex-row items-center justify-center py-4 rounded-xl"
-            style={[styles.loginButton, { backgroundColor: '#000000' }]}
+            style={[styles.loginBtn, { backgroundColor: colors.foreground }]}
+            activeOpacity={0.85}
           >
             {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={colors.background} />
             ) : (
               <>
-                <IconSymbol name="apple.logo" size={20} color="#FFFFFF" />
-                <Text className="text-base font-semibold ml-3" style={{ color: '#FFFFFF' }}>
-                  Continuer avec Apple
+                <IconSymbol name="person.fill" size={18} color={colors.background} />
+                <Text style={[styles.loginBtnText, { color: colors.background }]}>
+                  SE CONNECTER
                 </Text>
               </>
             )}
           </TouchableOpacity>
 
+          {/* Continuer sans compte */}
           <TouchableOpacity
-            onPress={handleLogin}
-            disabled={isLoading}
-            className="flex-row items-center justify-center py-4 rounded-xl"
-            style={[styles.loginButton, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
+            onPress={handleSkip}
+            style={[styles.skipBtn, { borderColor: colors.border }]}
+            activeOpacity={0.7}
           >
-            {isLoading ? (
-              <ActivityIndicator color={colors.foreground} />
-            ) : (
-              <>
-                <Text className="text-xl mr-2">🔵</Text>
-                <Text className="text-base font-semibold text-foreground">
-                  Continuer avec Google
-                </Text>
-              </>
-            )}
+            <Text style={[styles.skipBtnText, { color: colors.muted }]}>
+              Continuer sans compte
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Skip Button */}
-        <TouchableOpacity
-          onPress={handleSkip}
-          className="items-center mt-6"
-        >
-          <Text className="text-base text-muted">
-            Continuer sans compte
-          </Text>
-        </TouchableOpacity>
-
-        {/* Terms */}
-        <View className="mt-auto pb-6">
-          <Text className="text-xs text-muted text-center leading-relaxed">
+        {/* ── Mentions légales ──────────────────────────────────────────── */}
+        <View style={styles.legal}>
+          <Text style={[styles.legalText, { color: colors.muted }]}>
             En continuant, vous acceptez nos{" "}
             <Text
               style={{ color: colors.primary }}
               onPress={() => router.push("/terms")}
             >
-              Conditions d{"'"}utilisation
+              Conditions d'utilisation
             </Text>
             {" "}et notre{" "}
-            <Text 
+            <Text
               style={{ color: colors.primary }}
               onPress={() => router.push("/privacy")}
             >
@@ -175,44 +165,160 @@ export default function LoginScreen() {
   );
 }
 
-function BenefitItem({ 
-  icon, 
-  title, 
-  description,
-  colors 
-}: { 
-  icon: string; 
-  title: string; 
-  description: string;
+// ── Composant BenefitRow ────────────────────────────────────────────────────
+function BenefitRow({
+  icon,
+  label,
+  desc,
+  colors,
+}: {
+  icon: string;
+  label: string;
+  desc: string;
   colors: ReturnType<typeof useColors>;
 }) {
   return (
-    <View className="flex-row items-start mb-4">
-      <View 
-        className="w-10 h-10 rounded-full items-center justify-center mr-4"
-        style={{ backgroundColor: colors.primary + '20' }}
-      >
-        <Text className="text-lg">{icon}</Text>
+    <View style={styles.benefitRow}>
+      <View style={[styles.benefitIcon, { backgroundColor: colors.primary + "20" }]}>
+        <IconSymbol name={icon as any} size={16} color={colors.primary} />
       </View>
-      <View className="flex-1">
-        <Text className="text-base font-semibold text-foreground">{title}</Text>
-        <Text className="text-sm text-muted mt-1">{description}</Text>
+      <View style={styles.benefitText}>
+        <Text style={[styles.benefitLabel, { color: colors.foreground }]}>{label}</Text>
+        <Text style={[styles.benefitDesc, { color: colors.muted }]}>{desc}</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  logo: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
+  container: {
+    flex: 1,
+    paddingHorizontal: 24,
   },
-  loginButton: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  header: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoSection: {
+    alignItems: "center",
+    paddingVertical: 24,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  goldLine: {
+    width: 40,
+    height: 1,
+    marginBottom: 12,
+  },
+  brandName: {
+    fontSize: 28,
+    fontWeight: "300",
+    letterSpacing: 6,
+    lineHeight: 34,
+  },
+  brandSub: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 4,
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  tagline: {
+    fontSize: 13,
+    textAlign: "center",
+    letterSpacing: 0.3,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  benefits: {
+    borderRadius: 12,
+    overflow: "hidden",
+    marginVertical: 20,
+  },
+  benefitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 14,
+  },
+  benefitDivider: {
+    height: 0.5,
+    marginLeft: 50,
+  },
+  benefitIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  benefitText: {
+    flex: 1,
+  },
+  benefitLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.3,
+    lineHeight: 20,
+  },
+  benefitDesc: {
+    fontSize: 12,
+    letterSpacing: 0.2,
+    marginTop: 1,
+    lineHeight: 16,
+  },
+  actions: {
+    gap: 12,
+    marginTop: 8,
+  },
+  loginBtn: {
+    paddingVertical: 18,
+    borderRadius: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  loginBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 3,
+    textTransform: "uppercase",
+  },
+  skipBtn: {
+    paddingVertical: 14,
+    borderRadius: 4,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipBtnText: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  legal: {
+    marginTop: "auto",
+    paddingBottom: 24,
+    paddingTop: 16,
+  },
+  legalText: {
+    fontSize: 11,
+    textAlign: "center",
+    lineHeight: 18,
+    letterSpacing: 0.2,
   },
 });

@@ -691,10 +691,53 @@ export default function BoutiqueScreen() {
   const [selectedJewelry, setSelectedJewelry] = useState<PartnerJewelry | null>(null);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   
-  // API queries (using demo data for now)
-  const brands = [DEMO_BRAND];
-  const jewelry = DEMO_JEWELRY;
-  const isLoading = false;
+  // API queries - Supabase via tRPC
+  const brandsQuery = trpc.partnerBrands.list.useQuery();
+  const jewelryQuery = trpc.partnerJewelry.list.useQuery({
+    brandId: selectedBrandId ?? undefined,
+    type: selectedType !== "all" ? selectedType : undefined,
+    metalType: selectedMetal !== "all" ? selectedMetal : undefined,
+    gemType: selectedGem !== "all" ? selectedGem : undefined,
+    search: searchQuery || undefined,
+  });
+
+  // Fallback to demo data if Supabase returns nothing
+  const rawBrands = brandsQuery.data && brandsQuery.data.length > 0 ? brandsQuery.data : [DEMO_BRAND];
+  const rawJewelry = jewelryQuery.data && jewelryQuery.data.length > 0 ? jewelryQuery.data : DEMO_JEWELRY;
+  const isLoading = jewelryQuery.isLoading;
+
+  // Normalize brands to PartnerBrand type
+  const brands: PartnerBrand[] = rawBrands.map(b => ({
+    id: b.id,
+    name: b.name,
+    slug: (b as { slug?: string }).slug ?? b.name.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+    description: b.description ?? null,
+    logoUrl: (b as { logoUrl?: string }).logoUrl ?? null,
+    websiteUrl: (b as { websiteUrl?: string }).websiteUrl ?? null,
+    isPremium: (b as { isPremium?: boolean }).isPremium ?? null,
+    isFeatured: (b as { isFeatured?: boolean }).isFeatured ?? null,
+    specialty: (b as { specialty?: string }).specialty ?? null,
+    country: (b as { country?: string }).country ?? null,
+  }));
+
+  // Normalize jewelry to PartnerJewelry type
+  const jewelry: PartnerJewelry[] = rawJewelry.map(j => ({
+    id: j.id,
+    brandId: (j as { brandId?: number }).brandId ?? 1,
+    name: j.name,
+    type: (j.type as JewelryType) ?? "earrings",
+    description: j.description ?? null,
+    priceInCents: (j as { priceInCents?: number }).priceInCents ?? null,
+    currency: (j as { currency?: string }).currency ?? null,
+    imageUrl: (j as { imageUrl?: string }).imageUrl ? { uri: (j as { imageUrl: string }).imageUrl } : null,
+    productUrl: (j as { productUrl?: string }).productUrl ?? null,
+    metalType: (j as { metalType?: MetalType }).metalType ?? null,
+    gemType: (j as { gemType?: GemType }).gemType ?? null,
+    collection: (j as { collection?: string }).collection ?? null,
+    tags: (j as { tags?: string }).tags ?? null,
+    isTryOnEnabled: (j as { isTryOnEnabled?: boolean }).isTryOnEnabled ?? true,
+    tryOnImageUrl: (j as { tryOnImageUrl?: string }).tryOnImageUrl ?? null,
+  }));
   
   // Filter jewelry
   const filteredJewelry = useMemo(() => {

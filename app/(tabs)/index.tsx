@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -31,6 +32,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
 
   const handleStartTryOn = () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -56,12 +58,23 @@ export default function HomeScreen() {
               <Text style={[styles.brandSub, { color: colors.primary }]}>VIRTUEL</Text>
             </View>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push("/profile")}
-            style={[styles.profileBtn, { borderColor: colors.border }]}
-          >
-            <IconSymbol name="person.fill" size={18} color={colors.muted} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {!isAuthenticated && (
+              <TouchableOpacity
+                onPress={() => router.push("/login")}
+                style={[styles.loginChip, { borderColor: colors.primary }]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.loginChipText, { color: colors.primary }]}>SE CONNECTER</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => router.push("/profile")}
+              style={[styles.profileBtn, { borderColor: colors.border }]}
+            >
+              <IconSymbol name="person.fill" size={18} color={isAuthenticated ? colors.primary : colors.muted} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Séparateur or ────────────────────────────────────────────── */}
@@ -269,6 +282,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  loginChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: 2,
+  },
+  loginChipText: {
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
 
   // Ligne or
