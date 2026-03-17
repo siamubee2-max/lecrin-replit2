@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useLocalSearchParams } from "expo-router";
 import {
   View,
   Text,
@@ -154,10 +155,66 @@ type GalleryItem = { id: string; uri: string; label: string };
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+// ─── Mannequins Chaussures ─────────────────────────────────────────────────────
+const SHOES_MANNEQUIN_SECTIONS = [
+  {
+    title: "Pieds & Jambes",
+    data: [
+      { id: "ankle-1", uri: `${CDN}/OdSiQtPIdenBVntk.jpg`, label: "Cheville 1" },
+      { id: "hand-1", uri: `${CDN}/btMXmGHNLbTjRmEE.jpg`, label: "Pied 1" },
+      { id: "hand-2", uri: `${CDN}/jyiRZUGrdRTgSIXJ.jpg`, label: "Pied 2" },
+    ],
+  },
+  {
+    title: "Corps entier",
+    data: [
+      { id: "femme-jeans", uri: `${CDN}/abbVLmuyWSwhhikh.jpg`, label: "Femme Jeans" },
+      { id: "femme-robe", uri: `${CDN}/OxGFokpAzdVyeaCp.jpg`, label: "Femme Robe" },
+      { id: "homme-casual", uri: `${CDN}/iEKDtQHwyiIzFBLs.jpg`, label: "Homme Casual" },
+      { id: "homme-basket", uri: `${CDN}/uEwQwHLXMbeskowf.jpg`, label: "Homme Basket" },
+    ],
+  },
+];
+
+// ─── Mannequins Vêtements ──────────────────────────────────────────────────────
+const CLOTHING_MANNEQUIN_SECTIONS = [
+  {
+    title: "Corps entier",
+    data: [
+      { id: "femme-jeans", uri: `${CDN}/abbVLmuyWSwhhikh.jpg`, label: "Femme Jeans" },
+      { id: "femme-robe", uri: `${CDN}/OxGFokpAzdVyeaCp.jpg`, label: "Femme Robe" },
+      { id: "femme-rousse", uri: `${CDN}/JrHRSXiGdwkxFloI.jpg`, label: "Femme Rousse" },
+      { id: "femme-short-blonde", uri: `${CDN}/WJYefCuswobmjOFn.jpg`, label: "Femme Short Blonde" },
+      { id: "femme-short-brune", uri: `${CDN}/NiGpqbuSbzvVeGpE.jpg`, label: "Femme Short Brune" },
+      { id: "homme-sport", uri: `${CDN}/FAAIQjDUYqvqrnSP.jpg`, label: "Homme Sport" },
+      { id: "homme-casual", uri: `${CDN}/iEKDtQHwyiIzFBLs.jpg`, label: "Homme Casual" },
+      { id: "homme-basket", uri: `${CDN}/uEwQwHLXMbeskowf.jpg`, label: "Homme Basket" },
+    ],
+  },
+];
+
+type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories";
+
+const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabel: string; mannequinSections: typeof MANNEQUIN_SECTIONS; emoji: string }> = {
+  jewelry: { title: "ESSAYAGE BIJOUX", subtitle: "VIRTUEL", itemLabel: "BIJOU", mannequinSections: MANNEQUIN_SECTIONS, emoji: "💎" },
+  shoes: { title: "ESSAYAGE CHAUSSURES", subtitle: "VIRTUEL", itemLabel: "CHAUSSURE", mannequinSections: SHOES_MANNEQUIN_SECTIONS, emoji: "👠" },
+  clothing: { title: "ESSAYAGE VÊTEMENTS", subtitle: "VIRTUEL", itemLabel: "VÊTEMENT", mannequinSections: CLOTHING_MANNEQUIN_SECTIONS, emoji: "👗" },
+  accessories: { title: "ESSAYAGE ACCESSOIRES", subtitle: "VIRTUEL", itemLabel: "ACCESSOIRE", mannequinSections: MANNEQUIN_SECTIONS, emoji: "👜" },
+};
+
 export default function TryOnScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ section?: string; itemId?: string; itemName?: string }>();
 
+  const initialMode: TryOnMode = useMemo(() => {
+    if (params.section === "shoes") return "shoes";
+    if (params.section === "clothing") return "clothing";
+    if (params.section === "accessories") return "accessories";
+    return "jewelry";
+  }, [params.section]);
+
+  const [tryOnMode, setTryOnMode] = useState<TryOnMode>(initialMode);
   const [selectedJewelryType, setSelectedJewelryType] = useState<JewelryTypeKey>("earrings");
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [selectedJewelry, setSelectedJewelry] = useState<GalleryItem | null>(null);
@@ -298,17 +355,55 @@ export default function TryOnScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       >
-        {/* Header luxe */}
+         {/* Header luxe avec sélecteur de mode */}
         <View style={styles.luxeHeader}>
           <View>
-            <Text style={[styles.title, { color: colors.foreground }]}>ESSAYAGE</Text>
-            <Text style={[styles.titleAccent, { color: colors.primary }]}>VIRTUEL</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{MODE_CONFIG[tryOnMode].title}</Text>
+            <Text style={[styles.titleAccent, { color: colors.primary }]}>{MODE_CONFIG[tryOnMode].subtitle}</Text>
           </View>
-          <View style={[styles.headerDot, { backgroundColor: colors.primary }]} />
+          <Text style={{ fontSize: 28 }}>{MODE_CONFIG[tryOnMode].emoji}</Text>
         </View>
+        {/* Sélecteur de mode (Bijoux / Chaussures / Vêtements / Accessoires) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
+        >
+          {(["jewelry", "shoes", "clothing", "accessories"] as TryOnMode[]).map((mode) => {
+            const isActive = tryOnMode === mode;
+            return (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => {
+                  setTryOnMode(mode);
+                  setSelectedJewelry(null);
+                  setUserPhoto(null);
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                style={[
+                  styles.typeChip,
+                  {
+                    backgroundColor: isActive ? colors.foreground : "transparent",
+                    borderColor: isActive ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 14, marginRight: 4 }}>{MODE_CONFIG[mode].emoji}</Text>
+                <Text
+                  style={[
+                    styles.typeChipText,
+                    { color: isActive ? colors.background : colors.muted },
+                  ]}
+                >
+                  {mode === "jewelry" ? "Bijoux" : mode === "shoes" ? "Chaussures" : mode === "clothing" ? "Vêtements" : "Accessoires"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
         <View style={[styles.headerLine, { backgroundColor: colors.border }]} />
-
-        {/* Sélecteur de type de bijou */}
+        {/* Sélecteur de type de bijou (uniquement en mode bijoux) */}
+        {tryOnMode === "jewelry" && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -344,6 +439,7 @@ export default function TryOnScreen() {
             );
           })}
         </ScrollView>
+        )}
 
         {/* Zone principale : Photo + Bijou côte à côte */}
         <View style={styles.photosRow}>
@@ -410,10 +506,10 @@ export default function TryOnScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ── Le bijou ── */}
+          {/* ── L'article à essayer ── */}
           <View style={styles.photoCol}>
             <Text style={[styles.photoLabel, { color: colors.muted }]}>
-              {currentType.label.toUpperCase()}
+              {tryOnMode === "jewelry" ? currentType.label.toUpperCase() : MODE_CONFIG[tryOnMode].itemLabel}
             </Text>
 
             {/* Grande zone bijou */}
@@ -552,24 +648,23 @@ export default function TryOnScreen() {
         </View>
       </ScrollView>
 
-      {/* ─── Modal Mannequins ─────────────────────────────────────────────────── */}
+      {/* ─── Modal Mannequins ───────────────────────────────────────────────────── */}
       <GalleryModal
         visible={showMannequinModal}
-        title="Galerie Mannequins"
-        subtitle="Choisissez votre photo ou un mannequin"
-        sections={MANNEQUIN_SECTIONS}
+        title={tryOnMode === "shoes" ? "Mannequins Chaussures" : tryOnMode === "clothing" ? "Mannequins Vêtements" : "Galerie Mannequins"}
+        subtitle={tryOnMode === "shoes" ? "Choisissez une photo pieds/jambes ou corps entier" : tryOnMode === "clothing" ? "Choisissez un mannequin corps entier" : "Choisissez votre photo ou un mannequin"}
+        sections={MODE_CONFIG[tryOnMode].mannequinSections}
         onSelect={handleSelectMannequin}
         onClose={() => setShowMannequinModal(false)}
         imageMode="cover"
-        colors={colors}
-      />
+        colors={colors}     />
 
-      {/* ─── Modal Bijoux ─────────────────────────────────────────────────────── */}
+        {/* ─── Modal Article ───────────────────────────────────────────────────── */}
       <GalleryModal
         visible={showJewelryModal}
-        title={`Galerie — ${currentType.label}`}
-        subtitle="Sélectionnez un bijou à essayer"
-        sections={[{ title: currentType.label, data: jewelryOptions }]}
+        title={tryOnMode === "jewelry" ? `Galerie — ${currentType.label}` : `Galerie — ${MODE_CONFIG[tryOnMode].itemLabel}`}
+        subtitle={tryOnMode === "jewelry" ? "Sélectionnez un bijou à essayer" : tryOnMode === "shoes" ? "Sélectionnez une chaussure à essayer" : tryOnMode === "clothing" ? "Sélectionnez un vêtement à essayer" : "Sélectionnez un accessoire à essayer"}
+        sections={tryOnMode === "jewelry" ? [{ title: currentType.label, data: jewelryOptions }] : [{ title: MODE_CONFIG[tryOnMode].itemLabel, data: [] }]}
         onSelect={handleSelectJewelry}
         onClose={() => setShowJewelryModal(false)}
         imageMode="contain"

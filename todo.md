@@ -667,3 +667,12 @@
 - [x] Connecter les favoris dans gallery.tsx (TODO non implémenté)
 - [x] Utiliser le vrai nom de l'utilisateur connecté dans les posts Communauté
 - [x] Ajouter un fallback propre si Mixpanel non configuré (déjà géré dans AnalyticsProvider)
+
+## Dressing Virtuel Étendu (17 mars 2026)
+- [x] Créer l'écran Dressing Virtuel avec 4 onglets : Bijoux, Chaussures, Vêtements, Accessoires
+- [x] Ajouter section Chaussures dans l'écran Essayage avec mannequins pieds/jambes
+- [x] Ajouter section Vêtements dans l'écran Essayage avec mannequins corps entier
+- [x] Ajouter section Accessoires dans l'écran Essayage (sacs, ceintures, lunettes)
+- [x] Routes tRPC wardrobe.add/list/delete/uploadImage déjà disponibles (réutilisées)
+- [x] Navigation depuis dressing vers essayage avec paramètres de mode (section=shoes|clothing|accessories)
+- [x] Sélecteur de mode dans l'écran Essayage (Bijoux / Chaussures / Vêtements / Accessoires)
