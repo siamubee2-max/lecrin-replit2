@@ -6,6 +6,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
 import { storagePut } from "./storage";
+import { generateImage } from "./_core/imageGeneration";
 import { generateLookSuggestions, generateStylingTips, analyzeColorHarmony } from "./ai-stylist";
 
 export const appRouter = router({
@@ -784,6 +785,51 @@ export const appRouter = router({
         return db.isPartnerJewelryFavorited(ctx.user.id, input.jewelryId);
       }),
   }),
-});
 
+  // ============================================
+  // VIRTUAL TRY-ON ROUTE
+  // ============================================
+  virtualTryOn: router({
+    // Generate a try-on image using AI image editing
+    generate: publicProcedure
+      .input(z.object({
+        modelImageUrl: z.string().url(),
+        jewelryImageUrl: z.string().url(),
+        jewelryType: z.enum(["earrings", "necklace", "bracelet", "ring", "anklet", "set"]),
+        jewelryName: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const typeLabels: Record<string, string> = {
+          earrings: "boucles d'oreilles",
+          necklace: "collier",
+          bracelet: "bracelet",
+          ring: "bague",
+          anklet: "chevillière",
+          set: "parure de bijoux",
+        };
+        const typeLabel = typeLabels[input.jewelryType] || input.jewelryType;
+        const jewelryName = input.jewelryName || typeLabel;
+
+        const prompt = `Virtual jewelry try-on: Place the ${typeLabel} jewelry shown in the second image onto the person in the first image. The jewelry should be realistically positioned and sized. Maintain the person's appearance, skin tone, and pose exactly. Only add the jewelry naturally. High quality, photorealistic result.`;
+
+        const result = await generateImage({
+          prompt,
+          originalImages: [
+            { url: input.modelImageUrl, mimeType: "image/jpeg" },
+            { url: input.jewelryImageUrl, mimeType: "image/png" },
+          ],
+        });
+
+        if (!result.url) {
+          throw new Error("Image generation failed");
+        }
+
+        return {
+          resultImageUrl: result.url,
+          jewelryName,
+          jewelryType: input.jewelryType,
+        };
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;
