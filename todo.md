@@ -631,3 +631,19 @@
 - [x] Ajouter les routes tRPC community.list, community.create, community.like
 - [x] Connecter la Communauté à la base de données (posts persistants)
 - [x] Ajouter la barre de progression animée pendant l'essayage IA
+
+## Améliorations (suite - 17 mars 2026)
+- [ ] Créer l'écran de résultat dédié après l'essayage IA (plein écran, partage, sauvegarde)
+- [ ] Activer l'authentification (bouton Se connecter fonctionnel)
+- [ ] Connecter la boutique aux 39 bijoux MONI'ATTITUDE depuis Supabase
+
+## Améliorations (suite - 17 mars 2026 v2)
+- [x] Améliorer le modal de résultat essayage IA (plein écran luxe, badge IA, infos bijou, boutons Sauvegarder/Partager/Communauté)
+- [x] Bouton "Mon Écrin" dans le résultat pour sauvegarder directement dans la collection
+- [x] Bouton "Partager" natif iOS/Android dans le résultat
+- [x] Bouton "Publier dans la Communauté" dans le résultat
+- [x] Connecter la boutique à Supabase via tRPC (partnerJewelry.list + partnerBrands.list)
+- [x] Fallback sur données de démo si Supabase retourne vide
+- [x] Bouton "SE CONNECTER" dans le header de l'accueil (visible uniquement si non connecté)
+- [x] Icône profil en or quand connecté
+- [x] Redesign de l'écran de connexion (style luxe noir/crème/or)

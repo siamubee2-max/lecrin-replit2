@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Share } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
@@ -150,7 +151,10 @@ export default function TryOnScreen() {
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const addToCollectionMutation = trpc.collection.add.useMutation();
 
   const tryOnMutation = trpc.virtualTryOn.generate.useMutation();
 
@@ -582,30 +586,108 @@ export default function TryOnScreen() {
           >
             {resultImageUrl ? (
               <>
-                <Image
-                  source={{ uri: resultImageUrl }}
-                  style={{
-                    width: "100%",
-                    aspectRatio: 3 / 4,
-                    borderRadius: 20,
-                    marginBottom: 16,
+                {/* Image résultat plein écran */}
+                <View style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
+                  <Image
+                    source={{ uri: resultImageUrl }}
+                    style={{ width: "100%", aspectRatio: 3 / 4 }}
+                    contentFit="cover"
+                  />
+                  {/* Badge luxe */}
+                  <View style={[resultStyles.badge, { backgroundColor: colors.primary }]}>
+                    <Text style={[resultStyles.badgeText, { color: colors.background }]}>✦ ESSAYAGE IA</Text>
+                  </View>
+                </View>
+
+                {/* Infos bijou */}
+                <View style={[resultStyles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Text style={[resultStyles.infoLabel, { color: colors.muted }]}>BIJOU ESSAYÉ</Text>
+                  <Text style={[resultStyles.infoName, { color: colors.foreground }]}>{selectedJewelry?.label}</Text>
+                  <Text style={[resultStyles.infoBrand, { color: colors.primary }]}>MONI'ATTITUDE</Text>
+                </View>
+
+                {/* Actions */}
+                <View style={resultStyles.actionsGrid}>
+                  {/* Sauvegarder dans Mon Écrin */}
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (isSaved) return;
+                      try {
+                        await addToCollectionMutation.mutateAsync({
+                          name: selectedJewelry?.label ?? "Bijou essayé",
+                          type: selectedJewelryType,
+                          imageUri: resultImageUrl ?? undefined,
+                        });
+                        setIsSaved(true);
+                        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      } catch {
+                        Alert.alert("Erreur", "Impossible de sauvegarder dans Mon Écrin.");
+                      }
+                    }}
+                    style={[resultStyles.actionBtn, { backgroundColor: isSaved ? colors.success : colors.foreground }]}
+                    activeOpacity={0.85}
+                  >
+                    <IconSymbol name={isSaved ? "checkmark" : "heart.fill"} size={18} color={colors.background} />
+                    <Text style={[resultStyles.actionBtnText, { color: colors.background }]}>
+                      {isSaved ? "Sauvegardé" : "Mon Écrin"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Partager */}
+                  <TouchableOpacity
+                    onPress={async () => {
+                      try {
+                        await Share.share({
+                          message: `J'ai essayé ${selectedJewelry?.label} avec L'Écrin Virtuel ✨`,
+                          url: resultImageUrl ?? undefined,
+                        });
+                      } catch {}
+                    }}
+                    style={[resultStyles.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+                    activeOpacity={0.85}
+                  >
+                    <IconSymbol name="paperplane.fill" size={18} color={colors.foreground} />
+                    <Text style={[resultStyles.actionBtnText, { color: colors.foreground }]}>Partager</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Publier dans la Communauté */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowResultModal(false);
+                    Alert.alert(
+                      "Publier dans la Communauté",
+                      "Voulez-vous partager cet essayage avec la communauté L'Écrin Virtuel ?",
+                      [
+                        { text: "Annuler", style: "cancel" },
+                        {
+                          text: "Publier",
+                          onPress: () => {
+                            if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                            Alert.alert("Publié !", "Votre essayage a été partagé dans la Communauté.");
+                          },
+                        },
+                      ]
+                    );
                   }}
-                  contentFit="cover"
-                />
-                <Text style={[{ fontSize: 14, color: colors.muted, textAlign: "center", marginBottom: 20 }]}>
-                  Voici comment le bijou vous irait. Appuyez sur "Nouvel essayage" pour en essayer un autre.
-                </Text>
+                  style={[resultStyles.communityBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.primary }]}
+                  activeOpacity={0.85}
+                >
+                  <IconSymbol name="person.2.fill" size={16} color={colors.primary} />
+                  <Text style={[resultStyles.communityBtnText, { color: colors.primary }]}>Publier dans la Communauté</Text>
+                </TouchableOpacity>
+
+                {/* Nouvel essayage */}
                 <TouchableOpacity
                   onPress={() => {
                     setShowResultModal(false);
                     setResultImageUrl(null);
+                    setIsSaved(false);
                   }}
-                  style={[styles.tryOnBtn, { backgroundColor: colors.foreground, width: "100%" }]}
+                  style={[resultStyles.newTryBtn, { borderColor: colors.border }]}
+                  activeOpacity={0.85}
                 >
-                  <IconSymbol name="sparkles" size={18} color={colors.background} />
-                  <Text style={[styles.tryOnBtnText, { color: colors.background }]}>
-                    Nouvel essayage
-                  </Text>
+                  <Text style={[resultStyles.newTryBtnText, { color: colors.muted }]}>Nouvel essayage</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -899,5 +981,102 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     textAlign: "center",
     letterSpacing: 0.5,
+  },
+});
+
+const resultStyles = StyleSheet.create({
+  badge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 4,
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  infoCard: {
+    width: "100%",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  infoLabel: {
+    fontSize: 9,
+    fontWeight: "500",
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  infoName: {
+    fontSize: 16,
+    fontWeight: "300",
+    letterSpacing: 1.5,
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  infoBrand: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  actionsGrid: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+    marginBottom: 12,
+  },
+  actionBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  actionBtnText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  communityBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  communityBtnText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  newTryBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  newTryBtnText: {
+    fontSize: 11,
+    fontWeight: "400",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
 });
