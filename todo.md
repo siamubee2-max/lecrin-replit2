@@ -531,3 +531,18 @@
 - [x] Mettre à jour le composant AIPositionedJewelry pour accepter {uri: string}
 - [x] Corriger le mode manuel dans tryon.tsx pour les objets {uri}
 - [x] Créer des tests unitaires pour la logique de chargement des images (12 tests)
+
+## Intégration des vraies images GitHub (lecrin-replit)
+- [ ] Uploader les images mannequins (face-1..4, hand-1..2, wrist-1..2, ankle-1, jewelry-model-rousse) sur CDN
+- [ ] Uploader les vrais bijoux Moniattitude (boucles d'oreilles, colliers, bracelets) sur CDN
+- [ ] Mettre à jour LOCAL_DEMO_IMAGES dans tryon.tsx avec les vraies images mannequins
+- [ ] Mettre à jour les bijoux de démonstration dans tryon.tsx avec les vrais bijoux Moniattitude
+- [ ] Mettre à jour les bijoux dans ecrin.tsx avec les vrais bijoux Moniattitude
+
+## Intégration Supabase
+- [x] Configurer les variables d'environnement Supabase dans l'application mobile
+- [x] Installer @supabase/supabase-js dans le projet
+- [x] Créer un client Supabase dans lib/supabase.ts
+- [x] Mettre à jour les body_parts dans Supabase Ecrin avec les vraies photos mannequins CDN
+- [x] Connecter l'écran d'essayage aux bijoux réels de Supabase
+- [x] Connecter Mon Écrin aux bijoux de Supabase (lecture + ajout)
