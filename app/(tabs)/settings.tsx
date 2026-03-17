@@ -370,6 +370,13 @@ export default function SettingsScreen() {
           <Text className="text-xs text-muted mt-4 text-center">
             © 2025 Inferencevision.store{"\n"}Tous droits réservés
           </Text>
+          {/* Bouton admin discret */}
+          <TouchableOpacity
+            onPress={() => router.push("/admin-candidatures" as any)}
+            className="mt-6 active:opacity-30"
+          >
+            <Text style={{ fontSize: 10, color: colors.border, letterSpacing: 2 }}>⚙️</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </ScreenContainer>

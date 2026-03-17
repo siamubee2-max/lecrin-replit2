@@ -682,3 +682,14 @@
 - [x] Intégrer les chaussures de démo dans la galerie d'essayage mode Chaussures
 - [x] Connecter résultat essayage → Dressing (bouton "Ajouter au Dressing" selon catégorie)
 - [x] Ajouter filtre Favoris (bouton cœur rouge) dans chaque onglet du Dressing
+
+## Nouvelles Fonctionnalités (18 mars 2026)
+- [x] Scraper moniattitude.com : 19 vrais bijoux avec images CDN et prix réels
+- [x] Seeder 19 bijoux MONI'ATTITUDE en base de données (partnerBrands + partnerJewelry)
+- [x] Partage amélioré : image téléchargée localement + message avec watermark textuel "L'Écrin Virtuel"
+- [x] Créer l'écran admin candidatures partenaires (app/admin-candidatures.tsx)
+- [x] Routes tRPC admin : partnerApplications.list et partnerApplications.updateStatus
+- [x] Accès admin discret via icône ⚙️ en bas de l'écran Paramètres
+- [x] Code admin par défaut : ADMIN_CODE_REDACTED (configurable via ADMIN_CODE env var)
+- [ ] Générer images PNG vêtements de démo (robe noire, blazer camel, chemisier ivoire, pantalon marine)
+- [ ] Intégrer les vêtements de démo dans la galerie essayage mode Vêtements

@@ -958,6 +958,49 @@ export const appRouter = router({
 
         return { success: true, id: insertedId };
       }),
+
+    // List all applications (admin only, protected by secret code)
+    list: publicProcedure
+      .input(z.object({
+        adminCode: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const ADMIN_CODE = process.env.ADMIN_CODE || 'ADMIN_CODE_REDACTED';
+        if (input.adminCode !== ADMIN_CODE) {
+          throw new Error('Code admin invalide');
+        }
+        const dbInstance = await db.getDb();
+        if (!dbInstance) return { applications: [] };
+        const { partnerApplications } = await import('../drizzle/schema');
+        const apps = await dbInstance
+          .select()
+          .from(partnerApplications)
+          .orderBy(partnerApplications.createdAt);
+        return { applications: apps };
+      }),
+
+    // Update application status (admin only)
+    updateStatus: publicProcedure
+      .input(z.object({
+        adminCode: z.string(),
+        id: z.number(),
+        status: z.enum(['pending', 'approved', 'rejected']),
+      }))
+      .mutation(async ({ input }) => {
+        const ADMIN_CODE = process.env.ADMIN_CODE || 'ADMIN_CODE_REDACTED';
+        if (input.adminCode !== ADMIN_CODE) {
+          throw new Error('Code admin invalide');
+        }
+        const dbInstance = await db.getDb();
+        if (!dbInstance) throw new Error('DB non disponible');
+        const { partnerApplications } = await import('../drizzle/schema');
+        const { eq } = await import('drizzle-orm');
+        await dbInstance
+          .update(partnerApplications)
+          .set({ status: input.status })
+          .where(eq(partnerApplications.id, input.id));
+        return { success: true };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;
