@@ -15,6 +15,7 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
+import { useAuth } from "@/hooks/use-auth";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -120,6 +121,7 @@ export default function CommunityScreen() {
   const [newImage, setNewImage] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
 
   // Load posts from server
   const postsQuery = trpc.community.list.useQuery(undefined, { refetchOnWindowFocus: false });
@@ -171,8 +173,10 @@ export default function CommunityScreen() {
     }
     setIsPosting(true);
     try {
+      // Utiliser le vrai nom de l'utilisateur connecté, sinon "Anonyme"
+      const authorName = user?.name || user?.email?.split("@")[0] || "Anonyme";
       await createPostMutation.mutateAsync({
-        authorName: "Vous",
+        authorName,
         content: newCaption.trim(),
         imageUrl: newImage || undefined,
       });

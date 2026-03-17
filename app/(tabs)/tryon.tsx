@@ -17,12 +17,28 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { Share } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+
+// Convertit une URI locale (file:// ou content://) en URL publique via upload
+async function ensurePublicUrl(
+  uri: string,
+  uploadMutation: { mutateAsync: (args: { base64Data: string; mimeType?: string }) => Promise<{ url: string }> }
+): Promise<string> {
+  // Si c'est déjà une URL HTTP(S), on la retourne directement
+  if (uri.startsWith("http://") || uri.startsWith("https://")) {
+    return uri;
+  }
+  // Sinon, c'est une URI locale — on lit en base64 et on upload
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+  const result = await uploadMutation.mutateAsync({ base64Data: base64, mimeType: "image/jpeg" });
+  return result.url;
+}
 
 const CDN = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943";
 
@@ -155,7 +171,7 @@ export default function TryOnScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const addToCollectionMutation = trpc.collection.add.useMutation();
-
+  const uploadImageMutation = trpc.ai.uploadImage.useMutation();
   const tryOnMutation = trpc.virtualTryOn.generate.useMutation();
 
   const PROGRESS_STEPS = [
@@ -246,9 +262,14 @@ export default function TryOnScreen() {
     setIsProcessing(true);
     setResultImageUrl(null);
     try {
+      // Convertir les URIs locales en URLs publiques si nécessaire
+      const [publicModelUrl, publicJewelryUrl] = await Promise.all([
+        ensurePublicUrl(userPhoto, uploadImageMutation),
+        ensurePublicUrl(selectedJewelry.uri, uploadImageMutation),
+      ]);
       const result = await tryOnMutation.mutateAsync({
-        modelImageUrl: userPhoto,
-        jewelryImageUrl: selectedJewelry.uri,
+        modelImageUrl: publicModelUrl,
+        jewelryImageUrl: publicJewelryUrl,
         jewelryType: selectedJewelryType,
         jewelryName: selectedJewelry.label,
       });

@@ -37,11 +37,24 @@ export default function GalleryScreen() {
     setShowShareModal(true);
   };
 
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+
   const handleFavorite = (id: string) => {
     if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    // TODO: Implement favorite functionality
+    setFavoritedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }
+      return next;
+    });
   };
 
   const renderItem = ({ item }: { item: typeof MOCK_TRYONS[0] }) => (
@@ -76,7 +89,11 @@ export default function GalleryScreen() {
             onPress={() => handleFavorite(item.id)}
             className="w-10 h-10 rounded-full bg-background items-center justify-center active:opacity-70"
           >
-            <IconSymbol name="heart.fill" size={18} color={colors.primary} />
+            <IconSymbol
+              name="heart.fill"
+              size={18}
+              color={favoritedIds.has(item.id) ? colors.error : colors.border}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleDelete(item.id)}
