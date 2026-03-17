@@ -618,3 +618,16 @@
 - [x] Interface luxe style Dior (noir, crème, or) sur tous les écrans
 - [x] Connexion aux 39 bijoux MONI'ATTITUDE depuis Supabase
 - [x] Restauration de l'onglet Communauté
+
+## Suite des Améliorations (Mars 2026 - v2)
+- [ ] Créer l'onboarding au premier lancement (3 slides swipe)
+- [ ] Connecter le formulaire Devenir Partenaire à un e-mail + Supabase
+- [ ] Connecter la Communauté à Supabase (vrais posts persistants)
+- [ ] Améliorer l'expérience de la Communauté (likes, commentaires)
+
+## Suite des Améliorations (17 mars 2026)
+- [x] Créer l'onboarding au premier lancement (3 slides swipe)
+- [x] Connecter le formulaire Devenir Partenaire à la base de données (table partnerApplications)
+- [x] Ajouter les routes tRPC community.list, community.create, community.like
+- [x] Connecter la Communauté à la base de données (posts persistants)
+- [x] Ajouter la barre de progression animée pendant l'essayage IA

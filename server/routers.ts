@@ -831,5 +831,103 @@ export const appRouter = router({
         };
       }),
   }),
+
+  // ============================================
+  // COMMUNITY ROUTES
+  // ============================================
+  community: router({
+    // List posts (most recent first)
+    list: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(50).default(20), offset: z.number().default(0) }).optional())
+      .query(async ({ input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) return [];
+        const { communityPosts } = await import('../drizzle/schema');
+        const { desc } = await import('drizzle-orm');
+        const posts = await dbInstance
+          .select()
+          .from(communityPosts)
+          .orderBy(desc(communityPosts.isPinned), desc(communityPosts.createdAt))
+          .limit(input?.limit ?? 20)
+          .offset(input?.offset ?? 0);
+        return posts;
+      }),
+
+    // Create a new post
+    create: publicProcedure
+      .input(z.object({
+        authorName: z.string().min(1).max(255),
+        authorAvatar: z.string().optional(),
+        content: z.string().min(1).max(2000),
+        imageUrl: z.string().optional(),
+        jewelryType: z.string().max(64).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) throw new Error('DB not available');
+        const { communityPosts } = await import('../drizzle/schema');
+        const [result] = await dbInstance.insert(communityPosts).values({
+          authorName: input.authorName,
+          authorAvatar: input.authorAvatar || null,
+          content: input.content,
+          imageUrl: input.imageUrl || null,
+          jewelryType: input.jewelryType || null,
+          likesCount: 0,
+          commentsCount: 0,
+        });
+        return { success: true, id: (result as any)?.insertId ?? null };
+      }),
+
+    // Toggle like on a post
+    like: publicProcedure
+      .input(z.object({ postId: z.number() }))
+      .mutation(async ({ input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) throw new Error('DB not available');
+        const { communityPosts } = await import('../drizzle/schema');
+        const { eq, sql } = await import('drizzle-orm');
+        await dbInstance
+          .update(communityPosts)
+          .set({ likesCount: sql`${communityPosts.likesCount} + 1` })
+          .where(eq(communityPosts.id, input.postId));
+        return { success: true };
+      }),
+  }),
+
+  // ============================================
+  // PARTNER APPLICATIONS
+  // ============================================
+  partnerApplications: router({
+    // Submit a new partner application
+    submit: publicProcedure
+      .input(z.object({
+        brandName: z.string().min(2).max(255),
+        contactName: z.string().min(2).max(255),
+        email: z.string().email().max(320),
+        websiteUrl: z.string().optional(),
+        jewelryTypes: z.string().optional(),
+        priceRange: z.string().optional(),
+        message: z.string().max(2000).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) {
+          console.warn('[PartnerApplications] DB not available, application not saved');
+          return { success: true, id: null };
+        }
+        const { partnerApplications } = await import('../drizzle/schema');
+        const [result] = await dbInstance.insert(partnerApplications).values({
+          brandName: input.brandName,
+          contactName: input.contactName,
+          email: input.email,
+          websiteUrl: input.websiteUrl || null,
+          jewelryTypes: input.jewelryTypes || null,
+          priceRange: input.priceRange || null,
+          message: input.message || null,
+          status: 'pending',
+        });
+        return { success: true, id: (result as any)?.insertId ?? null };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

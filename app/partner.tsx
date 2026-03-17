@@ -60,6 +60,8 @@ export default function PartnerScreen() {
     );
   };
 
+  const submitMutation = trpc.partnerApplications.submit.useMutation();
+
   const handleSubmit = async () => {
     if (!brandName.trim() || !email.trim() || !contactName.trim()) {
       Alert.alert("Champs requis", "Veuillez renseigner le nom de la marque, votre nom et votre e-mail.");
@@ -74,8 +76,16 @@ export default function PartnerScreen() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call (replace with real tRPC mutation when backend route exists)
-      await new Promise(resolve => setTimeout(resolve, 1800));
+      const websiteValue = website.trim() || instagram.trim() ? (website.trim() || instagram.trim()) : undefined;
+      await submitMutation.mutateAsync({
+        brandName: brandName.trim(),
+        contactName: contactName.trim(),
+        email: email.trim(),
+        websiteUrl: websiteValue,
+        jewelryTypes: selectedTypes.join(", "),
+        priceRange: selectedPriceRange || undefined,
+        message: description.trim() || undefined,
+      });
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSubmitted(true);
     } catch (e) {
