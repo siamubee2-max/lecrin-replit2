@@ -336,14 +336,22 @@ export default function SettingsScreen() {
             <LinkRow
               icon="questionmark.circle.fill"
               title="Aide & FAQ"
-              onPress={() => {}}
+              onPress={() => Linking.openURL("https://inferencevision.store/faq")}
               colors={colors}
             />
             <View className="h-px bg-border mx-4" />
             <LinkRow
               icon="star.fill"
               title="Noter l'Application"
-              onPress={() => {}}
+              onPress={() => {
+                // Ouvre le Store pour noter l'app
+                const storeUrl = Platform.OS === "ios"
+                  ? "https://apps.apple.com/app/id0"
+                  : "https://play.google.com/store/apps";
+                Linking.openURL(storeUrl).catch(() =>
+                  Alert.alert("Bientôt disponible", "La notation sera disponible après publication sur les stores.")
+                );
+              }}
               colors={colors}
             />
           </View>

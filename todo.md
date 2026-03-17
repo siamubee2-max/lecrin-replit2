@@ -660,3 +660,10 @@
 - [x] Créer la table agent_memory dans le projet Supabase inferencevisionmemory
 - [x] Stocker les informations clés du projet (SMTP, Supabase, stack, features)
 - [x] Configurer les politiques RLS pour accès anon
+
+## Audit et Corrections (17 mars 2026)
+- [x] CRITIQUE: Upload auto de la photo locale avant envoi à l'API essayage IA (file:// → URL publique)
+- [x] Connecter "Aide & FAQ" à une page web et "Noter l'App" au Store dans Paramètres
+- [x] Connecter les favoris dans gallery.tsx (TODO non implémenté)
+- [x] Utiliser le vrai nom de l'utilisateur connecté dans les posts Communauté
+- [x] Ajouter un fallback propre si Mixpanel non configuré (déjà géré dans AnalyticsProvider)
