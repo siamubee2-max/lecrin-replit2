@@ -647,3 +647,16 @@
 - [x] Bouton "SE CONNECTER" dans le header de l'accueil (visible uniquement si non connecté)
 - [x] Icône profil en or quand connecté
 - [x] Redesign de l'écran de connexion (style luxe noir/crème/or)
+
+## Email automatique Devenir Partenaire
+- [x] Analyser le formulaire partenaire et la route tRPC existante
+- [x] Configurer le service d'envoi d'email (Nodemailer + SMTP Titan port 465)
+- [x] Créer le template email de confirmation pour le candidat (style luxe)
+- [x] Créer le template email de notification pour l'équipe Inferencevision
+- [x] Intégrer l'envoi d'email dans la route tRPC partnerApplications.submit
+- [x] Tester la connexion SMTP (test vitest passé ✓)
+
+## Mémoire Supabase Agent
+- [x] Créer la table agent_memory dans le projet Supabase inferencevisionmemory
+- [x] Stocker les informations clés du projet (SMTP, Supabase, stack, features)
+- [x] Configurer les politiques RLS pour accès anon
