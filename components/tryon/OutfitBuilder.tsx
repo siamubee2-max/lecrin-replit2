@@ -20,6 +20,8 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -221,6 +223,61 @@ export function OutfitBuilder() {
   const createLookMutation = trpc.looks.create.useMutation();
   const [isSaving, setIsSaving] = useState(false);
   const [savedLookId, setSavedLookId] = useState<number | null>(null);
+  // Bottom sheet de nommage
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
+  const [lookName, setLookName] = useState("");
+  const [lookOccasion, setLookOccasion] = useState<"casual" | "work" | "formal" | "sport" | "party" | "all">("casual");
+  const [lookSeason, setLookSeason] = useState<"spring" | "summer" | "fall" | "winter" | "all">("all");
+
+  const OCCASIONS = [
+    { id: "casual" as const, label: "Casual", icon: "👕" },
+    { id: "work" as const, label: "Travail", icon: "💼" },
+    { id: "formal" as const, label: "Soirée", icon: "🎩" },
+    { id: "sport" as const, label: "Sport", icon: "🏃" },
+    { id: "party" as const, label: "Fête", icon: "🎉" },
+  ];
+
+  const SEASONS = [
+    { id: "spring" as const, label: "Printemps", icon: "🌸" },
+    { id: "summer" as const, label: "Été", icon: "☀️" },
+    { id: "fall" as const, label: "Automne", icon: "🍂" },
+    { id: "winter" as const, label: "Hiver", icon: "❄️" },
+  ];
+
+  const handleSaveLook = async () => {
+    if (!user) {
+      Alert.alert("Connexion requise", "Connectez-vous pour sauvegarder vos looks.");
+      return;
+    }
+    if (isSaving) return;
+    setIsSaving(true);
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const slotLabels = Object.entries(slots)
+        .map(([key, item]) => {
+          const slot = OUTFIT_SLOTS.find(s => s.key === key);
+          return slot ? `${slot.emoji} ${item?.label ?? slot.label}` : null;
+        })
+        .filter(Boolean)
+        .join(", ");
+      const name = lookName.trim() || `Tenue du ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+      const result = await createLookMutation.mutateAsync({
+        name,
+        description: slotLabels || undefined,
+        occasion: lookOccasion,
+        season: lookSeason,
+        previewImageUrl: resultUrls[currentVariant] || resultUrls[0],
+        isAiGenerated: true,
+      });
+      setSavedLookId(result?.id ?? null);
+      setShowSaveSheet(false);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      Alert.alert("Erreur", "Impossible de sauvegarder le look.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const PROGRESS_STEPS = [
     "Analyse de la tenue…",
@@ -815,46 +872,106 @@ export function OutfitBuilder() {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={async () => {
-                  if (!user) {
-                    Alert.alert("Connexion requise", "Connectez-vous pour sauvegarder vos looks.");
-                    return;
-                  }
-                  if (isSaving) return;
-                  setIsSaving(true);
-                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  try {
-                    const slotLabels = Object.entries(slots)
-                      .map(([key, item]) => {
-                        const slot = OUTFIT_SLOTS.find(s => s.key === key);
-                        return slot ? `${slot.emoji} ${item?.label ?? slot.label}` : null;
-                      })
-                      .filter(Boolean)
-                      .join(", ");
-                    const lookName = `Tenue du ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
-                    const result = await createLookMutation.mutateAsync({
-                      name: lookName,
-                      description: slotLabels || undefined,
-                      previewImageUrl: resultUrls[currentVariant] || resultUrls[0],
-                      isAiGenerated: true,
-                    });
-                    setSavedLookId(result?.id ?? null);
-                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  } catch (e) {
-                    Alert.alert("Erreur", "Impossible de sauvegarder le look.");
-                  } finally {
-                    setIsSaving(false);
-                  }
+                onPress={() => {
+                  const defaultName = `Tenue du ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+                  setLookName(defaultName);
+                  setShowSaveSheet(true);
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
                 style={[styles.saveLookBtn, { backgroundColor: colors.primary + "18", borderColor: colors.primary }]}
               >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Text style={[styles.saveLookBtnText, { color: colors.primary }]}>♦ Sauvegarder dans Mes Looks</Text>
-                )}
+                <Text style={[styles.saveLookBtnText, { color: colors.primary }]}>♦ Sauvegarder dans Mes Looks</Text>
               </TouchableOpacity>
             )}
+
+            {/* Bottom Sheet de nommage */}
+            <Modal
+              visible={showSaveSheet}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowSaveSheet(false)}
+            >
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1, justifyContent: "flex-end" }}
+              >
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() => setShowSaveSheet(false)}
+                  activeOpacity={1}
+                />
+                <View style={[styles.saveSheet, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+                  {/* Handle */}
+                  <View style={[styles.saveSheetHandle, { backgroundColor: colors.border }]} />
+
+                  <Text style={[styles.saveSheetTitle, { color: colors.foreground }]}>Nommer ce look</Text>
+
+                  {/* Champ nom */}
+                  <TextInput
+                    value={lookName}
+                    onChangeText={setLookName}
+                    placeholder="Ex: Look soirée, Tenue casual..."
+                    placeholderTextColor={colors.muted}
+                    style={[styles.nameInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+                    autoFocus
+                    returnKeyType="done"
+                    maxLength={60}
+                  />
+
+                  {/* Occasion */}
+                  <Text style={[styles.saveSheetLabel, { color: colors.muted }]}>OCCASION</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                    <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 2 }}>
+                      {OCCASIONS.map(occ => (
+                        <TouchableOpacity
+                          key={occ.id}
+                          onPress={() => setLookOccasion(occ.id)}
+                          style={[styles.occasionChip, {
+                            backgroundColor: lookOccasion === occ.id ? colors.foreground : colors.surface,
+                            borderColor: lookOccasion === occ.id ? colors.primary : colors.border,
+                          }]}
+                        >
+                          <Text style={{ fontSize: 14 }}>{occ.icon}</Text>
+                          <Text style={[styles.occasionChipText, { color: lookOccasion === occ.id ? colors.background : colors.muted }]}>{occ.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+
+                  {/* Saison */}
+                  <Text style={[styles.saveSheetLabel, { color: colors.muted }]}>SAISON</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+                    <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 2 }}>
+                      {SEASONS.map(sea => (
+                        <TouchableOpacity
+                          key={sea.id}
+                          onPress={() => setLookSeason(sea.id)}
+                          style={[styles.occasionChip, {
+                            backgroundColor: lookSeason === sea.id ? colors.foreground : colors.surface,
+                            borderColor: lookSeason === sea.id ? colors.primary : colors.border,
+                          }]}
+                        >
+                          <Text style={{ fontSize: 14 }}>{sea.icon}</Text>
+                          <Text style={[styles.occasionChipText, { color: lookSeason === sea.id ? colors.background : colors.muted }]}>{sea.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+
+                  {/* Bouton Sauvegarder */}
+                  <TouchableOpacity
+                    onPress={handleSaveLook}
+                    style={[styles.saveLookBtn, { backgroundColor: colors.foreground, borderColor: colors.foreground, marginBottom: insets.bottom + 8 }]}
+                  >
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color={colors.background} />
+                    ) : (
+                      <Text style={[styles.saveLookBtnText, { color: colors.background }]}>♦ Sauvegarder</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </KeyboardAvoidingView>
+            </Modal>
           </View>
         </View>
       </Modal>
@@ -1079,5 +1196,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
+  },
+  saveSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  saveSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  saveSheetTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 16,
+  },
+  nameInput: {
+    fontSize: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 18,
+  },
+  saveSheetLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  occasionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  occasionChipText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
 });

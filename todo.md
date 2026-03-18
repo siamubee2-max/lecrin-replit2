@@ -810,3 +810,6 @@
 - [x] Lire la structure des looks sauvegardés dans Mes Looks (route tRPC looks.create)
 - [x] Ajouter bouton "Sauvegarder dans Mes Looks" dans le modal résultat de OutfitBuilder
 - [x] Créer la fonction de sauvegarde avec image générée + liste des articles sélectionnés
+
+## Nommage du look avant sauvegarde (18 mars 2026)
+- [x] Ajouter un bottom sheet de nommage avec champ de saisie, sélection d'occasion et saison avant sauvegarde dans Mes Looks
