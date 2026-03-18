@@ -813,3 +813,6 @@
 
 ## Nommage du look avant sauvegarde (18 mars 2026)
 - [x] Ajouter un bottom sheet de nommage avec champ de saisie, sélection d'occasion et saison avant sauvegarde dans Mes Looks
+
+## Filtres Mes Looks par occasion et saison (18 mars 2026)
+- [x] Ajouter filtres occasion (Tous/Casual/Travail/Soirée/Sport/Fête) et saison (Tous/Printemps/Été/Automne/Hiver) dans Mes Looks
