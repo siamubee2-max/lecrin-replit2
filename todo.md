@@ -816,3 +816,8 @@
 
 ## Filtres Mes Looks par occasion et saison (18 mars 2026)
 - [x] Ajouter filtres occasion (Tous/Casual/Travail/Soirée/Sport/Fête) et saison (Tous/Printemps/Été/Automne/Hiver) dans Mes Looks
+
+## Articles de démo Chapeaux et Montres (18 mars 2026)
+- [x] Générer 3 images de chapeaux (bob, casquette, chapeau de paille) sur fond blanc
+- [x] Générer 3 images de montres (classique, sport, luxe) sur fond blanc
+- [x] Intégrer les images comme articles de démo dans les sous-types hat et watch de l'OutfitBuilder
