@@ -770,3 +770,6 @@
 
 ## Amélioration prompt chaussures (18 mars 2026)
 - [x] Mettre à jour le prompt chaussures pour forcer image plein corps avec pieds visibles en bas de cadre
+
+## Amélioration prompt vêtements (18 mars 2026)
+- [x] Appliquer la règle CRITICAL FRAMING plein corps 9:16 au prompt vêtements (cohérence avec chaussures)
