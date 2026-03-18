@@ -221,6 +221,33 @@ const SHOES_DEMO = [
   },
 ];
 
+// ─── Vêtements de démonstration ─────────────────────────────────────────────
+const CLOTHING_DEMO = [
+  {
+    id: "dress-black",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_dress_black-C4XiYtX54R2EZijznwBAsb.png",
+    label: "Robe Noire",
+    brand: "L'Écrin",
+  },
+  {
+    id: "blazer-camel",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_blazer_camel-auFvdrjD8tJ3RwphvuczjX.png",
+    label: "Blazer Camel",
+    brand: "L'Écrin",
+  },
+  {
+    id: "blouse-ivory",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_blouse_ivory-FqFvVqikVUAH8cJaGp8y2Q.png",
+    label: "Chemisier Ivoire",
+    brand: "L'Écrin",
+  },
+  {
+    id: "pants-navy",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_pants_navy-mtvRm4h698yNo9YWgMgVkq.png",
+    label: "Pantalon Marine",
+    brand: "L'Écrin",
+  },
+];
 type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories";
 
 const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabel: string; mannequinSections: typeof MANNEQUIN_SECTIONS; emoji: string }> = {
@@ -696,6 +723,8 @@ export default function TryOnScreen() {
           ? [{ title: currentType.label, data: jewelryOptions }]
           : tryOnMode === "shoes"
           ? [{ title: "Chaussures de démonstration", data: SHOES_DEMO }]
+          : tryOnMode === "clothing"
+          ? [{ title: "Vêtements de démonstration", data: CLOTHING_DEMO }]
           : [{ title: MODE_CONFIG[tryOnMode].itemLabel, data: [] }]}
         onSelect={handleSelectJewelry}
         onClose={() => setShowJewelryModal(false)}
