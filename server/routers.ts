@@ -804,11 +804,22 @@ export const appRouter = router({
         jewelryName: z.string().optional(),
         // Nombre de variantes à générer (1-4)
         numSamples: z.number().int().min(1).max(4).default(1),
+        // Pose du mannequin
+        pose: z.enum(["front", "side", "walking", "back"]).default("front"),
       }))
       .mutation(async ({ input }) => {
         const itemName = input.jewelryName || input.jewelryType || input.accessoryType || input.category;
 
-        // ── Prompts spécialisés par catégorie (optimisés Nano Banana 2) ──────────
+        // Description de la pose choisie par l'utilisateur
+        const poseDescriptions: Record<string, string> = {
+          front:   "The person is standing upright, facing directly forward, in a neutral front-facing pose.",
+          side:    "The person is standing in a 3/4 side profile pose, slightly turned to one side.",
+          walking: "The person is in a natural walking pose, mid-stride, with a relaxed and dynamic movement.",
+          back:    "The person is standing with their back to the camera, rear view, showing the back of the outfit.",
+        };
+        const poseInstruction = poseDescriptions[input.pose ?? "front"] ?? poseDescriptions.front;
+
+        // ── Prompts spécialisés par catégorie (optimisés Nano Banana 2) ────────────
         let prompt: string;
 
         if (input.category === "jewelry") {
@@ -823,10 +834,10 @@ export const appRouter = router({
           prompt = jewelryPrompts[input.jewelryType || "earrings"] || jewelryPrompts.earrings;
 
         } else if (input.category === "shoes") {
-          prompt = `Fashion virtual try-on for footwear. CRITICAL FRAMING RULE: The output image MUST show the person's FULL BODY from head to toe in a vertical portrait (9:16 aspect ratio). The feet and shoes MUST be fully visible at the bottom of the frame — never cropped. The first image shows a person. The second image shows a pair of shoes/sneakers/boots/heels. Generate a photorealistic full-body portrait of the person wearing these exact shoes on both feet. Requirements: (1) Full body visible, feet clearly shown at the bottom edge of the image. (2) The shoes must be placed precisely on both feet with correct perspective, scale, and realistic material rendering (leather texture, sole details, laces, buckles if any). (3) Preserve the person's face, hair, skin tone, clothing, and pose exactly — do not change anything above the ankles. (4) The shoes must match the exact design, color, and material of the reference shoe image. (5) High-end fashion editorial photography, professional studio lighting, clean neutral background. (6) Do NOT crop the feet or legs.`;
+          prompt = `Fashion virtual try-on for footwear. CRITICAL FRAMING RULE: The output image MUST show the person's FULL BODY from head to toe in a vertical portrait (9:16 aspect ratio). The feet and shoes MUST be fully visible at the bottom of the frame — never cropped. POSE: ${poseInstruction} The first image shows a person. The second image shows a pair of shoes/sneakers/boots/heels. Generate a photorealistic full-body portrait of the person wearing these exact shoes on both feet, in the specified pose. Requirements: (1) Full body visible, feet clearly shown at the bottom edge of the image. (2) The shoes must be placed precisely on both feet with correct perspective, scale, and realistic material rendering (leather texture, sole details, laces, buckles if any). (3) Preserve the person's face, hair, skin tone, and clothing exactly — do not change anything above the ankles. (4) The shoes must match the exact design, color, and material of the reference shoe image. (5) High-end fashion editorial photography, professional studio lighting, clean neutral background. (6) Do NOT crop the feet or legs.`;
 
         } else if (input.category === "clothing") {
-          prompt = `Fashion virtual try-on for clothing. CRITICAL FRAMING RULE: The output image MUST show the person's FULL BODY from head to toe in a vertical portrait (9:16 aspect ratio). The entire outfit — from collar/shoulders down to the hem and feet — MUST be fully visible. Do NOT crop the legs, feet, or any part of the garment. The first image shows a person. The second image shows a clothing item (dress, top, blazer, pants, skirt, coat, etc.). Generate a photorealistic full-body portrait of the person wearing this exact garment. Requirements: (1) Full body visible head to toe, no cropping of any body part or garment edge. (2) The clothing must drape naturally on the body with realistic fabric texture, folds, wrinkles, and shadows that match the reference garment. (3) Preserve the person's face, skin tone, hair, body shape, and pose exactly — replace only the clothing. (4) The garment must match the exact design, color, pattern, and material of the reference image. (5) High-end fashion editorial photography, professional studio lighting, clean neutral background. (6) Do NOT crop the hem, legs, or feet.`;
+          prompt = `Fashion virtual try-on for clothing. CRITICAL FRAMING RULE: The output image MUST show the person's FULL BODY from head to toe in a vertical portrait (9:16 aspect ratio). The entire outfit — from collar/shoulders down to the hem and feet — MUST be fully visible. Do NOT crop the legs, feet, or any part of the garment. POSE: ${poseInstruction} The first image shows a person. The second image shows a clothing item (dress, top, blazer, pants, skirt, coat, etc.). Generate a photorealistic full-body portrait of the person wearing this exact garment in the specified pose. Requirements: (1) Full body visible head to toe, no cropping of any body part or garment edge. (2) The clothing must drape naturally on the body with realistic fabric texture, folds, wrinkles, and shadows that match the reference garment. (3) Preserve the person's face, skin tone, hair, and body shape exactly — replace only the clothing. (4) The garment must match the exact design, color, pattern, and material of the reference image. (5) High-end fashion editorial photography, professional studio lighting, clean neutral background. (6) Do NOT crop the hem, legs, or feet.`;
 
         } else {
           // accessories — prompts affinés par sous-type
@@ -839,7 +850,8 @@ export const appRouter = router({
             watch: `Fashion virtual try-on for a watch. The first image shows a person's wrist or full body. The second image shows a watch. Generate a photorealistic image of the person wearing this exact watch on their wrist. The watch must sit naturally on the wrist with correct scale, realistic metal/leather strap rendering, and accurate dial detail. Preserve skin tone and hand details exactly. Luxury watch photography style.`,
             other: `Fashion virtual try-on for an accessory. The first image shows a person. The second image shows a fashion accessory. Generate a photorealistic image of the person wearing or carrying this accessory in the most natural and elegant way possible. The accessory must look naturally integrated with correct scale, lighting, and shadow. Preserve the person's appearance exactly. Luxury fashion photography style.`,
           };
-          prompt = accessoryPrompts[input.accessoryType || "other"] || accessoryPrompts.other;
+          const baseAccessoryPrompt = accessoryPrompts[input.accessoryType || "other"] || accessoryPrompts.other;
+          prompt = `${baseAccessoryPrompt} POSE: ${poseInstruction}`;
         }
 
         // Générer numSamples variantes en parallèle

@@ -773,3 +773,9 @@
 
 ## Amélioration prompt vêtements (18 mars 2026)
 - [x] Appliquer la règle CRITICAL FRAMING plein corps 9:16 au prompt vêtements (cohérence avec chaussures)
+
+## Sélecteur de pose du mannequin (18 mars 2026)
+- [x] Ajouter constantes POSE_OPTIONS (face, profil, marche, dos) avec icônes et labels
+- [x] Ajouter état selectedPose et sélecteur horizontal dans l'écran essayage
+- [x] Passer la pose au serveur via le paramètre pose dans virtualTryOn.generate
+- [x] Intégrer la pose dans les prompts chaussures, vêtements et accessoires
