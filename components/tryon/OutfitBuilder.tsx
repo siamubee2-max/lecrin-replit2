@@ -27,9 +27,11 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "expo-file-system/legacy";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
+import { useRouter } from "expo-router";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type GalleryItem = { id: string; uri: string; label: string };
@@ -189,6 +191,8 @@ const POSE_OPTIONS = [
 export function OutfitBuilder() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const router = useRouter();
 
   // Photo du modèle
   const [modelPhoto, setModelPhoto] = useState<string | null>(null);
@@ -214,6 +218,9 @@ export function OutfitBuilder() {
 
   const uploadImageMutation = trpc.ai.uploadImage.useMutation();
   const outfitMutation = trpc.virtualTryOn.outfit.useMutation();
+  const createLookMutation = trpc.looks.create.useMutation();
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedLookId, setSavedLookId] = useState<number | null>(null);
 
   const PROGRESS_STEPS = [
     "Analyse de la tenue…",
@@ -790,8 +797,64 @@ export function OutfitBuilder() {
               }}
               style={[styles.actionBtn, { backgroundColor: colors.foreground, borderColor: colors.foreground }]}
             >
-              <Text style={[styles.actionBtnText, { color: colors.background }]}>✨ Regénérer</Text>
+              <Text style={[styles.actionBtnText, { color: colors.background }]}>✨ Régénérer</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Bouton Sauvegarder dans Mes Looks */}
+          <View style={[styles.saveLookContainer, { borderTopColor: colors.border, paddingBottom: insets.bottom + 4 }]}>
+            {savedLookId ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setShowResult(false);
+                  router.push("/my-looks");
+                }}
+                style={[styles.saveLookBtn, { backgroundColor: colors.success + "22", borderColor: colors.success }]}
+              >
+                <Text style={[styles.saveLookBtnText, { color: colors.success }]}>✓ Sauvegardé — Voir dans Mes Looks</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!user) {
+                    Alert.alert("Connexion requise", "Connectez-vous pour sauvegarder vos looks.");
+                    return;
+                  }
+                  if (isSaving) return;
+                  setIsSaving(true);
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  try {
+                    const slotLabels = Object.entries(slots)
+                      .map(([key, item]) => {
+                        const slot = OUTFIT_SLOTS.find(s => s.key === key);
+                        return slot ? `${slot.emoji} ${item?.label ?? slot.label}` : null;
+                      })
+                      .filter(Boolean)
+                      .join(", ");
+                    const lookName = `Tenue du ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+                    const result = await createLookMutation.mutateAsync({
+                      name: lookName,
+                      description: slotLabels || undefined,
+                      previewImageUrl: resultUrls[currentVariant] || resultUrls[0],
+                      isAiGenerated: true,
+                    });
+                    setSavedLookId(result?.id ?? null);
+                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  } catch (e) {
+                    Alert.alert("Erreur", "Impossible de sauvegarder le look.");
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                style={[styles.saveLookBtn, { backgroundColor: colors.primary + "18", borderColor: colors.primary }]}
+              >
+                {isSaving ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Text style={[styles.saveLookBtnText, { color: colors.primary }]}>♦ Sauvegarder dans Mes Looks</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -999,5 +1062,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
+  },
+  saveLookContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    borderTopWidth: 1,
+  },
+  saveLookBtn: {
+    paddingVertical: 13,
+    borderRadius: 4,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveLookBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
   },
 });

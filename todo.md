@@ -805,3 +805,8 @@
 - [x] Créer interface Tenue Complète avec grille de 10 slots sélectionnables
 - [x] Chaque slot ouvre la galerie correspondante pour sélectionner l'article
 - [x] Bouton Essayer la Tenue lance la génération multi-articles
+
+## Sauvegarder tenue dans Mes Looks (18 mars 2026)
+- [x] Lire la structure des looks sauvegardés dans Mes Looks (route tRPC looks.create)
+- [x] Ajouter bouton "Sauvegarder dans Mes Looks" dans le modal résultat de OutfitBuilder
+- [x] Créer la fonction de sauvegarde avec image générée + liste des articles sélectionnés
