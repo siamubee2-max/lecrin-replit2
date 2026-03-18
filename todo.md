@@ -821,3 +821,10 @@
 - [x] Générer 3 images de chapeaux (bob, casquette, chapeau de paille) sur fond blanc
 - [x] Générer 3 images de montres (classique, sport, luxe) sur fond blanc
 - [x] Intégrer les images comme articles de démo dans les sous-types hat et watch de l'OutfitBuilder
+
+## Mannequins inclusifs masculins et non-genrés (18 mars 2026)
+- [x] Générer 3 mannequins masculins (plein corps, buste, visage) sur fond neutre studio
+- [x] Générer 3 mannequins non-genrés / androgyne sur fond neutre studio
+- [x] Intégrer les mannequins masculins dans OutfitBuilder (OUTFIT_MANNEQUINS)
+- [x] Intégrer les mannequins masculins dans les galeries de l'écran essayage (bijoux, vêtements, chaussures, accessoires)
+- [x] Intégrer les mannequins non-genrés dans les deux galeries
