@@ -320,14 +320,58 @@ const ACCESSORY_TYPES: { key: AccessoryTypeKey; label: string; emoji: string }[]
   { key: "other", label: "Autres", emoji: "✨" },
 ];
 
+// Articles de démo Chapeaux
+const HATS_DEMO = [
+  {
+    id: "hat-bob-beige",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_bob_beige-HhGboqTxDiL54ad8MnDCD7.webp",
+    label: "Bob Beige",
+    brand: "L'Écrin",
+  },
+  {
+    id: "hat-cap-black",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_cap_black-eoUQeGAR5BDm5SGqfmFg9L.webp",
+    label: "Casquette Noire",
+    brand: "L'Écrin",
+  },
+  {
+    id: "hat-straw-summer",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_straw_summer-bQwBFDXdKH6t8VdBv33RsZ.webp",
+    label: "Chapeau de Paille",
+    brand: "L'Écrin",
+  },
+];
+
+// Articles de démo Montres
+const WATCHES_DEMO = [
+  {
+    id: "watch-classic-gold",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_classic_gold-hCfAhBvMghWX3VNW8SLVcz.webp",
+    label: "Montre Classique Or",
+    brand: "L'Écrin",
+  },
+  {
+    id: "watch-sport-black",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_sport_black-SexGEybF3TtRBCe7XBSQbM.webp",
+    label: "Montre Sport Noire",
+    brand: "L'Écrin",
+  },
+  {
+    id: "watch-luxury-silver",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_luxury_silver-9mRSmbzaU66Q4hPwbfEnP9.webp",
+    label: "Montre Luxe Argent",
+    brand: "L'Écrin",
+  },
+];
+
 // Accessoires filtrés par sous-type
 const ACCESSORIES_BY_TYPE: Record<AccessoryTypeKey, typeof ACCESSORIES_DEMO> = {
   bag: ACCESSORIES_DEMO.filter(a => a.id === "bag-black"),
   belt: ACCESSORIES_DEMO.filter(a => a.id === "belt-gold"),
   sunglasses: ACCESSORIES_DEMO.filter(a => a.id === "sunglasses-black"),
   scarf: ACCESSORIES_DEMO.filter(a => a.id === "scarf-beige"),
-  hat: [],
-  watch: [],
+  hat: HATS_DEMO,
+  watch: WATCHES_DEMO,
   other: ACCESSORIES_DEMO,
 };
 
