@@ -710,3 +710,11 @@
 - [x] Diagnostiquer : Mon Écrin lisait la table Supabase `jewelry` (vide) au lieu de `partnerJewelry` (MySQL)
 - [x] Corriger : Mon Écrin charge maintenant les 19 bijoux MONI'ATTITUDE via tRPC partnerJewelry.list
 - [x] Ajouter message "Connexion requise" si l'utilisateur non-connecté tente de sauvegarder dans Mon Écrin
+
+## Onglets filtrage Mon Écrin (18 mars 2026)
+- [x] Onglets Tous / Boucles / Colliers / Bagues / Bracelets / Chevillieres / Broches dans Mon Écrin
+- [x] Filtrer les bijoux affichés selon l'onglet actif
+- [x] Afficher le compteur d'articles par catégorie dans chaque onglet
+- [x] Masquer automatiquement les onglets vides (count = 0)
+- [x] Icônes symétriques par catégorie (✦ ◈ ◉ ◎ ⊙ ◌ ✿)
+- [x] Retour haptique au changement d'onglet
