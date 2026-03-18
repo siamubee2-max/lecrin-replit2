@@ -749,3 +749,8 @@
 - [x] Créer l'historique des essayages par catégorie dans le profil (TryOnHistoryTab)
 - [x] Sauvegarder chaque essayage dans AsyncStorage avec catégorie + image résultat
 - [x] Afficher l'historique avec filtres Bijoux / Chaussures / Vêtements / Accessoires
+
+## Relancer un essayage depuis l'historique (18 mars 2026)
+- [x] Ajouter bouton "Réessayer" sur chaque carte de l'historique
+- [x] Naviguer vers l'écran essayage avec les paramètres pré-remplis (photo modèle, article, catégorie, sous-type)
+- [x] Mettre à jour l'écran essayage pour lire les params modelImageUrl et itemImageUrl depuis la navigation
