@@ -698,3 +698,7 @@
 - [x] Générer images PNG vêtements de démo (robe noire, blazer camel, chemisier ivoire, pantalon marine)
 - [x] Intégrer les vêtements de démo dans la galerie essayage mode Vêtements
 - [x] Configurer ADMIN_CODE via les secrets du projet (test vitest passé ✓)
+
+## Accessoires démo (18 mars 2026)
+- [x] Générer images PNG accessoires de démo (sac à main noir, ceinture dorée, lunettes cat-eye, écharpe beige)
+- [x] Intégrer les accessoires de démo dans la galerie essayage mode Accessoires
