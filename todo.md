@@ -718,3 +718,23 @@
 - [x] Masquer automatiquement les onglets vides (count = 0)
 - [x] Icônes symétriques par catégorie (✦ ◈ ◉ ◎ ⊙ ◌ ✿)
 - [x] Retour haptique au changement d'onglet
+
+## Adaptation libellés essayage (18 mars 2026)
+- [ ] Adapter le bouton "Essayer ce bijou" selon le mode (Vêtement / Chaussures / Accessoire)
+- [ ] Adapter les titres et labels des modals selon le mode actif
+- [ ] Adapter le bouton "Sauvegarder dans Mon Écrin" selon le mode
+
+## APIs Essayage Virtuel par Catégorie (18 mars 2026)
+- [ ] Adapter les libellés de l'essayage selon le mode actif (bouton "Essayer ce bijou" → "Essayer ce vêtement" etc.)
+- [ ] Rechercher les meilleures APIs d'essayage virtuel par catégorie
+- [ ] Intégrer les APIs sélectionnées dans le serveur et l'écran essayage
+
+## Amélioration Prompts IA Essayage (18 mars 2026)
+- [x] Rechercher les capacités de Nano Banana 2 (gemini-3.1-flash-image-preview) pour l'essayage virtuel
+- [x] Mettre à jour la route tRPC virtualTryOn.generate pour accepter le paramètre `category`
+- [x] Créer des prompts spécialisés pour les bijoux (boucles, collier, bracelet, bague, chevillière, parure)
+- [x] Créer un prompt spécialisé pour les chaussures (positionnement sur les pieds, texture cuir/tissu)
+- [x] Créer un prompt spécialisé pour les vêtements (drapé naturel, texture tissu, remplacement du vêtement)
+- [x] Créer un prompt spécialisé pour les accessoires (sac, ceinture, lunettes, écharpe)
+- [x] Adapter l'appel tRPC dans tryon.tsx pour passer la catégorie et le type de bijou
+- [x] Adapter les messages de progression selon le mode actif (bijou/chaussures/vêtement/accessoire)

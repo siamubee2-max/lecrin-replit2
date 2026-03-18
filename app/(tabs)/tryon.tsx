@@ -332,13 +332,16 @@ export default function TryOnScreen() {
   const uploadImageMutation = trpc.ai.uploadImage.useMutation();
   const tryOnMutation = trpc.virtualTryOn.generate.useMutation();
 
-  const PROGRESS_STEPS = [
-    "Analyse du bijou…",
-    "Détection du corps…",
-    "Positionnement intelligent…",
-    "Génération du rendu…",
-    "Finalisation…",
-  ];
+  const PROGRESS_STEPS = useMemo(() => {
+    const itemWord = tryOnMode === "jewelry" ? "bijou" : tryOnMode === "shoes" ? "chaussures" : tryOnMode === "clothing" ? "vêtement" : "accessoire";
+    return [
+      `Analyse ${tryOnMode === "shoes" || tryOnMode === "accessories" ? "de l'" : "du "}${itemWord}…`,
+      "Détection du corps…",
+      "Positionnement intelligent…",
+      "Génération du rendu…",
+      "Finalisation…",
+    ];
+  }, [tryOnMode]);
 
   useEffect(() => {
     if (!isProcessing) {
@@ -428,7 +431,8 @@ export default function TryOnScreen() {
       const result = await tryOnMutation.mutateAsync({
         modelImageUrl: publicModelUrl,
         jewelryImageUrl: publicJewelryUrl,
-        jewelryType: selectedJewelryType,
+        category: tryOnMode,
+        ...(tryOnMode === "jewelry" ? { jewelryType: selectedJewelryType } : {}),
         jewelryName: selectedJewelry.label,
       });
       // Complete progress bar to 100%
@@ -659,7 +663,7 @@ export default function TryOnScreen() {
             >
               <IconSymbol name="diamond.fill" size={14} color={colors.background} />
               <Text style={[styles.fullBtnText, { color: colors.background }]}>
-                Galerie Bijoux
+                {tryOnMode === "jewelry" ? "Galerie Bijoux" : tryOnMode === "shoes" ? "Galerie Chaussures" : tryOnMode === "clothing" ? "Galerie Vêtements" : "Galerie Accessoires"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -699,7 +703,7 @@ export default function TryOnScreen() {
                     { color: canTryOn ? colors.background : colors.muted },
                   ]}
                 >
-                  Essayer ce bijou
+                  {tryOnMode === "jewelry" ? "ESSAYER CE BIJOU" : tryOnMode === "shoes" ? "ESSAYER CES CHAUSSURES" : tryOnMode === "clothing" ? "ESSAYER CE VÊTEMENT" : "ESSAYER CET ACCESSOIRE"}
                 </Text>
               </>
             )}
@@ -743,7 +747,10 @@ export default function TryOnScreen() {
             <Text style={[styles.hintText, { color: colors.muted }]}>
               {!userPhoto
                 ? "Sélectionnez d'abord votre photo ou un mannequin"
-                : "Sélectionnez ensuite un bijou à essayer"}
+                : tryOnMode === "jewelry" ? "Sélectionnez ensuite un bijou à essayer"
+                : tryOnMode === "shoes" ? "Sélectionnez ensuite une paire de chaussures"
+                : tryOnMode === "clothing" ? "Sélectionnez ensuite un vêtement à essayer"
+                : "Sélectionnez ensuite un accessoire à essayer"}
             </Text>
           )}
         </View>
@@ -826,7 +833,7 @@ export default function TryOnScreen() {
 
                 {/* Infos bijou */}
                 <View style={[resultStyles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={[resultStyles.infoLabel, { color: colors.muted }]}>BIJOU ESSAYÉ</Text>
+                  <Text style={[resultStyles.infoLabel, { color: colors.muted }]}>{tryOnMode === "jewelry" ? "BIJOU ESSAYÉ" : tryOnMode === "shoes" ? "CHAUSSURES ESSAYÉES" : tryOnMode === "clothing" ? "VÊTEMENT ESSAYÉ" : "ACCESSOIRE ESSAYÉ"}</Text>
                   <Text style={[resultStyles.infoName, { color: colors.foreground }]}>{selectedJewelry?.label}</Text>
                   <Text style={[resultStyles.infoBrand, { color: colors.primary }]}>MONI'ATTITUDE</Text>
                 </View>

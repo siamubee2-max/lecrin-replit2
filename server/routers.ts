@@ -790,33 +790,51 @@ export const appRouter = router({
   // VIRTUAL TRY-ON ROUTE
   // ============================================
   virtualTryOn: router({
-    // Generate a try-on image using AI image editing
+    // Generate a try-on image using AI image editing (Nano Banana 2)
     generate: publicProcedure
       .input(z.object({
         modelImageUrl: z.string().url(),
         jewelryImageUrl: z.string().url(),
-        jewelryType: z.enum(["earrings", "necklace", "bracelet", "ring", "anklet", "set"]),
+        // Mode d'essayage : bijoux, chaussures, vêtements, accessoires
+        category: z.enum(["jewelry", "shoes", "clothing", "accessories"]).default("jewelry"),
+        // Sous-type pour les bijoux
+        jewelryType: z.enum(["earrings", "necklace", "bracelet", "ring", "anklet", "set"]).optional(),
         jewelryName: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        const typeLabels: Record<string, string> = {
-          earrings: "boucles d'oreilles",
-          necklace: "collier",
-          bracelet: "bracelet",
-          ring: "bague",
-          anklet: "chevillière",
-          set: "parure de bijoux",
-        };
-        const typeLabel = typeLabels[input.jewelryType] || input.jewelryType;
-        const jewelryName = input.jewelryName || typeLabel;
+        const itemName = input.jewelryName || input.jewelryType || input.category;
 
-        const prompt = `Virtual jewelry try-on: Place the ${typeLabel} jewelry shown in the second image onto the person in the first image. The jewelry should be realistically positioned and sized. Maintain the person's appearance, skin tone, and pose exactly. Only add the jewelry naturally. High quality, photorealistic result.`;
+        // ── Prompts spécialisés par catégorie (optimisés Nano Banana 2) ──────────
+        let prompt: string;
+
+        if (input.category === "jewelry") {
+          // Prompts spécifiques par type de bijou
+          const jewelryPrompts: Record<string, string> = {
+            earrings: `Fashion virtual try-on. The first image shows a person (model or mannequin). The second image shows a pair of earrings. Your task: generate a photorealistic image of the person wearing these exact earrings. Place the earrings precisely on the earlobes, matching the natural position. Preserve the person's face, skin tone, hair, and expression exactly. Do not alter any other part of the image. The earrings must look naturally worn, with correct scale, lighting, and shadow. High-end luxury jewelry photography style.`,
+            necklace: `Fashion virtual try-on. The first image shows a person. The second image shows a necklace. Generate a photorealistic image of the person wearing this exact necklace around their neck. The necklace should drape naturally on the chest/collarbone area with realistic lighting and shadow. Preserve the person's face, skin tone, clothing, and pose exactly. Do not change anything else. Luxury jewelry editorial style.`,
+            bracelet: `Fashion virtual try-on. The first image shows a person. The second image shows a bracelet or bangle. Generate a photorealistic image of the person wearing this bracelet on their wrist. Position it naturally on the wrist with correct scale and realistic metallic/material rendering. Preserve the person's hand, skin tone, and everything else exactly. Luxury jewelry photography style.`,
+            ring: `Fashion virtual try-on. The first image shows a person's hand or full body. The second image shows a ring. Generate a photorealistic image of the person wearing this ring on their finger. The ring should fit naturally with correct proportions and realistic gemstone/metal rendering. Preserve skin tone and hand details exactly. High-end jewelry close-up style.`,
+            anklet: `Fashion virtual try-on. The first image shows a person's ankle/foot or full body. The second image shows an anklet or ankle bracelet. Generate a photorealistic image of the person wearing this anklet around their ankle. Natural drape, correct scale, realistic metal/bead rendering. Preserve skin tone and pose exactly. Luxury jewelry style.`,
+            set: `Fashion virtual try-on. The first image shows a person. The second image shows a jewelry set (multiple pieces). Generate a photorealistic image of the person wearing this complete jewelry set — place each piece on the appropriate body part (earrings on ears, necklace on neck, bracelet on wrist). Preserve the person's appearance exactly. High-end luxury editorial photography.`,
+          };
+          prompt = jewelryPrompts[input.jewelryType || "earrings"] || jewelryPrompts.earrings;
+
+        } else if (input.category === "shoes") {
+          prompt = `Fashion virtual try-on for footwear. The first image shows a person (full body or lower body visible). The second image shows a pair of shoes. Generate a photorealistic image of the person wearing these exact shoes. The shoes must be placed precisely on both feet with correct perspective, scale, and realistic material rendering (leather texture, sole, laces if any). Preserve the person's legs, clothing, skin tone, and pose exactly. Do not alter anything above the ankles. High-end fashion photography style, studio lighting.`;
+
+        } else if (input.category === "clothing") {
+          prompt = `Fashion virtual try-on for clothing. The first image shows a person or mannequin (full body). The second image shows a clothing item (dress, top, blazer, pants, etc.). Generate a photorealistic image of the person wearing this exact garment. The clothing must drape naturally on the body with realistic fabric texture, folds, and shadows. Preserve the person's face, skin tone, hair, and body shape exactly. Replace only the clothing. High-end fashion editorial photography, professional studio lighting, clean background.`;
+
+        } else {
+          // accessories
+          prompt = `Fashion virtual try-on for accessories. The first image shows a person. The second image shows an accessory (handbag, belt, sunglasses, scarf, hat, watch, etc.). Generate a photorealistic image of the person using or wearing this accessory in the most natural way: sunglasses on the face, handbag held in hand or on shoulder, belt around waist, scarf around neck. The accessory must look naturally integrated with correct scale, lighting, and shadow. Preserve the person's appearance exactly. Luxury fashion photography style.`;
+        }
 
         const result = await generateImage({
           prompt,
           originalImages: [
             { url: input.modelImageUrl, mimeType: "image/jpeg" },
-            { url: input.jewelryImageUrl, mimeType: "image/png" },
+            { url: input.jewelryImageUrl, mimeType: "image/jpeg" },
           ],
         });
 
@@ -826,8 +844,9 @@ export const appRouter = router({
 
         return {
           resultImageUrl: result.url,
-          jewelryName,
-          jewelryType: input.jewelryType,
+          jewelryName: itemName,
+          jewelryType: input.jewelryType || input.category,
+          category: input.category,
         };
       }),
   }),
