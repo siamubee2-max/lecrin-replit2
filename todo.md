@@ -702,3 +702,7 @@
 ## Accessoires démo (18 mars 2026)
 - [x] Générer images PNG accessoires de démo (sac à main noir, ceinture dorée, lunettes cat-eye, écharpe beige)
 - [x] Intégrer les accessoires de démo dans la galerie essayage mode Accessoires
+
+## Mannequins Corps Entier Vêtements (18 mars 2026)
+- [x] Générer 5 photos mannequins corps entier professionnels (femme svelte, femme casual, femme ronde, homme classique, femme élancée peau foncée)
+- [x] Intégrer les nouveaux mannequins dans la section Clothing de l'écran essayage
