@@ -764,3 +764,6 @@
 - [x] Créer composant ZoomableImage avec pinch-to-zoom et double-tap (react-native-gesture-handler + reanimated)
 - [x] Intégrer ZoomableImage dans le modal de résultat de l'essayage
 - [x] Ajouter indicateur visuel "Pincez pour zoomer" au premier affichage
+
+## Fix ratio image modal résultat (18 mars 2026)
+- [x] Adapter le ratio d'aspect de l'image résultat selon la catégorie (chaussures/vêtements = 9:16, bijoux/accessoires = 3:4)
