@@ -754,3 +754,8 @@
 - [x] Ajouter bouton "Réessayer" sur chaque carte de l'historique
 - [x] Naviguer vers l'écran essayage avec les paramètres pré-remplis (photo modèle, article, catégorie, sous-type)
 - [x] Mettre à jour l'écran essayage pour lire les params modelImageUrl et itemImageUrl depuis la navigation
+
+## Partage depuis l'historique (18 mars 2026)
+- [x] Ajouter bouton de partage natif sur chaque carte de l'historique
+- [x] Partager l'image résultat + message MONI'ATTITUDE via Share natif iOS/Android
+- [x] Télécharger l'image localement avant partage sur mobile (expo-file-system)
