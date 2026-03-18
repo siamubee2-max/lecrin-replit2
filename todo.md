@@ -759,3 +759,8 @@
 - [x] Ajouter bouton de partage natif sur chaque carte de l'historique
 - [x] Partager l'image résultat + message MONI'ATTITUDE via Share natif iOS/Android
 - [x] Télécharger l'image localement avant partage sur mobile (expo-file-system)
+
+## Zoom sur l'image générée (18 mars 2026)
+- [x] Créer composant ZoomableImage avec pinch-to-zoom et double-tap (react-native-gesture-handler + reanimated)
+- [x] Intégrer ZoomableImage dans le modal de résultat de l'essayage
+- [x] Ajouter indicateur visuel "Pincez pour zoomer" au premier affichage
