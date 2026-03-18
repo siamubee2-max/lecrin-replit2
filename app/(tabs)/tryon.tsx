@@ -24,6 +24,7 @@ import { Share } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
+import { OutfitBuilder } from "@/components/tryon/OutfitBuilder";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
@@ -306,7 +307,7 @@ const ACCESSORIES_DEMO = [
     brand: "L'Écrin",
   },
 ];
-type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories";
+type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories" | "outfit";
 type AccessoryTypeKey = "bag" | "belt" | "sunglasses" | "scarf" | "hat" | "watch" | "other";
 
 const ACCESSORY_TYPES: { key: AccessoryTypeKey; label: string; emoji: string }[] = [
@@ -344,6 +345,7 @@ const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabe
   shoes: { title: "ESSAYAGE CHAUSSURES", subtitle: "VIRTUEL", itemLabel: "CHAUSSURE", mannequinSections: SHOES_MANNEQUIN_SECTIONS, emoji: "👠" },
   clothing: { title: "ESSAYAGE VÊTEMENTS", subtitle: "VIRTUEL", itemLabel: "VÊTEMENT", mannequinSections: CLOTHING_MANNEQUIN_SECTIONS, emoji: "👗" },
   accessories: { title: "ESSAYAGE ACCESSOIRES", subtitle: "VIRTUEL", itemLabel: "ACCESSOIRE", mannequinSections: MANNEQUIN_SECTIONS, emoji: "👜" },
+  outfit: { title: "TENUE COMPLÈTE", subtitle: "VIRTUEL", itemLabel: "ARTICLE", mannequinSections: CLOTHING_MANNEQUIN_SECTIONS, emoji: "✨" },
 };
 
 export default function TryOnScreen() {
@@ -515,7 +517,7 @@ export default function TryOnScreen() {
       const result = await tryOnMutation.mutateAsync({
         modelImageUrl: publicModelUrl,
         jewelryImageUrl: publicJewelryUrl,
-        category: tryOnMode,
+        category: tryOnMode as "jewelry" | "shoes" | "clothing" | "accessories",
         ...(tryOnMode === "jewelry" ? { jewelryType: selectedJewelryType } : {}),
         ...(tryOnMode === "accessories" ? { accessoryType: selectedAccessoryType } : {}),
         jewelryName: selectedJewelry.label,
@@ -611,7 +613,7 @@ export default function TryOnScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
         >
-          {(["jewelry", "shoes", "clothing", "accessories"] as TryOnMode[]).map((mode) => {
+          {(["jewelry", "shoes", "clothing", "accessories", "outfit"] as TryOnMode[]).map((mode) => {
             const isActive = tryOnMode === mode;
             return (
               <TouchableOpacity
@@ -637,13 +639,23 @@ export default function TryOnScreen() {
                     { color: isActive ? colors.background : colors.muted },
                   ]}
                 >
-                  {mode === "jewelry" ? "Bijoux" : mode === "shoes" ? "Chaussures" : mode === "clothing" ? "Vêtements" : "Accessoires"}
+                  {mode === "jewelry" ? "Bijoux" : mode === "shoes" ? "Chaussures" : mode === "clothing" ? "Vêtements" : mode === "accessories" ? "Accessoires" : "Tenue"}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
         <View style={[styles.headerLine, { backgroundColor: colors.border }]} />
+
+        {/* Mode Tenue Complète */}
+        {tryOnMode === "outfit" && (
+          <View style={{ flex: 1, minHeight: 600 }}>
+            <OutfitBuilder />
+          </View>
+        )}
+
+        {/* Contenu des autres modes */}
+        {tryOnMode !== "outfit" && (<>
         {/* Sélecteur de type de bijou (uniquement en mode bijoux) */}
         {tryOnMode === "jewelry" && (
         <ScrollView
@@ -985,6 +997,7 @@ export default function TryOnScreen() {
             </Text>
           )}
         </View>
+        </>)}
       </ScrollView>
 
       {/* ─── Modal Mannequins ───────────────────────────────────────────────────── */}
@@ -1198,6 +1211,7 @@ export default function TryOnScreen() {
                           shoes: "shoes",
                           clothing: "clothing",
                           accessories: "accessories",
+                          outfit: "outfit",
                         };
                         await addToCollectionMutation.mutateAsync({
                           name: selectedJewelry?.label ?? "Article essayé",

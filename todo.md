@@ -791,3 +791,17 @@
 - [x] Restructurer le modal résultat avec carousel horizontal FlatList paginée
 
 ## Adaptation éclairage dans les prompts (18 mars 2026)- [x] Ajouter instruction d'adaptation lumiéreuse dans tous les prompts (même source, ombres, température couleur)
+
+## Mode Tenue Complète (18 mars 2026)
+- [x] Créer écran TenuCompleteScreen avec sélection multi-articles (vêtement + bijoux + chaussures + accessoires)
+- [x] Ajouter route tRPC virtualTryOn.outfit pour prompt combiné multi-articles
+- [x] Intégrer le mode Tenue Complète comme onglet dans l'écran essayage
+- [x] Afficher les articles sélectionnés en grille avec bouton de suppression
+- [x] Sauvegarder la tenue dans l'historique avec toutes les images des articles
+
+## Mode Tenue Complète v2 (18 mars 2026)
+- [x] Corriger erreurs TS : category type dans historique, Record manquant outfit
+- [x] Mettre à jour route tRPC outfit avec slots : tshirt, jacket, pants, earrings, ring, necklace, bracelet, accessory1, accessory2, shoes
+- [x] Créer interface Tenue Complète avec grille de 10 slots sélectionnables
+- [x] Chaque slot ouvre la galerie correspondante pour sélectionner l'article
+- [x] Bouton Essayer la Tenue lance la génération multi-articles
