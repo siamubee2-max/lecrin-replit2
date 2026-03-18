@@ -1,7 +1,7 @@
 /**
  * Try-On History Tab Component
- * Displays the user's try-on history with filtering by category
- * and a "Retry" button to relaunch an essayage with pre-filled data.
+ * Displays the user's try-on history with filtering by category,
+ * a "Retry" button to relaunch an essayage, and a native share button.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -13,9 +13,12 @@ import {
   Alert,
   ActivityIndicator,
   StyleSheet,
+  Share,
 } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -48,6 +51,7 @@ export function TryOnHistoryTab() {
   const [history, setHistory] = useState<TryOnHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
+  const [sharingId, setSharingId] = useState<string | null>(null);
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true);
@@ -88,7 +92,6 @@ export function TryOnHistoryTab() {
 
   const handleRetry = (item: TryOnHistoryEntry) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Navigate to the try-on screen with pre-filled params
     router.push({
       pathname: "/(tabs)/tryon",
       params: {
@@ -99,6 +102,46 @@ export function TryOnHistoryTab() {
         retrySubType: item.subType ?? "",
       },
     });
+  };
+
+  const handleShare = async (item: TryOnHistoryEntry) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSharingId(item.id);
+    try {
+      const categoryLabel = CATEGORY_LABELS[item.category] ?? "article";
+      const shareMessage = `✨ Essayage ${categoryLabel} — ${item.itemName}\n\nDécouvrez L'Écrin Virtuel, l'app d'essayage IA de bijoux et mode MONI'ATTITUDE 💎\n#EcrinVirtuel #MoniAttitude`;
+
+      if (item.resultImageUrl && Platform.OS !== "web") {
+        // Télécharger l'image localement puis partager via expo-sharing
+        const localUri = FileSystem.documentDirectory + `ecrin_share_${item.id}.jpg`;
+        try {
+          await FileSystem.downloadAsync(item.resultImageUrl, localUri);
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(localUri, {
+              mimeType: "image/jpeg",
+              dialogTitle: "Partager mon essayage L'Écrin Virtuel",
+            });
+          } else {
+            // Fallback : partage texte seul
+            await Share.share({ message: shareMessage });
+          }
+        } catch {
+          // Si le téléchargement échoue, partager le texte seul
+          await Share.share({ message: shareMessage });
+        }
+      } else {
+        // Web ou pas d'image : partage texte + URL
+        await Share.share({
+          message: shareMessage,
+          url: item.resultImageUrl || undefined,
+        });
+      }
+    } catch {
+      // L'utilisateur a annulé ou erreur silencieuse
+    } finally {
+      setSharingId(null);
+    }
   };
 
   const handleClearAll = () => {
@@ -143,73 +186,104 @@ export function TryOnHistoryTab() {
     accessories: history.filter((e) => e.category === "accessories").length,
   };
 
-  const renderItem = ({ item }: { item: TryOnHistoryEntry }) => (
-    <View
-      style={[
-        histStyles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-      ]}
-    >
-      {/* Image résultat */}
-      <View style={histStyles.imageContainer}>
-        {item.resultImageUrl ? (
-          <Image
-            source={{ uri: item.resultImageUrl }}
-            style={histStyles.resultImage}
-            contentFit="cover"
-          />
-        ) : (
-          <View style={[histStyles.resultImage, { backgroundColor: colors.border, alignItems: "center", justifyContent: "center" }]}>
-            <Text style={{ fontSize: 24 }}>
-              {item.category === "jewelry" ? "💎" : item.category === "shoes" ? "👠" : item.category === "clothing" ? "👗" : "👜"}
+  const renderItem = ({ item }: { item: TryOnHistoryEntry }) => {
+    const isSharing = sharingId === item.id;
+    return (
+      <View
+        style={[
+          histStyles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        {/* Image résultat */}
+        <View style={histStyles.imageContainer}>
+          {item.resultImageUrl ? (
+            <Image
+              source={{ uri: item.resultImageUrl }}
+              style={histStyles.resultImage}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[histStyles.resultImage, { backgroundColor: colors.border, alignItems: "center", justifyContent: "center" }]}>
+              <Text style={{ fontSize: 24 }}>
+                {item.category === "jewelry" ? "💎" : item.category === "shoes" ? "👠" : item.category === "clothing" ? "👗" : "👜"}
+              </Text>
+            </View>
+          )}
+          {/* Badge catégorie */}
+          <View style={[histStyles.categoryBadge, { backgroundColor: colors.primary }]}>
+            <Text style={[histStyles.categoryBadgeText, { color: colors.background }]}>
+              {CATEGORY_LABELS[item.category] ?? item.category}
             </Text>
           </View>
-        )}
-        {/* Badge catégorie */}
-        <View style={[histStyles.categoryBadge, { backgroundColor: colors.primary }]}>
-          <Text style={[histStyles.categoryBadgeText, { color: colors.background }]}>
-            {CATEGORY_LABELS[item.category] ?? item.category}
-          </Text>
         </View>
-      </View>
 
-      {/* Infos */}
-      <View style={histStyles.infoContainer}>
-        <Text style={[histStyles.itemName, { color: colors.foreground }]} numberOfLines={2}>
-          {item.itemName}
-        </Text>
-        {item.subType && (
-          <Text style={[histStyles.subType, { color: colors.primary }]}>
-            {item.subType}
+        {/* Infos + actions */}
+        <View style={histStyles.infoContainer}>
+          <Text style={[histStyles.itemName, { color: colors.foreground }]} numberOfLines={2}>
+            {item.itemName}
           </Text>
-        )}
-        <Text style={[histStyles.date, { color: colors.muted }]}>
-          {formatDate(item.date)}
-        </Text>
+          {item.subType && (
+            <Text style={[histStyles.subType, { color: colors.primary }]}>
+              {item.subType}
+            </Text>
+          )}
+          <Text style={[histStyles.date, { color: colors.muted }]}>
+            {formatDate(item.date)}
+          </Text>
 
-        {/* Bouton Réessayer */}
+          {/* Boutons Réessayer + Partager */}
+          <View style={histStyles.actionsRow}>
+            {/* Réessayer */}
+            <TouchableOpacity
+              onPress={() => handleRetry(item)}
+              style={[histStyles.actionBtn, { backgroundColor: colors.foreground }]}
+              activeOpacity={0.8}
+            >
+              <IconSymbol name="sparkles" size={10} color={colors.background} />
+              <Text style={[histStyles.actionBtnText, { color: colors.background }]}>
+                Réessayer
+              </Text>
+            </TouchableOpacity>
+
+            {/* Partager */}
+            <TouchableOpacity
+              onPress={() => handleShare(item)}
+              disabled={isSharing}
+              style={[
+                histStyles.actionBtn,
+                {
+                  backgroundColor: "transparent",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  opacity: isSharing ? 0.5 : 1,
+                },
+              ]}
+              activeOpacity={0.8}
+            >
+              {isSharing ? (
+                <ActivityIndicator size="small" color={colors.primary} style={{ width: 10, height: 10 }} />
+              ) : (
+                <IconSymbol name="paperplane.fill" size={10} color={colors.foreground} />
+              )}
+              <Text style={[histStyles.actionBtnText, { color: colors.foreground }]}>
+                {isSharing ? "…" : "Partager"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Bouton supprimer */}
         <TouchableOpacity
-          onPress={() => handleRetry(item)}
-          style={[histStyles.retryBtn, { backgroundColor: colors.foreground }]}
-          activeOpacity={0.8}
+          onPress={() => handleRemove(item.id)}
+          style={histStyles.deleteBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <IconSymbol name="sparkles" size={11} color={colors.background} />
-          <Text style={[histStyles.retryBtnText, { color: colors.background }]}>
-            Réessayer
-          </Text>
+          <IconSymbol name="trash" size={16} color={colors.error ?? "#EF4444"} />
         </TouchableOpacity>
       </View>
-
-      {/* Bouton supprimer */}
-      <TouchableOpacity
-        onPress={() => handleRemove(item.id)}
-        style={histStyles.deleteBtn}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <IconSymbol name="trash" size={16} color={colors.error ?? "#EF4444"} />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -400,7 +474,7 @@ const histStyles = StyleSheet.create({
   },
   resultImage: {
     width: 90,
-    height: 120,
+    height: 130,
   },
   categoryBadge: {
     position: "absolute",
@@ -440,20 +514,24 @@ const histStyles = StyleSheet.create({
     letterSpacing: 0.3,
     marginBottom: 8,
   },
-  retryBtn: {
+  actionsRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  actionBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
+    gap: 4,
     paddingVertical: 7,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 0,
-    alignSelf: "flex-start",
   },
-  retryBtnText: {
+  actionBtnText: {
     fontSize: 9,
     fontWeight: "600",
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     textTransform: "uppercase",
   },
   deleteBtn: {
