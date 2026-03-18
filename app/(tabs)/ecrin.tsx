@@ -12,14 +12,24 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 
-const JEWELRY_TYPES = ["Tous", "earrings", "necklace", "ring", "bracelet", "anklet"];
+const JEWELRY_TYPES = ["Tous", "earrings", "necklace", "ring", "bracelet", "anklet", "brooch"];
 const JEWELRY_TYPE_LABELS: Record<string, string> = {
   "Tous": "Tous",
-  "earrings": "Boucles d'oreilles",
+  "earrings": "Boucles",
   "necklace": "Colliers",
   "ring": "Bagues",
   "bracelet": "Bracelets",
-  "anklet": "Chevillières",
+  "anklet": "Chevillieres",
+  "brooch": "Broches",
+};
+const JEWELRY_TYPE_ICONS: Record<string, string> = {
+  "Tous": "✦",
+  "earrings": "◈",
+  "necklace": "◉",
+  "ring": "◎",
+  "bracelet": "⊙",
+  "anklet": "◌",
+  "brooch": "✿",
 };
 
 const FILTERS = {
@@ -293,32 +303,60 @@ export default function EcrinScreen() {
           />
         </View>
 
-        {/* Type Filter */}
+        {/* Type Filter avec compteurs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
         >
-          {JEWELRY_TYPES.map((type) => (
-            <TouchableOpacity
-              key={type}
-              onPress={() => setSelectedType(type)}
-              style={[
-                ecrinStyles.filterChip,
-                { borderColor: selectedType === type ? colors.primary : colors.border },
-                selectedType === type && { backgroundColor: colors.foreground },
-              ]}
-            >
-              <Text
+          {JEWELRY_TYPES.map((type) => {
+            const count = type === "Tous"
+              ? jewelry.length
+              : jewelry.filter(j => j.type === type).length;
+            if (type !== "Tous" && count === 0) return null;
+            const isActive = selectedType === type;
+            return (
+              <TouchableOpacity
+                key={type}
+                onPress={() => {
+                  setSelectedType(type);
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
                 style={[
-                  ecrinStyles.filterChipText,
-                  { color: selectedType === type ? colors.background : colors.muted },
+                  ecrinStyles.filterChip,
+                  {
+                    borderColor: isActive ? colors.primary : colors.border,
+                    backgroundColor: isActive ? colors.foreground : colors.surface,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                  },
                 ]}
               >
-                {JEWELRY_TYPE_LABELS[type] || type}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={{ fontSize: 11, color: isActive ? colors.background : colors.primary }}>
+                  {JEWELRY_TYPE_ICONS[type]}
+                </Text>
+                <Text
+                  style={[
+                    ecrinStyles.filterChipText,
+                    { color: isActive ? colors.background : colors.muted },
+                  ]}
+                >
+                  {JEWELRY_TYPE_LABELS[type] || type}
+                </Text>
+                <View style={[
+                  ecrinStyles.countBadge,
+                  { backgroundColor: isActive ? colors.primary : colors.border },
+                ]}>
+                  <Text style={[ecrinStyles.countBadgeText, { color: isActive ? colors.background : colors.muted }]}>
+                    {count}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {/* Jewelry Grid */}
@@ -713,10 +751,22 @@ const ecrinStyles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   cardBrand: {
-    fontSize: 9,
-    fontWeight: "300",
+    fontSize: 10,
     letterSpacing: 0.5,
     marginTop: 2,
+  },
+  countBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 18,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  countBadgeText: {
+    fontSize: 9,
+    fontWeight: "700" as const,
+    letterSpacing: 0.3,
   },
 });
 
