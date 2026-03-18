@@ -23,6 +23,7 @@ import * as Sharing from "expo-sharing";
 import { Share } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
@@ -397,6 +398,7 @@ export default function TryOnScreen() {
   const [showResultModal, setShowResultModal] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const { user } = useAuth();
@@ -1010,15 +1012,19 @@ export default function TryOnScreen() {
           <ScrollView
             contentContainerStyle={{ padding: 16, alignItems: "center", paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
+            scrollEnabled={!isImageZoomed}
+            keyboardShouldPersistTaps="handled"
           >
             {resultImageUrl ? (
               <>
-                {/* Image résultat plein écran (variante sélectionnée) */}
+                {/* Image résultat plein écran avec zoom (variante sélectionnée) */}
                 <View style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: resultImageUrls.length > 1 ? 12 : 20 }}>
-                  <Image
-                    source={{ uri: resultImageUrls[selectedVariantIndex] ?? resultImageUrl }}
-                    style={{ width: "100%", aspectRatio: 3 / 4 }}
-                    contentFit="cover"
+                  <ZoomableImage
+                    uri={resultImageUrls[selectedVariantIndex] ?? resultImageUrl}
+                    width={SCREEN_WIDTH - 32}
+                    height={(SCREEN_WIDTH - 32) * (4 / 3)}
+                    showHint={true}
+                    onZoomChange={setIsImageZoomed}
                   />
                   {/* Badge luxe */}
                   <View style={[resultStyles.badge, { backgroundColor: colors.primary }]}>
