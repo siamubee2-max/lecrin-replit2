@@ -330,6 +330,15 @@ const ACCESSORIES_BY_TYPE: Record<AccessoryTypeKey, typeof ACCESSORIES_DEMO> = {
   other: ACCESSORIES_DEMO,
 };
 
+// Poses disponibles pour le mannequin
+const POSE_OPTIONS = [
+  { key: "front",   label: "Face",    icon: "⬛", description: "standing upright, facing directly forward, neutral pose" },
+  { key: "side",    label: "Profil",  icon: "◀",  description: "standing in a 3/4 side profile pose, slightly turned" },
+  { key: "walking", label: "Marche",  icon: "🚶", description: "walking pose, mid-stride, natural movement" },
+  { key: "back",    label: "Dos",     icon: "⬜", description: "standing with back to camera, rear view" },
+] as const;
+type PoseKey = typeof POSE_OPTIONS[number]["key"];
+
 const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabel: string; mannequinSections: typeof MANNEQUIN_SECTIONS; emoji: string }> = {
   jewelry: { title: "ESSAYAGE BIJOUX", subtitle: "VIRTUEL", itemLabel: "BIJOU", mannequinSections: MANNEQUIN_SECTIONS, emoji: "💎" },
   shoes: { title: "ESSAYAGE CHAUSSURES", subtitle: "VIRTUEL", itemLabel: "CHAUSSURE", mannequinSections: SHOES_MANNEQUIN_SECTIONS, emoji: "👠" },
@@ -399,6 +408,7 @@ export default function TryOnScreen() {
   const [progressStep, setProgressStep] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [selectedPose, setSelectedPose] = useState<PoseKey>("front");
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const { user } = useAuth();
@@ -510,6 +520,7 @@ export default function TryOnScreen() {
         ...(tryOnMode === "accessories" ? { accessoryType: selectedAccessoryType } : {}),
         jewelryName: selectedJewelry.label,
         numSamples,
+        pose: selectedPose,
       });
       // Complete progress bar to 100%
       Animated.timing(progressAnim, {
@@ -740,6 +751,29 @@ export default function TryOnScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* Sélecteur de pose du mannequin */}
+        <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+          <Text style={[styles.photoLabel, { color: colors.muted, marginBottom: 8 }]}>POSE</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {POSE_OPTIONS.map((pose) => {
+              const isSelected = selectedPose === pose.key;
+              return (
+                <TouchableOpacity
+                  key={pose.key}
+                  onPress={() => {
+                    setSelectedPose(pose.key);
+                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={[styles.typeChip, { flex: 1, paddingHorizontal: 4, backgroundColor: isSelected ? colors.foreground : "transparent", borderColor: isSelected ? colors.primary : colors.border }]}
+                >
+                  <Text style={{ fontSize: 16, textAlign: "center" }}>{pose.icon}</Text>
+                  <Text style={[styles.typeChipText, { color: isSelected ? colors.background : colors.muted, marginTop: 2 }]}>{pose.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
