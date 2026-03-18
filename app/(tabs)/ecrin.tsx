@@ -1,6 +1,6 @@
 import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet, FlatList, Platform, Modal, KeyboardAvoidingView, Alert, ActivityIndicator } from "react-native";
 import { useState, useEffect, useCallback } from "react";
-import { supabase, type SupabaseJewelry } from "@/lib/supabase";
+// Supabase import removed - using tRPC partnerJewelry instead
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
@@ -29,7 +29,6 @@ const FILTERS = {
   collections: ["All Collections", "Summer 2025", "Classic", "Modern"],
 };
 
-// Supabase jewelry type mapped to local display format
 type JewelryItem = {
   id: string;
   name: string;
@@ -42,21 +41,6 @@ type JewelryItem = {
   collection: string | null;
   tags: string[] | null;
 };
-
-function supabaseToLocal(j: SupabaseJewelry): JewelryItem {
-  return {
-    id: j.id,
-    name: j.name,
-    type: j.type,
-    brand: j.brand,
-    image: j.image_url ? { uri: j.image_url } : null,
-    isFavorite: j.is_favorite ?? false,
-    metal: j.metal,
-    isDemo: true,
-    collection: j.collection,
-    tags: j.tags,
-  };
-}
 
 export default function EcrinScreen() {
   const colors = useColors();
@@ -96,27 +80,31 @@ export default function EcrinScreen() {
     });
   }, [collectionQuery.data]);
 
-  // Load jewelry from Supabase on mount
+  // Load MONI'ATTITUDE jewelry from tRPC partnerJewelry
+  const partnerJewelryQuery = trpc.partnerJewelry.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
-    async function loadJewelry() {
-      setIsLoadingSupabase(true);
-      try {
-        const { data, error } = await supabase
-          .from("jewelry")
-          .select("*")
-          .order("type")
-          .order("name");
-        if (!error && data) {
-          setJewelry(data.map(supabaseToLocal));
-        }
-      } catch (e) {
-        console.error("Supabase load error:", e);
-      } finally {
-        setIsLoadingSupabase(false);
-      }
+    if (partnerJewelryQuery.data) {
+      const items: JewelryItem[] = partnerJewelryQuery.data.map((j: any) => ({
+        id: `partner_${j.id}`,
+        name: j.name,
+        type: j.type,
+        brand: "MONI'ATTITUDE",
+        image: j.imageUrl ? { uri: j.imageUrl } : null,
+        isFavorite: false,
+        metal: j.metalType ?? null,
+        isDemo: true,
+        collection: j.collection ?? null,
+        tags: j.tags ? (typeof j.tags === 'string' ? JSON.parse(j.tags) : j.tags) : null,
+      }));
+      setJewelry(items);
+      setIsLoadingSupabase(false);
+    } else if (!partnerJewelryQuery.isLoading) {
+      setIsLoadingSupabase(false);
     }
-    loadJewelry();
-  }, []);
+  }, [partnerJewelryQuery.data, partnerJewelryQuery.isLoading]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newJewelryName, setNewJewelryName] = useState("");
   const [newJewelryType, setNewJewelryType] = useState("Necklace");

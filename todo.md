@@ -706,3 +706,7 @@
 ## Mannequins Corps Entier Vêtements (18 mars 2026)
 - [x] Générer 5 photos mannequins corps entier professionnels (femme svelte, femme casual, femme ronde, homme classique, femme élancée peau foncée)
 - [x] Intégrer les nouveaux mannequins dans la section Clothing de l'écran essayage
+## Bug Fix : Mon Écrin vide (18 mars 2026)
+- [x] Diagnostiquer : Mon Écrin lisait la table Supabase `jewelry` (vide) au lieu de `partnerJewelry` (MySQL)
+- [x] Corriger : Mon Écrin charge maintenant les 19 bijoux MONI'ATTITUDE via tRPC partnerJewelry.list
+- [x] Ajouter message "Connexion requise" si l'utilisateur non-connecté tente de sauvegarder dans Mon Écrin
