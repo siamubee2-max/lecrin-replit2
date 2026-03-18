@@ -248,6 +248,33 @@ const CLOTHING_DEMO = [
     brand: "L'Écrin",
   },
 ];
+// ─── Accessoires de démonstration ─────────────────────────────────────────
+const ACCESSORIES_DEMO = [
+  {
+    id: "bag-black",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_bag_black-gMLsmwChKXggLLiGyaLkMb.png",
+    label: "Sac à Main Noir",
+    brand: "L'Écrin",
+  },
+  {
+    id: "belt-gold",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_belt_gold-Dk95mij6htDppq7nu96YMr.png",
+    label: "Ceinture Dorée",
+    brand: "L'Écrin",
+  },
+  {
+    id: "sunglasses-black",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_sunglasses_black-GND6LDni5Tdui7goSAgoGZ.png",
+    label: "Lunettes Cat-Eye",
+    brand: "L'Écrin",
+  },
+  {
+    id: "scarf-beige",
+    uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_scarf_beige-ntRsXz97J7pnhvggCL3sN7.png",
+    label: "Écharpe Beige",
+    brand: "L'Écrin",
+  },
+];
 type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories";
 
 const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabel: string; mannequinSections: typeof MANNEQUIN_SECTIONS; emoji: string }> = {
@@ -725,7 +752,9 @@ export default function TryOnScreen() {
           ? [{ title: "Chaussures de démonstration", data: SHOES_DEMO }]
           : tryOnMode === "clothing"
           ? [{ title: "Vêtements de démonstration", data: CLOTHING_DEMO }]
-          : [{ title: MODE_CONFIG[tryOnMode].itemLabel, data: [] }]}
+          : tryOnMode === "accessories"
+          ? [{ title: "Accessoires de démonstration", data: ACCESSORIES_DEMO }]
+          : [{ title: "Articles", data: [] as typeof ACCESSORIES_DEMO }]}
         onSelect={handleSelectJewelry}
         onClose={() => setShowJewelryModal(false)}
         imageMode="contain"
