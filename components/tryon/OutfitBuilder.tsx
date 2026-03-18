@@ -187,8 +187,16 @@ const OUTFIT_MANNEQUINS: GalleryItem[] = [
   { id: "femme-svelte", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_clothing_1-NMjfajcjDr3xKvyP6m8ScU.png", label: "Femme Svelte" },
   { id: "femme-casual", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_clothing_2-ifFLrH5RK6PFETN24qS4uU.png", label: "Femme Casual" },
   { id: "femme-ronde", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_clothing_3-eksVcWTy4WsdKFxTB58UqB.png", label: "Femme Ronde" },
-  { id: "homme-classique", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_clothing_4-jHS97Wxe3UQjYC29y7TTqj.png", label: "Homme Classique" },
   { id: "femme-elancee", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_clothing_5-42iLYadbUPkEQthn5qZ2KU.png", label: "Femme Élancée" },
+  // Masculins
+  { id: "homme-classique", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_clothing_4-jHS97Wxe3UQjYC29y7TTqj.png", label: "Homme Classique" },
+  { id: "homme-jeune", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_male_1-YauFjdb5sCH9zPtipQYXKv.png", label: "Homme Jeune" },
+  { id: "homme-mature", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_male_2-Kmqm7sUucV8UiiCFwcBtFC.png", label: "Homme Mature" },
+  { id: "homme-peau-foncee", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_male_3-MJNcZ2y3hq7GHYo6V4YcE7.png", label: "Homme Peau Foncée" },
+  // Non-genrés
+  { id: "neutre-1", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_neutral_1-PedjpBcTeBVGVwLQsDrrd9.png", label: "Neutre Casual" },
+  { id: "neutre-2", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_neutral_2-8s94exuUCHa2ANdrbNRmMx.png", label: "Neutre Chic" },
+  { id: "neutre-3", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/mannequin_neutral_3-nyGQKCBEPHFfvXxc4WAQwY.png", label: "Neutre Naturel" },
   { id: "femme-jeans", uri: `${CDN}/abbVLmuyWSwhhikh.jpg`, label: "Femme Jeans" },
   { id: "femme-robe", uri: `${CDN}/OxGFokpAzdVyeaCp.jpg`, label: "Femme Robe" },
   { id: "homme-casual", uri: `${CDN}/iEKDtQHwyiIzFBLs.jpg`, label: "Homme Casual" },
