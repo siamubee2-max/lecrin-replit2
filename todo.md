@@ -767,3 +767,6 @@
 
 ## Fix ratio image modal résultat (18 mars 2026)
 - [x] Adapter le ratio d'aspect de l'image résultat selon la catégorie (chaussures/vêtements = 9:16, bijoux/accessoires = 3:4)
+
+## Amélioration prompt chaussures (18 mars 2026)
+- [x] Mettre à jour le prompt chaussures pour forcer image plein corps avec pieds visibles en bas de cadre
