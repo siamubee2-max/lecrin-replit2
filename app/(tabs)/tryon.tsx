@@ -1043,77 +1043,70 @@ export default function TryOnScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            contentContainerStyle={{ padding: 16, alignItems: "center", paddingBottom: 40 }}
-            showsVerticalScrollIndicator={false}
-            scrollEnabled={!isImageZoomed}
-            keyboardShouldPersistTaps="handled"
-          >
-            {resultImageUrl ? (
-              <>
-                {/* Image résultat plein écran avec zoom (variante sélectionnée) */}
-                {/* Ratio adapté selon la catégorie : chaussures/vêtements = 9:16 (corps entier), bijoux/accessoires = 3:4 */}
-                {(() => {
-                  const imgW = SCREEN_WIDTH - 32;
-                  const imgH = (tryOnMode === "shoes" || tryOnMode === "clothing")
-                    ? imgW * (16 / 9)
-                    : imgW * (4 / 3);
-                  return (
-                    <View key="result-img" style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: resultImageUrls.length > 1 ? 12 : 20 }}>
-                      <ZoomableImage
-                        uri={resultImageUrls[selectedVariantIndex] ?? resultImageUrl}
-                        width={imgW}
-                        height={imgH}
-                        showHint={true}
-                        onZoomChange={setIsImageZoomed}
-                      />
-                      {/* Badge luxe */}
-                      <View style={[resultStyles.badge, { backgroundColor: colors.primary }]}>
-                        <Text style={[resultStyles.badgeText, { color: colors.background }]}>❆ ESSAYAGE IA</Text>
-                      </View>
-                      {/* Indicateur variante */}
-                      {resultImageUrls.length > 1 && (
-                        <View style={{ position: "absolute", bottom: 12, right: 12, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-                          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600", letterSpacing: 1 }}>
-                            {selectedVariantIndex + 1} / {resultImageUrls.length}
-                          </Text>
+          {/* Layout fixe : carousel en haut, actions en bas */}
+          {resultImageUrl ? (
+            <View style={{ flex: 1 }}>
+              {/* Carousel horizontal plein-écran */}
+              {(() => {
+                const imgW = SCREEN_WIDTH;
+                const imgH = (tryOnMode === "shoes" || tryOnMode === "clothing")
+                  ? imgW * (16 / 9)
+                  : imgW * (4 / 3);
+                const urls = resultImageUrls.length > 0 ? resultImageUrls : (resultImageUrl ? [resultImageUrl] : []);
+                return (
+                  <View style={{ width: SCREEN_WIDTH, height: imgH, position: "relative" }}>
+                    <FlatList
+                      data={urls}
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      keyExtractor={(_, i) => String(i)}
+                      onMomentumScrollEnd={(e) => {
+                        const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                        setSelectedVariantIndex(idx);
+                        setResultImageUrl(urls[idx] ?? urls[0]);
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                      renderItem={({ item: url }) => (
+                        <View style={{ width: SCREEN_WIDTH, height: imgH, overflow: "hidden" }}>
+                          <ZoomableImage
+                            uri={url}
+                            width={imgW}
+                            height={imgH}
+                            showHint={urls.length === 1}
+                            onZoomChange={setIsImageZoomed}
+                          />
                         </View>
                       )}
+                    />
+                    {/* Badge luxe */}
+                    <View style={[resultStyles.badge, { backgroundColor: colors.primary, top: 12, left: 12 }]}>
+                      <Text style={[resultStyles.badgeText, { color: colors.background }]}>❆ ESSAYAGE IA</Text>
                     </View>
-                  );
-                })()}
+                    {/* Indicateur variante + hint swipe */}
+                    {urls.length > 1 && (
+                      <View style={{ position: "absolute", bottom: 12, right: 12, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600", letterSpacing: 1 }}>
+                          {selectedVariantIndex + 1} / {urls.length}
+                        </Text>
+                        <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 9 }}>← glisser →</Text>
+                      </View>
+                    )}
+                    {urls.length === 1 && (
+                      <View style={{ position: "absolute", bottom: 12, left: "50%", transform: [{ translateX: -60 }], backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                        <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 9, letterSpacing: 0.5 }}>PINCEZ · DOUBLE-TAP</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
 
-                {/* Miniatures des variantes */}
-                {resultImageUrls.length > 1 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap: 8, paddingBottom: 16 }}
-                  >
-                    {resultImageUrls.map((url, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        onPress={() => {
-                          setSelectedVariantIndex(idx);
-                          setResultImageUrl(url);
-                          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }}
-                        style={{
-                          width: 72,
-                          height: 96,
-                          borderRadius: 8,
-                          overflow: "hidden",
-                          borderWidth: selectedVariantIndex === idx ? 2 : 1,
-                          borderColor: selectedVariantIndex === idx ? colors.primary : colors.border,
-                        }}
-                      >
-                        <Image source={{ uri: url }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-
-                {/* Infos bijou */}
+              {/* Actions défilables en bas */}
+              <ScrollView
+                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Infos article */}
                 <View style={[resultStyles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                   <Text style={[resultStyles.infoLabel, { color: colors.muted }]}>{tryOnMode === "jewelry" ? "BIJOU ESSAYÉ" : tryOnMode === "shoes" ? "CHAUSSURES ESSAYÉES" : tryOnMode === "clothing" ? "VÊTEMENT ESSAYÉ" : "ACCESSOIRE ESSAYÉ"}</Text>
                   <Text style={[resultStyles.infoName, { color: colors.foreground }]}>{selectedJewelry?.label}</Text>
@@ -1267,16 +1260,16 @@ export default function TryOnScreen() {
                 >
                   <Text style={[resultStyles.newTryBtnText, { color: colors.muted }]}>Nouvel essayage</Text>
                 </TouchableOpacity>
-              </>
-            ) : (
-              <View style={{ alignItems: "center", paddingTop: 60 }}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={[{ marginTop: 16, color: colors.muted, fontSize: 14 }]}>
-                  Génération en cours...
-                </Text>
-              </View>
-            )}
-          </ScrollView>
+              </ScrollView>
+            </View>
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[{ marginTop: 16, color: colors.muted, fontSize: 14 }]}>
+                Génération en cours...
+              </Text>
+            </View>
+          )}
         </View>
       </Modal>
     </ScreenContainer>

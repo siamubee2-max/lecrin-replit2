@@ -779,3 +779,13 @@
 - [x] Ajouter état selectedPose et sélecteur horizontal dans l'écran essayage
 - [x] Passer la pose au serveur via le paramètre pose dans virtualTryOn.generate
 - [x] Intégrer la pose dans les prompts chaussures, vêtements et accessoires
+
+## Carousel horizontal pour les variantes (18 mars 2026)
+- [ ] Remplacer le ScrollView vertical du modal résultat par un FlatList horizontal paginated (carousel)
+- [ ] Afficher l'indicateur de page (1/2, 2/2) en overlay sur l'image
+- [ ] Supprimer les miniatures en bas (remplacées par le swipe)
+
+## Fix erreur GE-NERATE_ERROR (18 mars 2026)
+- [x] Raccourcir les prompts (max ~300 tokens) pour éviter les erreurs de génération
+- [x] Ajouter retry automatique (3 tentatives) côté serveur en cas d'échec
+- [x] Restructurer le modal résultat avec carousel horizontal FlatList paginée
