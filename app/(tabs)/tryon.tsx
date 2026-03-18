@@ -1018,27 +1018,36 @@ export default function TryOnScreen() {
             {resultImageUrl ? (
               <>
                 {/* Image résultat plein écran avec zoom (variante sélectionnée) */}
-                <View style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: resultImageUrls.length > 1 ? 12 : 20 }}>
-                  <ZoomableImage
-                    uri={resultImageUrls[selectedVariantIndex] ?? resultImageUrl}
-                    width={SCREEN_WIDTH - 32}
-                    height={(SCREEN_WIDTH - 32) * (4 / 3)}
-                    showHint={true}
-                    onZoomChange={setIsImageZoomed}
-                  />
-                  {/* Badge luxe */}
-                  <View style={[resultStyles.badge, { backgroundColor: colors.primary }]}>
-                    <Text style={[resultStyles.badgeText, { color: colors.background }]}>❆ ESSAYAGE IA</Text>
-                  </View>
-                  {/* Indicateur variante */}
-                  {resultImageUrls.length > 1 && (
-                    <View style={{ position: "absolute", bottom: 12, right: 12, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-                      <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600", letterSpacing: 1 }}>
-                        {selectedVariantIndex + 1} / {resultImageUrls.length}
-                      </Text>
+                {/* Ratio adapté selon la catégorie : chaussures/vêtements = 9:16 (corps entier), bijoux/accessoires = 3:4 */}
+                {(() => {
+                  const imgW = SCREEN_WIDTH - 32;
+                  const imgH = (tryOnMode === "shoes" || tryOnMode === "clothing")
+                    ? imgW * (16 / 9)
+                    : imgW * (4 / 3);
+                  return (
+                    <View key="result-img" style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: resultImageUrls.length > 1 ? 12 : 20 }}>
+                      <ZoomableImage
+                        uri={resultImageUrls[selectedVariantIndex] ?? resultImageUrl}
+                        width={imgW}
+                        height={imgH}
+                        showHint={true}
+                        onZoomChange={setIsImageZoomed}
+                      />
+                      {/* Badge luxe */}
+                      <View style={[resultStyles.badge, { backgroundColor: colors.primary }]}>
+                        <Text style={[resultStyles.badgeText, { color: colors.background }]}>❆ ESSAYAGE IA</Text>
+                      </View>
+                      {/* Indicateur variante */}
+                      {resultImageUrls.length > 1 && (
+                        <View style={{ position: "absolute", bottom: 12, right: 12, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600", letterSpacing: 1 }}>
+                            {selectedVariantIndex + 1} / {resultImageUrls.length}
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
+                  );
+                })()}
 
                 {/* Miniatures des variantes */}
                 {resultImageUrls.length > 1 && (
