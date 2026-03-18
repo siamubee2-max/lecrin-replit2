@@ -819,6 +819,9 @@ export const appRouter = router({
         };
         const pose = posePhrases[input.pose ?? "front"] ?? posePhrases.front;
 
+        // Instruction d'adaptation lumière (commune à tous les prompts)
+        const lightingRule = "LIGHTING: Analyze the light source, direction, intensity, and color temperature in Image 1. Apply the exact same lighting to the added item — matching shadows, highlights, and reflections so the item looks naturally lit by the same light as the person.";
+
         // ── Prompts courts par catégorie ────────────
         let prompt: string;
 
@@ -832,13 +835,13 @@ export const appRouter = router({
             set:      "earrings on ears, necklace on neck, bracelet on wrist",
           };
           const where = placement[input.jewelryType || "earrings"] ?? placement.earrings;
-          prompt = `Virtual try-on. Image 1: person. Image 2: ${input.jewelryType ?? "jewelry"}. Place the jewelry ${where}. Keep face, skin tone, hair, and pose identical. Photorealistic luxury jewelry photography.`;
+          prompt = `Virtual try-on. Image 1: person. Image 2: ${input.jewelryType ?? "jewelry"}. Place the jewelry ${where}. Keep face, skin tone, hair, and pose identical. Photorealistic luxury jewelry photography. ${lightingRule}`;
 
         } else if (input.category === "shoes") {
-          prompt = `Virtual try-on. Image 1: person. Image 2: shoes. Show full body head-to-toe (9:16 portrait), ${pose}. Place these exact shoes on both feet. Feet fully visible at bottom. Keep face, hair, skin, clothing unchanged. Studio lighting, neutral background.`;
+          prompt = `Virtual try-on. Image 1: person. Image 2: shoes. Show full body head-to-toe (9:16 portrait), ${pose}. Place these exact shoes on both feet. Feet fully visible at bottom. Keep face, hair, skin, clothing unchanged. ${lightingRule}`;
 
         } else if (input.category === "clothing") {
-          prompt = `Virtual try-on. Image 1: person. Image 2: garment. Show full body head-to-toe (9:16 portrait), ${pose}. Dress the person in this exact garment. Full outfit visible, no cropping. Keep face, skin, hair unchanged. Studio lighting, neutral background.`;
+          prompt = `Virtual try-on. Image 1: person. Image 2: garment. Show full body head-to-toe (9:16 portrait), ${pose}. Dress the person in this exact garment. Full outfit visible, no cropping. Keep face, skin, hair unchanged. ${lightingRule}`;
 
         } else {
           const accPlacement: Record<string, string> = {
@@ -851,7 +854,7 @@ export const appRouter = router({
             other:      "wearing or carrying the accessory naturally",
           };
           const where = accPlacement[input.accessoryType || "other"] ?? accPlacement.other;
-          prompt = `Virtual try-on. Image 1: person (${pose}). Image 2: ${input.accessoryType ?? "accessory"}. Show the person ${where}. Correct scale, realistic materials. Keep appearance identical. Luxury fashion photography.`;
+          prompt = `Virtual try-on. Image 1: person (${pose}). Image 2: ${input.accessoryType ?? "accessory"}. Show the person ${where}. Correct scale, realistic materials. Keep appearance identical. ${lightingRule}`;
         }
 
         // Générer numSamples variantes avec retry automatique (3 tentatives par image)
