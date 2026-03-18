@@ -738,3 +738,14 @@
 - [x] Créer un prompt spécialisé pour les accessoires (sac, ceinture, lunettes, écharpe)
 - [x] Adapter l'appel tRPC dans tryon.tsx pour passer la catégorie et le type de bijou
 - [x] Adapter les messages de progression selon le mode actif (bijou/chaussures/vêtement/accessoire)
+
+## Améliorations Essayage v3 (18 mars 2026)
+- [x] Ajouter sous-types accessoires (bag/belt/sunglasses/scarf/hat/watch) avec prompts affinés
+- [x] Ajouter sélecteur de sous-type dans l'UI essayage mode Accessoires
+- [x] Ajouter paramètre numSamples (1-4) dans la route tRPC virtualTryOn.generate
+- [x] Ajouter sélecteur nombre de variantes dans l'UI essayage (1, 2, 4)
+- [x] Retourner plusieurs URLs de résultats si numSamples > 1
+- [x] Afficher les variantes en grille dans le modal de résultat
+- [x] Créer l'historique des essayages par catégorie dans le profil (TryOnHistoryTab)
+- [x] Sauvegarder chaque essayage dans AsyncStorage avec catégorie + image résultat
+- [x] Afficher l'historique avec filtres Bijoux / Chaussures / Vêtements / Accessoires

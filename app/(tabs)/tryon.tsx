@@ -156,6 +156,18 @@ type GalleryItem = { id: string; uri: string; label: string };
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+// ─── Type Historique Essayage ─────────────────────────────────────────────────
+export type TryOnHistoryEntry = {
+  id: string;
+  date: string; // ISO string
+  category: TryOnMode;
+  subType?: string;
+  itemName: string;
+  resultImageUrl: string;
+  modelImageUrl: string;
+  itemImageUrl: string;
+};
+
 // ─── Mannequins Chaussures ─────────────────────────────────────────────────────
 const SHOES_MANNEQUIN_SECTIONS = [
   {
@@ -294,6 +306,28 @@ const ACCESSORIES_DEMO = [
   },
 ];
 type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories";
+type AccessoryTypeKey = "bag" | "belt" | "sunglasses" | "scarf" | "hat" | "watch" | "other";
+
+const ACCESSORY_TYPES: { key: AccessoryTypeKey; label: string; emoji: string }[] = [
+  { key: "bag", label: "Sacs", emoji: "👜" },
+  { key: "belt", label: "Ceintures", emoji: "🪢" },
+  { key: "sunglasses", label: "Lunettes", emoji: "🕶️" },
+  { key: "scarf", label: "Écharpes", emoji: "🧣" },
+  { key: "hat", label: "Chapeaux", emoji: "🎩" },
+  { key: "watch", label: "Montres", emoji: "⌚" },
+  { key: "other", label: "Autres", emoji: "✨" },
+];
+
+// Accessoires filtrés par sous-type
+const ACCESSORIES_BY_TYPE: Record<AccessoryTypeKey, typeof ACCESSORIES_DEMO> = {
+  bag: ACCESSORIES_DEMO.filter(a => a.id === "bag-black"),
+  belt: ACCESSORIES_DEMO.filter(a => a.id === "belt-gold"),
+  sunglasses: ACCESSORIES_DEMO.filter(a => a.id === "sunglasses-black"),
+  scarf: ACCESSORIES_DEMO.filter(a => a.id === "scarf-beige"),
+  hat: [],
+  watch: [],
+  other: ACCESSORIES_DEMO,
+};
 
 const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabel: string; mannequinSections: typeof MANNEQUIN_SECTIONS; emoji: string }> = {
   jewelry: { title: "ESSAYAGE BIJOUX", subtitle: "VIRTUEL", itemLabel: "BIJOU", mannequinSections: MANNEQUIN_SECTIONS, emoji: "💎" },
@@ -316,12 +350,16 @@ export default function TryOnScreen() {
 
   const [tryOnMode, setTryOnMode] = useState<TryOnMode>(initialMode);
   const [selectedJewelryType, setSelectedJewelryType] = useState<JewelryTypeKey>("earrings");
+  const [selectedAccessoryType, setSelectedAccessoryType] = useState<AccessoryTypeKey>("other");
+  const [numSamples, setNumSamples] = useState<1 | 2 | 4>(1);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [selectedJewelry, setSelectedJewelry] = useState<GalleryItem | null>(null);
   const [showMannequinModal, setShowMannequinModal] = useState(false);
   const [showJewelryModal, setShowJewelryModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
+  const [resultImageUrls, setResultImageUrls] = useState<string[]>([]);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [showResultModal, setShowResultModal] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
@@ -433,7 +471,9 @@ export default function TryOnScreen() {
         jewelryImageUrl: publicJewelryUrl,
         category: tryOnMode,
         ...(tryOnMode === "jewelry" ? { jewelryType: selectedJewelryType } : {}),
+        ...(tryOnMode === "accessories" ? { accessoryType: selectedAccessoryType } : {}),
         jewelryName: selectedJewelry.label,
+        numSamples,
       });
       // Complete progress bar to 100%
       Animated.timing(progressAnim, {
@@ -441,9 +481,34 @@ export default function TryOnScreen() {
         duration: 400,
         useNativeDriver: false,
       }).start();
-      setResultImageUrl(result.resultImageUrl ?? null);
+      const urls = result.resultImageUrls ?? (result.resultImageUrl ? [result.resultImageUrl] : []);
+      setResultImageUrls(urls);
+      setResultImageUrl(urls[0] ?? null);
+      setSelectedVariantIndex(0);
       setShowResultModal(true);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Sauvegarder dans l'historique AsyncStorage
+      try {
+        const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+        const historyKey = "tryon_history";
+        const existing = await AsyncStorage.getItem(historyKey);
+        const history: TryOnHistoryEntry[] = existing ? JSON.parse(existing) : [];
+        const newEntry: TryOnHistoryEntry = {
+          id: Date.now().toString(),
+          date: new Date().toISOString(),
+          category: tryOnMode,
+          itemName: selectedJewelry.label,
+          resultImageUrl: urls[0] ?? "",
+          modelImageUrl: publicModelUrl,
+          itemImageUrl: publicJewelryUrl,
+          ...(tryOnMode === "jewelry" ? { subType: selectedJewelryType } : {}),
+          ...(tryOnMode === "accessories" ? { subType: selectedAccessoryType } : {}),
+        };
+        history.unshift(newEntry);
+        // Garder max 50 entrées
+        await AsyncStorage.setItem(historyKey, JSON.stringify(history.slice(0, 50)));
+      } catch {}
+      // Fin sauvegarde historique
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Une erreur est survenue";
       Alert.alert("Erreur", `L'essayage a échoué : ${message}`);
@@ -545,6 +610,77 @@ export default function TryOnScreen() {
           })}
         </ScrollView>
         )}
+
+        {/* Sélecteur de sous-type accessoires (uniquement en mode accessoires) */}
+        {tryOnMode === "accessories" && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 8 }}
+          >
+            {ACCESSORY_TYPES.map((type) => {
+              const isSelected = selectedAccessoryType === type.key;
+              return (
+                <TouchableOpacity
+                  key={type.key}
+                  onPress={() => {
+                    setSelectedAccessoryType(type.key);
+                    setSelectedJewelry(null);
+                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={[
+                    styles.typeChip,
+                    {
+                      backgroundColor: isSelected ? colors.foreground : "transparent",
+                      borderColor: isSelected ? colors.primary : colors.border,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                    },
+                  ]}
+                >
+                  <Text style={{ fontSize: 12 }}>{type.emoji}</Text>
+                  <Text
+                    style={[
+                      styles.typeChipText,
+                      { color: isSelected ? colors.background : colors.muted },
+                    ]}
+                  >
+                    {type.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {/* Sélecteur du nombre de variantes */}
+        <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+          <Text style={[styles.photoLabel, { color: colors.muted, marginBottom: 8 }]}>VARIANTES</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {([1, 2, 4] as const).map((n) => (
+              <TouchableOpacity
+                key={n}
+                onPress={() => {
+                  setNumSamples(n);
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                style={[
+                  styles.typeChip,
+                  {
+                    paddingHorizontal: 20,
+                    backgroundColor: numSamples === n ? colors.foreground : "transparent",
+                    borderColor: numSamples === n ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.typeChipText, { color: numSamples === n ? colors.background : colors.muted }]}>
+                  {n === 1 ? "1 image" : `${n} images`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
         {/* Zone principale : Photo + Bijou côte à côte */}
         <View style={styles.photosRow}>
@@ -779,7 +915,7 @@ export default function TryOnScreen() {
           : tryOnMode === "clothing"
           ? [{ title: "Vêtements de démonstration", data: CLOTHING_DEMO }]
           : tryOnMode === "accessories"
-          ? [{ title: "Accessoires de démonstration", data: ACCESSORIES_DEMO }]
+          ? [{ title: ACCESSORY_TYPES.find(t => t.key === selectedAccessoryType)?.label ?? "Accessoires", data: ACCESSORIES_BY_TYPE[selectedAccessoryType].length > 0 ? ACCESSORIES_BY_TYPE[selectedAccessoryType] : ACCESSORIES_DEMO }]
           : [{ title: "Articles", data: [] as typeof ACCESSORIES_DEMO }]}
         onSelect={handleSelectJewelry}
         onClose={() => setShowJewelryModal(false)}
@@ -818,18 +954,56 @@ export default function TryOnScreen() {
           >
             {resultImageUrl ? (
               <>
-                {/* Image résultat plein écran */}
-                <View style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
+                {/* Image résultat plein écran (variante sélectionnée) */}
+                <View style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: resultImageUrls.length > 1 ? 12 : 20 }}>
                   <Image
-                    source={{ uri: resultImageUrl }}
+                    source={{ uri: resultImageUrls[selectedVariantIndex] ?? resultImageUrl }}
                     style={{ width: "100%", aspectRatio: 3 / 4 }}
                     contentFit="cover"
                   />
                   {/* Badge luxe */}
                   <View style={[resultStyles.badge, { backgroundColor: colors.primary }]}>
-                    <Text style={[resultStyles.badgeText, { color: colors.background }]}>✦ ESSAYAGE IA</Text>
+                    <Text style={[resultStyles.badgeText, { color: colors.background }]}>❆ ESSAYAGE IA</Text>
                   </View>
+                  {/* Indicateur variante */}
+                  {resultImageUrls.length > 1 && (
+                    <View style={{ position: "absolute", bottom: 12, right: 12, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                      <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600", letterSpacing: 1 }}>
+                        {selectedVariantIndex + 1} / {resultImageUrls.length}
+                      </Text>
+                    </View>
+                  )}
                 </View>
+
+                {/* Miniatures des variantes */}
+                {resultImageUrls.length > 1 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8, paddingBottom: 16 }}
+                  >
+                    {resultImageUrls.map((url, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => {
+                          setSelectedVariantIndex(idx);
+                          setResultImageUrl(url);
+                          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }}
+                        style={{
+                          width: 72,
+                          height: 96,
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          borderWidth: selectedVariantIndex === idx ? 2 : 1,
+                          borderColor: selectedVariantIndex === idx ? colors.primary : colors.border,
+                        }}
+                      >
+                        <Image source={{ uri: url }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
 
                 {/* Infos bijou */}
                 <View style={[resultStyles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
