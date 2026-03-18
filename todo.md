@@ -789,3 +789,5 @@
 - [x] Raccourcir les prompts (max ~300 tokens) pour éviter les erreurs de génération
 - [x] Ajouter retry automatique (3 tentatives) côté serveur en cas d'échec
 - [x] Restructurer le modal résultat avec carousel horizontal FlatList paginée
+
+## Adaptation éclairage dans les prompts (18 mars 2026)- [x] Ajouter instruction d'adaptation lumiéreuse dans tous les prompts (même source, ombres, température couleur)
