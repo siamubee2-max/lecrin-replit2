@@ -693,3 +693,8 @@
 - [x] Code admin par défaut : ecrin2026admin (configurable via ADMIN_CODE env var)
 - [ ] Générer images PNG vêtements de démo (robe noire, blazer camel, chemisier ivoire, pantalon marine)
 - [ ] Intégrer les vêtements de démo dans la galerie essayage mode Vêtements
+
+## Vêtements démo + Admin sécurisé (18 mars 2026)
+- [x] Générer images PNG vêtements de démo (robe noire, blazer camel, chemisier ivoire, pantalon marine)
+- [x] Intégrer les vêtements de démo dans la galerie essayage mode Vêtements
+- [x] Configurer ADMIN_CODE via les secrets du projet (test vitest passé ✓)
