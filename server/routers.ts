@@ -899,7 +899,145 @@ export const appRouter = router({
           category: input.category,
         };
       }),
-  }),
+
+    // Generate a full outfit try-on with multiple items from different categories
+    outfit: publicProcedure
+      .input(z.object({
+        modelImageUrl: z.string().url(),
+        // Vêtements (slots séparés)
+        tshirtImageUrl: z.string().url().optional(),
+        jacketImageUrl: z.string().url().optional(),
+        pantsImageUrl: z.string().url().optional(),
+        // Bijoux (slots séparés)
+        earringsImageUrl: z.string().url().optional(),
+        necklaceImageUrl: z.string().url().optional(),
+        braceletImageUrl: z.string().url().optional(),
+        ringImageUrl: z.string().url().optional(),
+        // Accessoires (2 slots)
+        accessory1ImageUrl: z.string().url().optional(),
+        accessory2ImageUrl: z.string().url().optional(),
+        // Chaussures
+        shoesImageUrl: z.string().url().optional(),
+        // Noms (pour l'historique)
+        tshirtName: z.string().optional(),
+        jacketName: z.string().optional(),
+        pantsName: z.string().optional(),
+        earringsName: z.string().optional(),
+        necklaceName: z.string().optional(),
+        braceletName: z.string().optional(),
+        ringName: z.string().optional(),
+        accessory1Name: z.string().optional(),
+        accessory2Name: z.string().optional(),
+        shoesName: z.string().optional(),
+        // Pose
+        pose: z.enum(["front", "side", "walking", "back"]).default("front"),
+        // Nombre de variantes
+        numSamples: z.number().int().min(1).max(4).default(1),
+      }))
+      .mutation(async ({ input }) => {
+        const posePhrases: Record<string, string> = {
+          front:   "front-facing, standing upright",
+          side:    "3/4 side profile pose",
+          walking: "natural walking pose, mid-stride",
+          back:    "back to camera, rear view",
+        };
+        const pose = posePhrases[input.pose ?? "front"] ?? posePhrases.front;
+        const lightingRule = "LIGHTING: Match the lighting, shadows, and color temperature of Image 1 exactly on all added items.";
+
+        // Construire la liste des images de référence et les instructions
+        const referenceImages: { url: string; mimeType: string }[] = [
+          { url: input.modelImageUrl, mimeType: "image/jpeg" },
+        ];
+        const instructions: string[] = [];
+        let imgIndex = 2;
+
+        // Vêtements
+        if (input.tshirtImageUrl) {
+          referenceImages.push({ url: input.tshirtImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: t-shirt/top — dress the person in this top`);
+        }
+        if (input.jacketImageUrl) {
+          referenceImages.push({ url: input.jacketImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: jacket/blazer — layer this jacket over the top`);
+        }
+        if (input.pantsImageUrl) {
+          referenceImages.push({ url: input.pantsImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: pants/skirt — dress the person in these bottoms`);
+        }
+        // Bijoux
+        if (input.earringsImageUrl) {
+          referenceImages.push({ url: input.earringsImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: earrings — place these earrings on the earlobes`);
+        }
+        if (input.necklaceImageUrl) {
+          referenceImages.push({ url: input.necklaceImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: necklace — drape this necklace around the neck`);
+        }
+        if (input.braceletImageUrl) {
+          referenceImages.push({ url: input.braceletImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: bracelet — place this bracelet on the wrist`);
+        }
+        if (input.ringImageUrl) {
+          referenceImages.push({ url: input.ringImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: ring — place this ring on a finger`);
+        }
+        // Accessoires
+        if (input.accessory1ImageUrl) {
+          referenceImages.push({ url: input.accessory1ImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: accessory — style the person with this accessory naturally`);
+        }
+        if (input.accessory2ImageUrl) {
+          referenceImages.push({ url: input.accessory2ImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: second accessory — add this accessory naturally`);
+        }
+        // Chaussures
+        if (input.shoesImageUrl) {
+          referenceImages.push({ url: input.shoesImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: shoes — place these exact shoes on both feet (feet fully visible at bottom)`);
+        }
+
+        if (instructions.length === 0) {
+          throw new Error("At least one item must be selected for outfit try-on");
+        }
+
+        const prompt = `Full outfit virtual try-on. Image 1: person (${pose}). ${instructions.join(". ")}. Show full body head-to-toe (9:16 portrait). Keep face, skin tone, and hair identical. Photorealistic fashion photography. ${lightingRule}`;
+
+        const generateWithRetry = async (attempt = 0): Promise<string | null> => {
+          try {
+            const result = await generateImage({
+              prompt,
+              originalImages: referenceImages,
+            });
+            return result.url ?? null;
+          } catch (err) {
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+              return generateWithRetry(attempt + 1);
+            }
+            return null;
+          }
+        };
+
+        const numSamples = input.numSamples ?? 1;
+        const urls: string[] = [];
+        const batchSize = Math.min(numSamples, 2);
+        for (let i = 0; i < numSamples; i += batchSize) {
+          const batch = Array.from({ length: Math.min(batchSize, numSamples - i) }, () => generateWithRetry());
+          const batchResults = await Promise.all(batch);
+          urls.push(...batchResults.filter((u): u is string => !!u));
+        }
+
+        if (urls.length === 0) {
+          throw new Error("Outfit generation failed after 3 attempts");
+        }
+
+        return {
+          resultImageUrl: urls[0],
+          resultImageUrls: urls,
+          category: "outfit" as const,
+        };
+      }),
+  }),  // fin virtualTryOn
 
   // ============================================
   // COMMUNITY ROUTES
