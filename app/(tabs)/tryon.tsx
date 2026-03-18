@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/use-auth";
 
 // Convertit une URI locale (file:// ou content://) en URL publique via upload
 async function ensurePublicUrl(
@@ -326,6 +327,7 @@ export default function TryOnScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
+  const { user } = useAuth();
   const addToCollectionMutation = trpc.collection.add.useMutation();
   const uploadImageMutation = trpc.ai.uploadImage.useMutation();
   const tryOnMutation = trpc.virtualTryOn.generate.useMutation();
@@ -835,6 +837,17 @@ export default function TryOnScreen() {
                   <TouchableOpacity
                     onPress={async () => {
                       if (isSaved) return;
+                      if (!user) {
+                        Alert.alert(
+                          "Connexion requise",
+                          "Connectez-vous pour sauvegarder des bijoux dans Mon Écrin.",
+                          [
+                            { text: "Annuler", style: "cancel" },
+                            { text: "Se connecter", onPress: () => router.push("/login") },
+                          ]
+                        );
+                        return;
+                      }
                       try {
                         await addToCollectionMutation.mutateAsync({
                           name: selectedJewelry?.label ?? "Bijou essayé",
