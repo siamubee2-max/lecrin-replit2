@@ -339,7 +339,16 @@ const MODE_CONFIG: Record<TryOnMode, { title: string; subtitle: string; itemLabe
 export default function TryOnScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ section?: string; itemId?: string; itemName?: string }>();
+  const params = useLocalSearchParams<{
+    section?: string;
+    itemId?: string;
+    itemName?: string;
+    // Params de relance depuis l'historique
+    retryModelUrl?: string;
+    retryItemUrl?: string;
+    retryItemName?: string;
+    retrySubType?: string;
+  }>();
 
   const initialMode: TryOnMode = useMemo(() => {
     if (params.section === "shoes") return "shoes";
@@ -354,6 +363,31 @@ export default function TryOnScreen() {
   const [numSamples, setNumSamples] = useState<1 | 2 | 4>(1);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [selectedJewelry, setSelectedJewelry] = useState<GalleryItem | null>(null);
+
+  // Pré-remplissage depuis l'historique (bouton Réessayer)
+  const hasRetryParams = !!(params.retryModelUrl && params.retryItemUrl);
+  useEffect(() => {
+    if (!hasRetryParams) return;
+    setUserPhoto(params.retryModelUrl!);
+    setSelectedJewelry({
+      id: "retry-item",
+      uri: params.retryItemUrl!,
+      label: params.retryItemName ?? "Article",
+    });
+    // Restaurer le sous-type si disponible
+    if (params.section === "jewelry" && params.retrySubType) {
+      const validJewelryTypes: JewelryTypeKey[] = ["earrings", "necklace", "bracelet", "ring", "anklet", "set"];
+      if (validJewelryTypes.includes(params.retrySubType as JewelryTypeKey)) {
+        setSelectedJewelryType(params.retrySubType as JewelryTypeKey);
+      }
+    }
+    if (params.section === "accessories" && params.retrySubType) {
+      const validAccessoryTypes: AccessoryTypeKey[] = ["bag", "belt", "sunglasses", "scarf", "hat", "watch", "other"];
+      if (validAccessoryTypes.includes(params.retrySubType as AccessoryTypeKey)) {
+        setSelectedAccessoryType(params.retrySubType as AccessoryTypeKey);
+      }
+    }
+  }, [hasRetryParams]);
   const [showMannequinModal, setShowMannequinModal] = useState(false);
   const [showJewelryModal, setShowJewelryModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -533,6 +567,31 @@ export default function TryOnScreen() {
           </View>
           <Text style={{ fontSize: 28 }}>{MODE_CONFIG[tryOnMode].emoji}</Text>
         </View>
+        {/* Bannière de relance depuis l'historique */}
+        {hasRetryParams && (
+          <View
+            style={[
+              {
+                marginHorizontal: 20,
+                marginBottom: 8,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                backgroundColor: colors.surface,
+              },
+            ]}
+          >
+            <IconSymbol name="sparkles" size={14} color={colors.primary} />
+            <Text style={{ flex: 1, fontSize: 11, color: colors.muted, letterSpacing: 0.3 }}>
+              Essayage pré-rempli depuis votre historique. Modifiez ou lancez directement.
+            </Text>
+          </View>
+        )}
+
         {/* Sélecteur de mode (Bijoux / Chaussures / Vêtements / Accessoires) */}
         <ScrollView
           horizontal

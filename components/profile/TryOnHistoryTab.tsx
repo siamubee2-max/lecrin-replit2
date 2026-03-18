@@ -1,6 +1,7 @@
 /**
  * Try-On History Tab Component
  * Displays the user's try-on history with filtering by category
+ * and a "Retry" button to relaunch an essayage with pre-filled data.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -17,6 +18,7 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -84,6 +86,21 @@ export function TryOnHistoryTab() {
     );
   };
 
+  const handleRetry = (item: TryOnHistoryEntry) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Navigate to the try-on screen with pre-filled params
+    router.push({
+      pathname: "/(tabs)/tryon",
+      params: {
+        section: item.category,
+        retryModelUrl: item.modelImageUrl,
+        retryItemUrl: item.itemImageUrl,
+        retryItemName: item.itemName,
+        retrySubType: item.subType ?? "",
+      },
+    });
+  };
+
   const handleClearAll = () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Alert.alert(
@@ -118,7 +135,6 @@ export function TryOnHistoryTab() {
     ? history
     : history.filter((e) => e.category === activeFilter);
 
-  // Statistiques par catégorie
   const stats = {
     total: history.length,
     jewelry: history.filter((e) => e.category === "jewelry").length,
@@ -159,7 +175,7 @@ export function TryOnHistoryTab() {
 
       {/* Infos */}
       <View style={histStyles.infoContainer}>
-        <Text style={[histStyles.itemName, { color: colors.foreground }]} numberOfLines={1}>
+        <Text style={[histStyles.itemName, { color: colors.foreground }]} numberOfLines={2}>
           {item.itemName}
         </Text>
         {item.subType && (
@@ -170,6 +186,18 @@ export function TryOnHistoryTab() {
         <Text style={[histStyles.date, { color: colors.muted }]}>
           {formatDate(item.date)}
         </Text>
+
+        {/* Bouton Réessayer */}
+        <TouchableOpacity
+          onPress={() => handleRetry(item)}
+          style={[histStyles.retryBtn, { backgroundColor: colors.foreground }]}
+          activeOpacity={0.8}
+        >
+          <IconSymbol name="sparkles" size={11} color={colors.background} />
+          <Text style={[histStyles.retryBtnText, { color: colors.background }]}>
+            Réessayer
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Bouton supprimer */}
@@ -371,8 +399,8 @@ const histStyles = StyleSheet.create({
     position: "relative",
   },
   resultImage: {
-    width: 80,
-    height: 100,
+    width: 90,
+    height: 120,
   },
   categoryBadge: {
     position: "absolute",
@@ -391,13 +419,14 @@ const histStyles = StyleSheet.create({
   infoContainer: {
     flex: 1,
     padding: 12,
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
   itemName: {
     fontSize: 13,
     fontWeight: "400",
     letterSpacing: 0.5,
     marginBottom: 3,
+    lineHeight: 18,
   },
   subType: {
     fontSize: 10,
@@ -409,6 +438,23 @@ const histStyles = StyleSheet.create({
   date: {
     fontSize: 10,
     letterSpacing: 0.3,
+    marginBottom: 8,
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 0,
+    alignSelf: "flex-start",
+  },
+  retryBtnText: {
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
   deleteBtn: {
     paddingHorizontal: 14,
