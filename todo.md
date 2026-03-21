@@ -841,3 +841,14 @@
 - [x] Ajouter les décors interchangeables (Studio, Rue parisienne, Jardin, Intérieur chic, Plage)
 - [x] Intégrer le bouton Snapshot dans la modal de création de post
 - [ ] Permettre la capture ViewShot du résultat Snapshot avant publication
+
+## Snapshot dans le fil Communauté
+- [ ] Ajouter snapshotConfig dans le type Post
+- [x] Passer snapshotConfig lors de la publication
+- [ ] Afficher SnapshotPreview dans PostCard si snapshotConfig est défini
+
+## Snapshot améliorations
+- [x] Cadre Story 9:16 avec logo Écrin Virtuel en bas
+- [x] Texte personnalisé sur la photo (nom bijou, hashtag, citation) avec choix police et couleur
+- [x] Afficher SnapshotPreview dans PostCard (fil Communauté)
+- [x] Passer snapshotConfig lors de la publication
