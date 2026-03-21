@@ -444,6 +444,11 @@ export default function TryOnScreen() {
     retryItemUrl?: string;
     retryItemName?: string;
     retrySubType?: string;
+    // Params depuis la boutique (bouton ESSAYER)
+    partnerJewelryId?: string;
+    partnerJewelryName?: string;
+    partnerJewelryType?: string;
+    partnerJewelryImage?: string;
   }>();
 
   const initialMode: TryOnMode = useMemo(() => {
@@ -459,6 +464,23 @@ export default function TryOnScreen() {
   const [numSamples, setNumSamples] = useState<1 | 2 | 4>(1);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [selectedJewelry, setSelectedJewelry] = useState<GalleryItem | null>(null);
+
+  // Pré-remplissage depuis la boutique (bouton ESSAYER)
+  const hasPartnerParams = !!(params.partnerJewelryId && params.partnerJewelryImage);
+  useEffect(() => {
+    if (!hasPartnerParams) return;
+    // Pré-sélectionner l'article de la boutique
+    setSelectedJewelry({
+      id: `partner-${params.partnerJewelryId}`,
+      uri: params.partnerJewelryImage!,
+      label: params.partnerJewelryName ?? "Bijou",
+    });
+    // Ajuster le type de bijou si disponible
+    const validJewelryTypes: JewelryTypeKey[] = ["earrings", "necklace", "bracelet", "ring", "anklet", "set"];
+    if (params.partnerJewelryType && validJewelryTypes.includes(params.partnerJewelryType as JewelryTypeKey)) {
+      setSelectedJewelryType(params.partnerJewelryType as JewelryTypeKey);
+    }
+  }, [hasPartnerParams]);
 
   // Pré-remplissage depuis l'historique (bouton Réessayer)
   const hasRetryParams = !!(params.retryModelUrl && params.retryItemUrl);
@@ -1394,7 +1416,6 @@ function GalleryModal({
   imageMode: "cover" | "contain";
   colors: ReturnType<typeof useColors>;
 }) {
-  const allItems = sections.flatMap(s => s.data);
   const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
 
   return (
@@ -1419,45 +1440,61 @@ function GalleryModal({
           </TouchableOpacity>
         </View>
 
-        {/* Grille */}
-        <FlatList
-          data={allItems}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={{ padding: 12, paddingBottom: 40, gap: 12 }}
-          columnWrapperStyle={{ gap: 12 }}
+        {/* Grille par sections avec ScrollView */}
+        <ScrollView
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => onSelect(item)}
-              style={[
-                styles.galleryItem,
-                {
-                  width: ITEM_SIZE,
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-              activeOpacity={0.8}
-            >
-              <View style={{ width: ITEM_SIZE, height: ITEM_SIZE }}>
-                <Image
-                  source={{ uri: item.uri }}
-                  style={{ width: "100%", height: "100%" }}
-                  contentFit={imageMode}
-                />
-              </View>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 6 }}>
+          contentContainerStyle={{ padding: 12, paddingBottom: 60 }}
+        >
+          {sections.map((section) => (
+            <View key={section.title} style={{ marginBottom: 20 }}>
+              {/* Titre de section */}
+              {sections.length > 1 && (
                 <Text
-                  style={[styles.galleryLabel, { color: colors.foreground }]}
-                  numberOfLines={1}
+                  style={[
+                    styles.photoLabel,
+                    { color: colors.muted, marginBottom: 10, marginLeft: 4 },
+                  ]}
                 >
-                  {item.label}
+                  {section.title.toUpperCase()}
                 </Text>
+              )}
+              {/* Grille 2 colonnes */}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+                {section.data.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => onSelect(item)}
+                    style={[
+                      styles.galleryItem,
+                      {
+                        width: ITEM_SIZE,
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ width: ITEM_SIZE, height: ITEM_SIZE }}>
+                      <Image
+                        source={{ uri: item.uri }}
+                        style={{ width: "100%", height: "100%" }}
+                        contentFit={imageMode}
+                      />
+                    </View>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 6 }}>
+                      <Text
+                        style={[styles.galleryLabel, { color: colors.foreground }]}
+                        numberOfLines={1}
+                      >
+                        {item.label}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
-            </TouchableOpacity>
-          )}
-        />
+            </View>
+          ))}
+        </ScrollView>
       </View>
     </Modal>
   );
