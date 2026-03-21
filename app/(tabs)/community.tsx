@@ -21,6 +21,8 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 import { SnapshotEditor, SnapshotPreview, type SnapshotConfig, type OverlayFont, type SnapshotOverlay } from "@/components/community/SnapshotEditor";
 
 // Demo community posts with real Moniattitude jewelry images
@@ -147,9 +149,10 @@ export default function CommunityScreen() {
     decor: "none",
   });
   const [snapshotOverlay, setSnapshotOverlay] = useState<SnapshotOverlay>({
-    text: "",
-    font: "sans",
-    color: "#ffffff",
+    text:     "",
+    font:     "sans",
+    color:    "#ffffff",
+    position: "bottom",
   });
   const { user } = useAuth();
 
@@ -215,7 +218,7 @@ export default function CommunityScreen() {
     setNewCaption("");
     setNewImage(null);
     setSnapshotConfig({ frame: "none", effect: "none", decor: "none" });
-    setSnapshotOverlay({ text: "", font: "sans", color: "#ffffff" });
+    setSnapshotOverlay({ text: "", font: "sans", color: "#ffffff", position: "bottom" });
     setIsPosting(false);
     setShowNewPost(false);
   };
@@ -528,6 +531,33 @@ function PostCard({
   overlayColor?: string;
 }) {
   const [showComments, setShowComments] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleShare = async () => {
+    if (!post.imageUrl) return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsSharing(true);
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        setIsSharing(false);
+        return;
+      }
+      // Télécharger l'image localement pour pouvoir la partager
+      const localUri = FileSystem.cacheDirectory + "snapshot_share.jpg";
+      const download = await FileSystem.downloadAsync(post.imageUrl, localUri);
+      await Sharing.shareAsync(download.uri, {
+        mimeType: "image/jpeg",
+        dialogTitle: "Partager sur Instagram Story",
+        UTI: "public.jpeg",
+      });
+    } catch (e) {
+      // Silently fail
+    }
+    setIsSharing(false);
+  };
 
   const hasSnapshot = snapshotConfig &&
     (snapshotConfig.frame !== "none" || snapshotConfig.effect !== "none" || snapshotConfig.decor !== "none");
@@ -567,9 +597,10 @@ function PostCard({
               imageUri={post.imageUrl}
               config={snapshotConfig!}
               overlay={{
-                text:  overlayText  ?? "",
-                font:  overlayFont  ?? "sans",
-                color: overlayColor ?? "#ffffff",
+                text:     overlayText     ?? "",
+                font:     overlayFont     ?? "sans",
+                color:    overlayColor    ?? "#ffffff",
+                position: (post as any).overlayPosition ?? "bottom",
               }}
               width={previewW}
               height={previewH}
@@ -612,6 +643,21 @@ function PostCard({
         </TouchableOpacity>
 
         <View style={{ flex: 1 }} />
+
+        {/* Bouton Partager pour les posts Story */}
+        {snapshotConfig?.frame === "story" && post.imageUrl ? (
+          <TouchableOpacity
+            onPress={handleShare}
+            style={[commStyles.tryBtn, { borderColor: colors.primary, marginRight: 6 }]}
+            activeOpacity={0.8}
+            disabled={isSharing}
+          >
+            <IconSymbol name="square.and.arrow.up" size={13} color={colors.primary} />
+            <Text style={[commStyles.tryBtnText, { color: colors.primary, marginLeft: 4 }]}>
+              {isSharing ? "…" : "STORY"}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         {post.jewelryName ? (
           <TouchableOpacity

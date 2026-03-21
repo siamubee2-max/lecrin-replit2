@@ -42,10 +42,13 @@ export type SnapshotConfig = {
   decor:  SnapshotDecor;
 };
 
+export type OverlayPosition = "top" | "center" | "bottom";
+
 export type SnapshotOverlay = {
-  text:  string;
-  font:  OverlayFont;
-  color: string;
+  text:     string;
+  font:     OverlayFont;
+  color:    string;
+  position: OverlayPosition;
 };
 
 // ─── Données ──────────────────────────────────────────────────────────────────
@@ -282,6 +285,30 @@ export function SnapshotEditor({
               />
             ))}
           </View>
+
+          {/* Position */}
+          <Text style={[styles.sectionLabel, { color: colors.muted }]}>POSITION</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {(["top", "center", "bottom"] as const).map(pos => {
+              const label = pos === "top" ? "Haut" : pos === "center" ? "Centre" : "Bas";
+              const icon  = pos === "top" ? "⬆" : pos === "center" ? "⬛" : "⬇";
+              return (
+                <TouchableOpacity
+                  key={pos}
+                  onPress={() => { tap(); onOverlay({ ...overlay, position: pos }); }}
+                  style={[styles.posChip, {
+                    backgroundColor: overlay.position === pos ? colors.foreground : colors.surface,
+                    borderColor:     overlay.position === pos ? colors.foreground : colors.border,
+                  }]}
+                >
+                  <Text style={{ fontSize: 14 }}>{icon}</Text>
+                  <Text style={[styles.chipLabel, { color: overlay.position === pos ? colors.background : colors.muted }]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       )}
     </View>
@@ -353,7 +380,15 @@ export function SnapshotPreview({ imageUri, config, overlay, width, height, colo
 
           {/* Texte overlay */}
           {hasOverlay && (
-            <View style={styles.overlayTextContainer} pointerEvents="none">
+            <View
+              style={[
+                styles.overlayTextContainer,
+                overlay.position === "top"    && { top: 14, bottom: undefined },
+                overlay.position === "center" && { top: "40%", bottom: undefined },
+                overlay.position === "bottom" && { bottom: 14, top: undefined },
+              ]}
+              pointerEvents="none"
+            >
               <Text
                 style={[
                   styles.overlayText,
@@ -639,4 +674,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   storyBadgeText: { fontSize: 9, fontWeight: "700", letterSpacing: 1.5 },
+  posChip: {
+    flex: 1,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
 });

@@ -852,3 +852,7 @@
 - [x] Texte personnalisé sur la photo (nom bijou, hashtag, citation) avec choix police et couleur
 - [x] Afficher SnapshotPreview dans PostCard (fil Communauté)
 - [x] Passer snapshotConfig lors de la publication
+
+## Snapshot v3
+- [x] Repositionnement texte overlay (haut/centre/bas)
+- [x] Bouton Partager natif (expo-sharing) pour posts Story
