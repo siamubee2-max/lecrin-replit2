@@ -9,6 +9,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PaywallModal } from "@/components/paywall/PaywallModal";
 import { trpc } from "@/lib/trpc";
+import { scheduleSubscriptionExpiryReminder, cancelSubscriptionExpiryReminder } from "@/services/notification-service";
 
 const SUBSCRIPTION_PLANS = [
   {
@@ -113,6 +114,13 @@ export default function SettingsScreen() {
       }
       const result = await syncSubscriptionMutation.mutateAsync();
       if (result.success) {
+        // Planifier la notification de rappel si une date d'expiration est disponible
+        if (result.expiresDate && result.tier !== 'free') {
+          const tierLabel = { basic: 'Essentiel', premium: 'Premium', yearly: 'Annuel Premium' }[result.tier as string] ?? result.tier;
+          await scheduleSubscriptionExpiryReminder(result.expiresDate, tierLabel);
+        } else if (result.tier === 'free') {
+          await cancelSubscriptionExpiryReminder();
+        }
         Alert.alert(
           "Abonnement synchronisé",
           `Votre plan est maintenant à jour : ${{ free: 'Découverte', basic: 'Essentiel', premium: 'Premium', yearly: 'Annuel Premium' }[result.tier] ?? result.tier}.`,

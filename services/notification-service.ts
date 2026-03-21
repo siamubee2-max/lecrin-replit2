@@ -329,3 +329,75 @@ export async function areNotificationsEnabled(): Promise<boolean> {
   const { status } = await Notifications.getPermissionsAsync();
   return status === "granted";
 }
+/**
+ * Schedule a subscription expiry reminder notification 3 days before expiry.
+ * Cancels any previous subscription reminder before scheduling a new one.
+ */
+const SUBSCRIPTION_REMINDER_ID_KEY = "subscription_reminder_notif_id";
+
+export async function scheduleSubscriptionExpiryReminder(
+  expiresDate: string,
+  tierLabel: string
+): Promise<void> {
+  if (Platform.OS === "web") return;
+
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") return;
+
+    // Cancel previous subscription reminder if any
+    const prevId = await AsyncStorage.getItem(SUBSCRIPTION_REMINDER_ID_KEY);
+    if (prevId) {
+      await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => {});
+      await AsyncStorage.removeItem(SUBSCRIPTION_REMINDER_ID_KEY);
+    }
+
+    const expiryMs = new Date(expiresDate).getTime();
+    const reminderMs = expiryMs - 3 * 24 * 60 * 60 * 1000; // 3 jours avant
+    const now = Date.now();
+
+    if (reminderMs <= now) {
+      // Moins de 3 jours restants — envoyer une notification immédiate
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "⏰ Votre abonnement expire bientôt",
+          body: `Votre plan ${tierLabel} expire dans moins de 3 jours. Renouvelez pour continuer à profiter de l'essayage virtuel.`,
+          data: { type: "subscription_expiry" },
+        },
+        trigger: null,
+      });
+      return;
+    }
+
+    const notifId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "⏰ Votre abonnement expire bientôt",
+        body: `Votre plan ${tierLabel} expire dans 3 jours. Renouvelez pour continuer à profiter de l'essayage virtuel.`,
+        data: { type: "subscription_expiry" },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: new Date(reminderMs),
+      },
+    });
+
+    await AsyncStorage.setItem(SUBSCRIPTION_REMINDER_ID_KEY, notifId);
+    console.log(`[Notifications] Subscription expiry reminder scheduled for ${new Date(reminderMs).toISOString()}`);
+  } catch (err) {
+    console.warn("[Notifications] Failed to schedule subscription expiry reminder:", err);
+  }
+}
+
+/**
+ * Cancel the subscription expiry reminder notification.
+ */
+export async function cancelSubscriptionExpiryReminder(): Promise<void> {
+  if (Platform.OS === "web") return;
+  try {
+    const prevId = await AsyncStorage.getItem(SUBSCRIPTION_REMINDER_ID_KEY);
+    if (prevId) {
+      await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => {});
+      await AsyncStorage.removeItem(SUBSCRIPTION_REMINDER_ID_KEY);
+    }
+  } catch {}
+}
