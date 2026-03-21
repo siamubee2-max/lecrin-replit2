@@ -28,6 +28,8 @@ import { OutfitBuilder } from "@/components/tryon/OutfitBuilder";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
+import { PaywallModal } from "@/components/paywall/PaywallModal";
 
 // Convertit une URI locale (file:// ou content://) en URL publique via upload
 async function ensurePublicUrl(
@@ -508,6 +510,8 @@ export default function TryOnScreen() {
   }, [hasRetryParams]);
   const [showMannequinModal, setShowMannequinModal] = useState(false);
   const [showJewelryModal, setShowJewelryModal] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const subscription = useSubscription();
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [resultImageUrls, setResultImageUrls] = useState<string[]>([]);
@@ -603,6 +607,11 @@ export default function TryOnScreen() {
   }, []);
 
   const handleTryOn = async () => {
+    // Vérification abonnement
+    if (!subscription.canUseVirtualTryOn) {
+      setShowPaywall(true);
+      return;
+    }
     if (!userPhoto) {
       Alert.alert("Photo manquante", "Veuillez sélectionner votre photo ou un mannequin.");
       return;
@@ -641,6 +650,7 @@ export default function TryOnScreen() {
       setResultImageUrl(urls[0] ?? null);
       setSelectedVariantIndex(0);
       setShowResultModal(true);
+      subscription.incrementTryOnUsage();
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Sauvegarder dans l'historique AsyncStorage
       try {
@@ -753,11 +763,26 @@ export default function TryOnScreen() {
         </ScrollView>
         <View style={[styles.headerLine, { backgroundColor: colors.border }]} />
 
-        {/* Mode Tenue Complète */}
+        {/* Mode Tenue Complète - Premium requis */}
         {tryOnMode === "outfit" && (
-          <View style={{ flex: 1, minHeight: 600 }}>
-            <OutfitBuilder />
-          </View>
+          subscription.canUseOutfitBuilder ? (
+            <View style={{ flex: 1, minHeight: 600 }}>
+              <OutfitBuilder />
+            </View>
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 16 }}>
+              <Text style={{ fontSize: 32 }}>👗</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, textAlign: "center" }}>Mode Tenue Complète</Text>
+              <Text style={{ fontSize: 12, color: colors.muted, textAlign: "center", lineHeight: 20 }}>Composez un look complet avec 15 slots dédiés (bijoux, vêtements, accessoires, chaussures…). Fonctionnalité Premium.</Text>
+              <TouchableOpacity
+                onPress={() => setShowPaywall(true)}
+                style={{ backgroundColor: "#C9A96E", borderRadius: 24, paddingHorizontal: 28, paddingVertical: 12, marginTop: 8 }}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 }}>DÉBLOQUER PREMIUM</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
 
         {/* Contenu des autres modes */}
@@ -1426,6 +1451,16 @@ export default function TryOnScreen() {
           )}
         </View>
       </Modal>
+      {/* Paywall Modal */}
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onPurchasePremium={subscription.purchasePremium}
+        onPurchasePremiumPlus={subscription.purchasePremiumPlus}
+        onRestore={subscription.restorePurchases}
+        featureName={tryOnMode === "outfit" ? "Mode Tenue Complète" : "Essayage IA"}
+        freeTriesLeft={subscription.canUseUnlimitedTryOns ? undefined : Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed)}
+      />
     </ScreenContainer>
   );
 }
