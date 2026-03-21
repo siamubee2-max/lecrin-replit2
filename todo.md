@@ -889,3 +889,4 @@
 - [x] Hook useSubscription avec gestion des offres
 - [ ] Composant PaywallModal élégant
 - [ ] Protéger essayage IA, tenue complète, Snapshot premium
+- [x] Supprimer les posts de démonstration de la Communauté (fil vide)

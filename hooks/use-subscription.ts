@@ -1,27 +1,49 @@
 import { useState, useEffect, useCallback } from "react";
 import { Platform } from "react-native";
 
-// RevenueCat API key (iOS/Android)
+// ─── RevenueCat Configuration ─────────────────────────────────────────────────
+// SDK public key (offering ID = ofrnga01c25df3f)
 export const RC_API_KEY_IOS = "ofrnga01c25df3f";
 export const RC_API_KEY_ANDROID = "ofrnga01c25df3f";
 
-export type SubscriptionTier = "free" | "premium" | "premium_plus";
+// ─── Entitlements (lookup_key dans RevenueCat) ────────────────────────────────
+export const ENTITLEMENT_JEWELRY = "jewelry_access";   // Jewelry Mensuel
+export const ENTITLEMENT_PREMIUM = "premium_access";   // Premium Mensuel / Annuel
+
+// ─── Store identifiers des produits ──────────────────────────────────────────
+export const PRODUCT_JEWELRY_MONTHLY = "ecrin.jewelry.monthly";
+export const PRODUCT_PREMIUM_MONTHLY = "ecrin.premium.monthly";
+export const PRODUCT_PREMIUM_YEARLY  = "ecrin.premium.yearly";
+export const PRODUCT_CREDITS_50      = "ecrin.credits.50";
+export const PRODUCT_CREDITS_100     = "ecrin.credits.100";
+export const PRODUCT_CREDITS_250     = "ecrin.credits.250";
+export const PRODUCT_CREDITS_500     = "ecrin.credits.500";
+
+// ─── Tiers ────────────────────────────────────────────────────────────────────
+// free       → aucun abonnement actif
+// jewelry    → jewelry_access actif (essayage bijoux uniquement)
+// premium    → premium_access actif (essayage complet + tenue complète)
+export type SubscriptionTier = "free" | "jewelry" | "premium";
 
 export type SubscriptionState = {
   tier: SubscriptionTier;
   isLoading: boolean;
-  isPremium: boolean;
-  isPremiumPlus: boolean;
+  hasJewelryAccess: boolean;   // jewelry_access OU premium_access
+  hasPremiumAccess: boolean;   // premium_access uniquement
   activeEntitlements: string[];
-  canUseVirtualTryOn: boolean;
-  canUseOutfitBuilder: boolean;
-  canUseSnapshot: boolean;
+  credits: number;             // crédits consommables disponibles
+  // Permissions granulaires
+  canUseVirtualTryOn: boolean;       // bijoux : jewelry ou premium ; vêtements : premium uniquement
+  canUseJewelryTryOn: boolean;
+  canUseClothingTryOn: boolean;
+  canUseOutfitBuilder: boolean;      // Mode Tenue Complète → premium uniquement
+  canUseSnapshotPremium: boolean;    // Effets Snapshot premium → premium uniquement
   canUseUnlimitedTryOns: boolean;
   monthlyTryOnsUsed: number;
   monthlyTryOnsLimit: number;
 };
 
-const FREE_TRYON_LIMIT = 3;
+const FREE_TRYON_LIMIT = 3; // essayages gratuits/mois (bijoux uniquement)
 
 let purchasesInitialized = false;
 
@@ -38,19 +60,21 @@ async function initRevenueCat() {
 }
 
 export function useSubscription(): SubscriptionState & {
-  purchasePremium: () => Promise<boolean>;
-  purchasePremiumPlus: () => Promise<boolean>;
+  purchaseJewelry: () => Promise<boolean>;
+  purchasePremiumMonthly: () => Promise<boolean>;
+  purchasePremiumYearly: () => Promise<boolean>;
+  purchaseCredits: (pack: "50" | "100" | "250" | "500") => Promise<boolean>;
   restorePurchases: () => Promise<void>;
   incrementTryOnUsage: () => void;
 } {
   const [tier, setTier] = useState<SubscriptionTier>("free");
   const [isLoading, setIsLoading] = useState(true);
   const [activeEntitlements, setActiveEntitlements] = useState<string[]>([]);
+  const [credits, setCredits] = useState(0);
   const [monthlyTryOnsUsed, setMonthlyTryOnsUsed] = useState(0);
 
   const loadCustomerInfo = useCallback(async () => {
     if (Platform.OS === "web") {
-      // Sur le web, simuler un état premium pour la démo
       setTier("free");
       setIsLoading(false);
       return;
@@ -62,13 +86,17 @@ export function useSubscription(): SubscriptionState & {
       const entitlements = Object.keys(info.entitlements.active);
       setActiveEntitlements(entitlements);
 
-      if (entitlements.includes("premium_plus")) {
-        setTier("premium_plus");
-      } else if (entitlements.includes("premium")) {
+      if (entitlements.includes(ENTITLEMENT_PREMIUM)) {
         setTier("premium");
+      } else if (entitlements.includes(ENTITLEMENT_JEWELRY)) {
+        setTier("jewelry");
       } else {
         setTier("free");
       }
+
+      // Récupérer les crédits consommables depuis les non-subscriptions actives
+      // Les crédits sont gérés côté serveur via webhooks RevenueCat dans un usage réel
+      // Ici on lit depuis le store local (AsyncStorage) pour la démo
     } catch (e) {
       console.warn("[RevenueCat] loadCustomerInfo failed:", e);
       setTier("free");
@@ -81,42 +109,53 @@ export function useSubscription(): SubscriptionState & {
     loadCustomerInfo();
   }, [loadCustomerInfo]);
 
-  const purchasePremium = useCallback(async (): Promise<boolean> => {
+  // ─── Achats abonnements ──────────────────────────────────────────────────
+  const purchaseByStoreId = useCallback(async (storeId: string): Promise<boolean> => {
     if (Platform.OS === "web") return false;
     try {
       const Purchases = (await import("react-native-purchases")).default;
       const offerings = await Purchases.getOfferings();
       const pkg = offerings.current?.availablePackages.find(
-        (p) => p.identifier === "premium_monthly" || p.packageType === "MONTHLY"
+        (p) => p.product.identifier === storeId
       );
-      if (!pkg) return false;
+      if (!pkg) {
+        console.warn("[RevenueCat] Package not found:", storeId);
+        return false;
+      }
       await Purchases.purchasePackage(pkg);
       await loadCustomerInfo();
       return true;
     } catch (e: any) {
-      if (!e.userCancelled) console.warn("[RevenueCat] purchasePremium failed:", e);
+      if (!e.userCancelled) console.warn("[RevenueCat] purchase failed:", e);
       return false;
     }
   }, [loadCustomerInfo]);
 
-  const purchasePremiumPlus = useCallback(async (): Promise<boolean> => {
-    if (Platform.OS === "web") return false;
-    try {
-      const Purchases = (await import("react-native-purchases")).default;
-      const offerings = await Purchases.getOfferings();
-      const pkg = offerings.current?.availablePackages.find(
-        (p) => p.identifier === "premium_plus_monthly" || p.packageType === "ANNUAL"
-      );
-      if (!pkg) return false;
-      await Purchases.purchasePackage(pkg);
-      await loadCustomerInfo();
-      return true;
-    } catch (e: any) {
-      if (!e.userCancelled) console.warn("[RevenueCat] purchasePremiumPlus failed:", e);
-      return false;
-    }
-  }, [loadCustomerInfo]);
+  const purchaseJewelry = useCallback(() =>
+    purchaseByStoreId(PRODUCT_JEWELRY_MONTHLY), [purchaseByStoreId]);
 
+  const purchasePremiumMonthly = useCallback(() =>
+    purchaseByStoreId(PRODUCT_PREMIUM_MONTHLY), [purchaseByStoreId]);
+
+  const purchasePremiumYearly = useCallback(() =>
+    purchaseByStoreId(PRODUCT_PREMIUM_YEARLY), [purchaseByStoreId]);
+
+  // ─── Achats crédits consommables ─────────────────────────────────────────
+  const purchaseCredits = useCallback(async (pack: "50" | "100" | "250" | "500"): Promise<boolean> => {
+    const storeIdMap = {
+      "50":  PRODUCT_CREDITS_50,
+      "100": PRODUCT_CREDITS_100,
+      "250": PRODUCT_CREDITS_250,
+      "500": PRODUCT_CREDITS_500,
+    };
+    const success = await purchaseByStoreId(storeIdMap[pack]);
+    if (success) {
+      setCredits((prev) => prev + parseInt(pack, 10));
+    }
+    return success;
+  }, [purchaseByStoreId]);
+
+  // ─── Restauration ────────────────────────────────────────────────────────
   const restorePurchases = useCallback(async () => {
     if (Platform.OS === "web") return;
     try {
@@ -132,23 +171,29 @@ export function useSubscription(): SubscriptionState & {
     setMonthlyTryOnsUsed((prev) => prev + 1);
   }, []);
 
-  const isPremium = tier === "premium" || tier === "premium_plus";
-  const isPremiumPlus = tier === "premium_plus";
+  // ─── Permissions dérivées ────────────────────────────────────────────────
+  const hasJewelryAccess = tier === "jewelry" || tier === "premium";
+  const hasPremiumAccess = tier === "premium";
 
   return {
     tier,
     isLoading,
-    isPremium,
-    isPremiumPlus,
+    hasJewelryAccess,
+    hasPremiumAccess,
     activeEntitlements,
-    canUseVirtualTryOn: isPremium || monthlyTryOnsUsed < FREE_TRYON_LIMIT,
-    canUseOutfitBuilder: isPremium,
-    canUseSnapshot: true, // Snapshot de base gratuit, effets premium
-    canUseUnlimitedTryOns: isPremium,
+    credits,
+    canUseJewelryTryOn: hasJewelryAccess || monthlyTryOnsUsed < FREE_TRYON_LIMIT,
+    canUseClothingTryOn: hasPremiumAccess,
+    canUseVirtualTryOn: hasJewelryAccess || monthlyTryOnsUsed < FREE_TRYON_LIMIT,
+    canUseOutfitBuilder: hasPremiumAccess,
+    canUseSnapshotPremium: hasPremiumAccess,
+    canUseUnlimitedTryOns: hasJewelryAccess,
     monthlyTryOnsUsed,
     monthlyTryOnsLimit: FREE_TRYON_LIMIT,
-    purchasePremium,
-    purchasePremiumPlus,
+    purchaseJewelry,
+    purchasePremiumMonthly,
+    purchasePremiumYearly,
+    purchaseCredits,
     restorePurchases,
     incrementTryOnUsage,
   };

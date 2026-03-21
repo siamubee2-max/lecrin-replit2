@@ -1455,8 +1455,8 @@ export default function TryOnScreen() {
       <PaywallModal
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
-        onPurchasePremium={subscription.purchasePremium}
-        onPurchasePremiumPlus={subscription.purchasePremiumPlus}
+        onPurchasePremium={subscription.purchasePremiumMonthly}
+        onPurchasePremiumPlus={subscription.purchasePremiumYearly}
         onRestore={subscription.restorePurchases}
         featureName={tryOnMode === "outfit" ? "Mode Tenue Complète" : "Essayage IA"}
         freeTriesLeft={subscription.canUseUnlimitedTryOns ? undefined : Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed)}
