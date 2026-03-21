@@ -874,3 +874,12 @@
 - [x] Onglet MES DÉFIS dans la Communauté avec rappel deadline
 - [x] Création de défis personnalisés par les membres
 - [x] Système de badges de profil automatiques (Styliste, Tendance, Explorateur) (Styliste, Tendance, Explorateur)
+
+## Bijoux Favoris
+- [ ] Store de favoris (AsyncStorage) avec hook useFavorites
+- [ ] Bouton Sauvegarder dans boutique.tsx
+- [ ] Bouton Sauvegarder dans tryon.tsx (résultat essayage)
+- [ ] Section Bijoux Favoris dans UserProfileModal
+
+## Classement
+- [x] Écran Classement top 10 membres par likes/partages avec badges
