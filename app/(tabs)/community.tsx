@@ -46,6 +46,8 @@ const DEMO_POSTS = [
     overlayText: "Boucles Fleur Dorée",
     overlayFont: "serif" as const,
     overlayColor: "#C9A96E",
+    overlayPosition: "bottom" as const,
+    shares: 17,
   },
   {
     id: "post-2",
@@ -63,6 +65,8 @@ const DEMO_POSTS = [
     overlayText: "#OOTD ✦",
     overlayFont: "sans" as const,
     overlayColor: "#ffffff",
+    overlayPosition: "bottom" as const,
+    shares: 31,
   },
   {
     id: "post-3",
@@ -80,6 +84,8 @@ const DEMO_POSTS = [
     overlayText: "Avec amour 💕",
     overlayFont: "italic" as const,
     overlayColor: "#ffffff",
+    overlayPosition: "center" as const,
+    shares: 58,
   },
   {
     id: "post-4",
@@ -94,6 +100,7 @@ const DEMO_POSTS = [
     jewelryName: "Boucles résine orange",
     jewelryBrand: "MONI'ATTITUDE",
     snapshotConfig: { frame: "magazine" as const, effect: "grain" as const, decor: "none" as const },
+    shares: 12,
   },
   {
     id: "post-5",
@@ -107,6 +114,7 @@ const DEMO_POSTS = [
     timeAgo: "3j",
     jewelryName: "Boucles feuille métalisée",
     jewelryBrand: "MONI'ATTITUDE",
+    shares: 9,
   },
 ];
 
@@ -115,6 +123,8 @@ type Post = typeof DEMO_POSTS[0] & {
   overlayText?: string;
   overlayFont?: OverlayFont;
   overlayColor?: string;
+  overlayPosition?: "top" | "center" | "bottom";
+  shares?: number;
 };
 
 // Merge DB post into local Post format
@@ -131,6 +141,7 @@ function dbPostToPost(p: any): Post {
     timeAgo: "Récent",
     jewelryName: p.jewelryType || "",
     jewelryBrand: "",
+    shares: p.sharesCount ?? 0,
   };
 }
 
@@ -641,6 +652,18 @@ function PostCard({
           <IconSymbol name="bubble.left" size={17} color={colors.muted} />
           <Text style={[commStyles.actionCount, { color: colors.muted }]}>{post.comments}</Text>
         </TouchableOpacity>
+
+        {/* Compteur de partages */}
+        {(post.shares ?? 0) > 0 ? (
+          <TouchableOpacity
+            onPress={handleShare}
+            style={commStyles.actionBtn}
+            activeOpacity={0.7}
+          >
+            <IconSymbol name="square.and.arrow.up" size={16} color={colors.muted} />
+            <Text style={[commStyles.actionCount, { color: colors.muted }]}>{post.shares}</Text>
+          </TouchableOpacity>
+        ) : null}
 
         <View style={{ flex: 1 }} />
 

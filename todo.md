@@ -856,3 +856,7 @@
 ## Snapshot v3
 - [x] Repositionnement texte overlay (haut/centre/bas)
 - [x] Bouton Partager natif (expo-sharing) pour posts Story
+
+## Snapshot v4
+- [ ] Bouton Partager en Story dans la modal de résultat d'essayage
+- [ ] Compteur de partages dans PostCard et données démo
