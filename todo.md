@@ -909,3 +909,6 @@
 - [x] Ajouter bouton "Synchroniser mon abonnement" dans les Paramètres
 - [x] Configurer REVENUECAT_API_KEY dans les secrets
 - [x] Créer l'écran de confirmation post-suppression de compte
+- [x] Ajouter entitlement yearly_access dans syncSubscription et webhook
+- [x] Notification push 3 jours avant expiration abonnement
+- [x] Écran "Bienvenue de retour" après reconnexion avec historique

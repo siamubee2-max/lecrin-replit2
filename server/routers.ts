@@ -70,13 +70,19 @@ export const appRouter = router({
         }
         const data = await rcResponse.json() as any;
         const entitlements = data?.subscriber?.entitlements ?? {};
+        const now = new Date();
         let tier: 'free' | 'basic' | 'premium' | 'yearly' = 'free';
-        if (entitlements['premium_access']?.expires_date) {
+        let expiresDate: string | null = null;
+        // Priorité : yearly > premium > basic (jewelry)
+        if (entitlements['yearly_access']?.expires_date) {
+          const exp = new Date(entitlements['yearly_access'].expires_date);
+          if (exp > now) { tier = 'yearly'; expiresDate = entitlements['yearly_access'].expires_date; }
+        } else if (entitlements['premium_access']?.expires_date) {
           const exp = new Date(entitlements['premium_access'].expires_date);
-          if (exp > new Date()) tier = 'premium';
+          if (exp > now) { tier = 'premium'; expiresDate = entitlements['premium_access'].expires_date; }
         } else if (entitlements['jewelry_access']?.expires_date) {
           const exp = new Date(entitlements['jewelry_access'].expires_date);
-          if (exp > new Date()) tier = 'basic';
+          if (exp > now) { tier = 'basic'; expiresDate = entitlements['jewelry_access'].expires_date; }
         }
         const dbInstance = await db.getDb();
         if (dbInstance) {
@@ -85,7 +91,7 @@ export const appRouter = router({
           await dbInstance.update(users).set({ subscriptionTier: tier }).where(eq(users.id, userId));
           console.log(`[SyncSubscription] Updated tier for user ${userId}: ${tier}`);
         }
-        return { success: true, tier };
+        return { success: true, tier, expiresDate };
       } catch (err) {
         console.error('[SyncSubscription] Error:', err);
         return { success: false, tier: 'free' as const, reason: 'exception' };
