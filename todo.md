@@ -902,3 +902,7 @@
 - [x] Ajouter bouton "Réessayer" dans le modal de l'historique des essayages (pré-remplit l'écran d'essayage)
 - [x] Configurer le webhook RevenueCat sur app.revenuecat.com
 - [x] Suppression individuelle d'une entrée dans l'historique (swipe-to-delete + bouton corbeille dans le modal)
+- [x] Implémenter DELETE /api/user/account (Apple Guideline 5.1.1v)
+- [x] Ajouter UI suppression de compte dans les Paramètres
+- [x] Implémenter /api/sync-subscription (fix bug IA après achat)
+- [x] Mettre à jour URL webhook RevenueCat dans le code
