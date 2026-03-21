@@ -24,6 +24,73 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+
+    // DELETE account — Apple Guideline 5.1.1(v)
+    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      const userId = ctx.user.id;
+      const dbInstance = await db.getDb();
+      if (!dbInstance) throw new Error('DB non disponible');
+      const { eq } = await import('drizzle-orm');
+      const schema = await import('../drizzle/schema');
+      // Supprimer toutes les données utilisateur en cascade
+      await dbInstance.delete(schema.favorites).where(eq(schema.favorites.userId, userId));
+      await dbInstance.delete(schema.userStats).where(eq(schema.userStats.userId, userId));
+      await dbInstance.delete(schema.bodyParts).where(eq(schema.bodyParts.userId, userId));
+      await dbInstance.delete(schema.wardrobeItems).where(eq(schema.wardrobeItems.userId, userId));
+      await dbInstance.delete(schema.savedLooks).where(eq(schema.savedLooks.userId, userId));
+      await dbInstance.delete(schema.jewelryCollection).where(eq(schema.jewelryCollection.userId, userId));
+      await dbInstance.delete(schema.partnerJewelryFavorites).where(eq(schema.partnerJewelryFavorites.userId, userId));
+      await dbInstance.delete(schema.communityPosts).where(eq(schema.communityPosts.userId, userId));
+      await dbInstance.delete(schema.communityPostLikes).where(eq(schema.communityPostLikes.userId, userId));
+      // Supprimer le compte utilisateur
+      await dbInstance.delete(schema.users).where(eq(schema.users.id, userId));
+      // Invalider la session
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      console.log(`[Auth] Account deleted for user ${userId}`);
+      return { success: true } as const;
+    }),
+
+    // Sync subscription with RevenueCat — fix bug IA après achat
+    syncSubscription: protectedProcedure.mutation(async ({ ctx }) => {
+      const userId = ctx.user.id;
+      const REVENUECAT_API_KEY = process.env.REVENUECAT_API_KEY || process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || '';
+      if (!REVENUECAT_API_KEY) {
+        console.warn('[SyncSubscription] No RevenueCat API key configured');
+        return { success: false, tier: 'free' as const, reason: 'no_api_key' };
+      }
+      try {
+        const rcResponse = await fetch(
+          `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(String(userId))}`,
+          { headers: { Authorization: `Bearer ${REVENUECAT_API_KEY}`, 'Content-Type': 'application/json' } }
+        );
+        if (!rcResponse.ok) {
+          console.warn('[SyncSubscription] RevenueCat API error:', rcResponse.status);
+          return { success: false, tier: 'free' as const, reason: 'api_error' };
+        }
+        const data = await rcResponse.json() as any;
+        const entitlements = data?.subscriber?.entitlements ?? {};
+        let tier: 'free' | 'basic' | 'premium' | 'yearly' = 'free';
+        if (entitlements['premium_access']?.expires_date) {
+          const exp = new Date(entitlements['premium_access'].expires_date);
+          if (exp > new Date()) tier = 'premium';
+        } else if (entitlements['jewelry_access']?.expires_date) {
+          const exp = new Date(entitlements['jewelry_access'].expires_date);
+          if (exp > new Date()) tier = 'basic';
+        }
+        const dbInstance = await db.getDb();
+        if (dbInstance) {
+          const { eq } = await import('drizzle-orm');
+          const { users } = await import('../drizzle/schema');
+          await dbInstance.update(users).set({ subscriptionTier: tier }).where(eq(users.id, userId));
+          console.log(`[SyncSubscription] Updated tier for user ${userId}: ${tier}`);
+        }
+        return { success: true, tier };
+      } catch (err) {
+        console.error('[SyncSubscription] Error:', err);
+        return { success: false, tier: 'free' as const, reason: 'exception' };
+      }
+    }),
   }),
 
   // ============================================

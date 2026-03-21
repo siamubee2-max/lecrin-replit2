@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, Linking, Alert, Platform } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, Linking, Alert, Platform, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -8,6 +8,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PaywallModal } from "@/components/paywall/PaywallModal";
+import { trpc } from "@/lib/trpc";
 
 const SUBSCRIPTION_PLANS = [
   {
@@ -97,6 +98,54 @@ export default function SettingsScreen() {
 
   const handleContact = () => {
     Linking.openURL("mailto:inferencevision@inferencevision.store?subject=Support%20Écrin%20Virtuel");
+  };
+
+  const deleteAccountMutation = trpc.auth.deleteAccount.useMutation();
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Supprimer mon compte",
+      "Cette action est irréversible. Toutes vos données (essayages, favoris, garde-robe, abonnement) seront définitivement supprimées.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer définitivement",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Confirmation finale",
+              "Êtes-vous absolument certain ? Cette action ne peut pas être annulée.",
+              [
+                { text: "Annuler", style: "cancel" },
+                {
+                  text: "Oui, supprimer",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      setIsDeletingAccount(true);
+                      if (Platform.OS !== "web") {
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                      }
+                      await deleteAccountMutation.mutateAsync();
+                      Alert.alert(
+                        "Compte supprimé",
+                        "Votre compte a été supprimé avec succès.",
+                        [{ text: "OK", onPress: () => router.replace("/") }]
+                      );
+                    } catch {
+                      Alert.alert("Erreur", "Impossible de supprimer le compte. Réessayez ou contactez le support.");
+                    } finally {
+                      setIsDeletingAccount(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   const currentLanguage = LANGUAGES.find(l => l.code === currentLang);
@@ -443,6 +492,37 @@ export default function SettingsScreen() {
               }}
               colors={colors}
             />
+          </View>
+        </View>
+
+        {/* Zone Danger — Apple Guideline 5.1.1(v) */}
+        <View className="px-4 mb-4">
+          <Text className="text-sm font-semibold uppercase mb-3 tracking-wide" style={{ color: colors.error }}>
+            Zone Danger
+          </Text>
+          <View className="rounded-2xl overflow-hidden" style={{ borderWidth: 1, borderColor: colors.error + '40', backgroundColor: colors.surface }}>
+            <TouchableOpacity
+              onPress={handleDeleteAccount}
+              disabled={isDeletingAccount}
+              className="flex-row items-center justify-between px-4 py-4 active:opacity-70"
+            >
+              <View className="flex-row items-center">
+                {isDeletingAccount ? (
+                  <ActivityIndicator size="small" color={colors.error} />
+                ) : (
+                  <IconSymbol name="trash.fill" size={20} color={colors.error} />
+                )}
+                <View className="ml-3">
+                  <Text className="text-base font-medium" style={{ color: colors.error }}>
+                    Supprimer mon compte
+                  </Text>
+                  <Text className="text-xs mt-0.5" style={{ color: colors.muted }}>
+                    Suppression irréversible de toutes vos données
+                  </Text>
+                </View>
+              </View>
+              <IconSymbol name="chevron.right" size={18} color={colors.error} />
+            </TouchableOpacity>
           </View>
         </View>
 

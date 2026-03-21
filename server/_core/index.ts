@@ -74,9 +74,10 @@ async function startServer() {
 
       // Map product IDs to tier + monthly limit
       const PRODUCT_MAP: Record<string, { tier: string; monthlyLimit: number }> = {
-        "ecrin.jewelry.monthly":  { tier: "jewelry", monthlyLimit: 100 },
-        "ecrin.premium.monthly":  { tier: "premium", monthlyLimit: 150 },
-        "ecrin.premium.yearly":   { tier: "premium", monthlyLimit: 1500 },
+        "ecrin.jewelry.monthly":   { tier: "basic", monthlyLimit: 100 },  // Essentiel 14,99€
+        "ecrin.essentiel.monthly": { tier: "basic", monthlyLimit: 100 },  // alias renommé
+        "ecrin.premium.monthly":   { tier: "premium", monthlyLimit: 150 }, // Premium 24,99€
+        "ecrin.premium.yearly":    { tier: "yearly", monthlyLimit: 1500 }, // Annuel 199,99€
       };
 
       if (appUserId) {
