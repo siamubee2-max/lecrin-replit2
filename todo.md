@@ -895,3 +895,4 @@
 - [x] Compteur d'essayages restants dans l'écran essayage
 - [x] Écran Mon abonnement dans les paramètres
 - [x] Route webhook RevenueCat côté serveur pour synchroniser les essayages
+- [x] Corriger les prix des abonnements : Essentiel 14,99€/mois, Premium mensuel 24,99€/mois, Premium annuel 199,99€/an (PaywallModal, settings, page HTML, tests)
