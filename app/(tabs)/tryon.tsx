@@ -1342,6 +1342,40 @@ export default function TryOnScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
+                {/* Partager en Story Instagram */}
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (!resultImageUrl) return;
+                      if (Platform.OS === "web") {
+                        // Sur web : partage simple du lien
+                        await Share.share({
+                          message: `✦ ÉCRIN VIRTUEL — Mon essayage ${selectedJewelry?.label ?? ""} \n#EcrinVirtuel #AduStyle #MoniAttitude`,
+                          url: resultImageUrl,
+                        });
+                        return;
+                      }
+                      // Sur mobile : télécharger l'image + ouvrir le menu de partage natif
+                      const localUri = FileSystem.cacheDirectory + "ecrin_story.jpg";
+                      await FileSystem.downloadAsync(resultImageUrl, localUri);
+                      const canShare = await Sharing.isAvailableAsync();
+                      if (canShare) {
+                        await Sharing.shareAsync(localUri, {
+                          mimeType: "image/jpeg",
+                          dialogTitle: "Partager en Story Instagram",
+                          UTI: "public.jpeg",
+                        });
+                      }
+                    } catch {}
+                  }}
+                  style={[resultStyles.communityBtn, { backgroundColor: "#000", borderWidth: 0, marginBottom: 8 }]}
+                  activeOpacity={0.85}
+                >
+                  <IconSymbol name="square.and.arrow.up" size={16} color="#C9A96E" />
+                  <Text style={[resultStyles.communityBtnText, { color: "#C9A96E" }]}>✦ Partager en Story</Text>
+                </TouchableOpacity>
+
                 {/* Publier dans la Communauté */}
                 <TouchableOpacity
                   onPress={() => {
