@@ -43,7 +43,10 @@ export type SubscriptionState = {
   monthlyTryOnsLimit: number;
 };
 
-const FREE_TRYON_LIMIT = 3; // essayages gratuits/mois (bijoux uniquement)
+const FREE_TRYON_LIMIT = 3;          // essayages gratuits/mois (bijoux uniquement)
+const JEWELRY_TRYON_LIMIT = 100;     // essayages Jewelry/mois
+const PREMIUM_MONTHLY_LIMIT = 150;   // essayages Premium mensuel/mois
+const PREMIUM_YEARLY_LIMIT = 1500;   // essayages Premium annuel/an
 
 let purchasesInitialized = false;
 
@@ -189,7 +192,9 @@ export function useSubscription(): SubscriptionState & {
     canUseSnapshotPremium: hasPremiumAccess,
     canUseUnlimitedTryOns: hasJewelryAccess,
     monthlyTryOnsUsed,
-    monthlyTryOnsLimit: FREE_TRYON_LIMIT,
+    monthlyTryOnsLimit: tier === "jewelry" ? JEWELRY_TRYON_LIMIT
+      : tier === "premium" ? PREMIUM_MONTHLY_LIMIT
+      : FREE_TRYON_LIMIT,
     purchaseJewelry,
     purchasePremiumMonthly,
     purchasePremiumYearly,

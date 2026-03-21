@@ -31,7 +31,7 @@ type Props = {
 
 // ─── Contenu des plans ────────────────────────────────────────────────────────
 const JEWELRY_FEATURES = [
-  { emoji: "💎", label: "Essayage bijoux illimité" },
+  { emoji: "💎", label: "100 essayages bijoux / mois" },
   { emoji: "🔔", label: "Alertes nouvelles collections" },
   { emoji: "📸", label: "Snapshot cadres basiques" },
   { emoji: "🏅", label: "Badge Communauté Bijoux" },
@@ -39,19 +39,20 @@ const JEWELRY_FEATURES = [
 
 const PREMIUM_FEATURES = [
   { emoji: "✦",  label: "Tout Jewelry inclus" },
+  { emoji: "💎", label: "150 essayages / mois (mensuel)" },
+  { emoji: "🗓️", label: "1 500 essayages / an (annuel)" },
   { emoji: "👗", label: "Essayage vêtements & chaussures" },
   { emoji: "🧥", label: "Mode Tenue Complète — 15 slots" },
   { emoji: "📸", label: "Effets Snapshot premium" },
   { emoji: "🎬", label: "Cadre Story 9:16 Instagram" },
   { emoji: "🏆", label: "Badges exclusifs Communauté" },
-  { emoji: "📊", label: "Statistiques de style" },
 ];
 
 const CREDIT_PACKS: { pack: "50" | "100" | "250" | "500"; label: string; price: string; bonus?: string }[] = [
-  { pack: "50",  label: "50 crédits",  price: "0,99 €" },
-  { pack: "100", label: "100 crédits", price: "1,99 €", bonus: "+10%" },
-  { pack: "250", label: "250 crédits", price: "3,99 €", bonus: "+25%" },
-  { pack: "500", label: "500 crédits", price: "6,99 €", bonus: "+40%" },
+  { pack: "50",  label: "50 crédits",  price: "4,99 €" },
+  { pack: "100", label: "100 crédits", price: "9,99 €",  bonus: "+10%" },
+  { pack: "250", label: "250 crédits", price: "19,99 €", bonus: "+25%" },
+  { pack: "500", label: "500 crédits", price: "35,99 €", bonus: "+40%" },
 ];
 
 export function PaywallModal({
