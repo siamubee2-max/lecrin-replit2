@@ -16,7 +16,7 @@ export type Challenge = {
   isJoined: boolean;
 };
 
-const WEEKLY_CHALLENGES: Challenge[] = [
+export const WEEKLY_CHALLENGES: Challenge[] = [
   {
     id: "ch-1",
     title: "Look Doré",

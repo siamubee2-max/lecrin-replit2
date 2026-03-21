@@ -18,6 +18,33 @@ export type UserProfile = {
   joinedAgo: string;
 };
 
+type Badge = { id: string; emoji: string; label: string; description: string; color: string };
+
+function computeBadges(profile: UserProfile): Badge[] {
+  const badges: Badge[] = [];
+  // ✦ Styliste : au moins 3 publications
+  if (profile.posts.length >= 3) {
+    badges.push({ id: "styliste", emoji: "✦", label: "Styliste", description: "A publié au moins 3 looks", color: "#C9A96E" });
+  }
+  // 🔥 Tendance : au moins 50 partages au total
+  if (profile.totalShares >= 50) {
+    badges.push({ id: "tendance", emoji: "🔥", label: "Tendance", description: "Plus de 50 partages reçus", color: "#EF4444" });
+  }
+  // 🌿 Explorateur : au moins 1 publication (rejoindre la communauté)
+  if (profile.posts.length >= 1) {
+    badges.push({ id: "explorateur", emoji: "🌿", label: "Explorateur", description: "A rejoint la Communauté", color: "#22C55E" });
+  }
+  // 💎 Connaisseur : plus de 100 likes reçus
+  if (profile.totalLikes >= 100) {
+    badges.push({ id: "connaisseur", emoji: "💎", label: "Connaisseur", description: "Plus de 100 j'aime reçus", color: "#8B5CF6" });
+  }
+  // 👑 Icône : 5+ publications ET 50+ likes
+  if (profile.posts.length >= 5 && profile.totalLikes >= 50) {
+    badges.push({ id: "icone", emoji: "👑", label: "Icône", description: "5 publications et plus de 50 j'aime", color: "#0a7ea4" });
+  }
+  return badges;
+}
+
 type Props = {
   visible: boolean;
   profile: UserProfile | null;
@@ -82,9 +109,32 @@ export function UserProfileModal({ visible, profile, onClose, onTryPost }: Props
             </View>
           </View>
 
+          {/* Badges */}
+          {(() => {
+            const badges = computeBadges(profile);
+            if (badges.length === 0) return null;
+            return (
+              <>
+                <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+                <Text style={[styles.sectionTitle, { color: colors.primary }]}>❖ BADGES</Text>
+                <View style={styles.badgesRow}>
+                  {badges.map(b => (
+                    <View key={b.id} style={[styles.badgeChip, { backgroundColor: b.color + "18", borderColor: b.color }]}>
+                      <Text style={styles.badgeEmoji}>{b.emoji}</Text>
+                      <View>
+                        <Text style={[styles.badgeLabel, { color: b.color }]}>{b.label}</Text>
+                        <Text style={[styles.badgeDesc, { color: colors.muted }]}>{b.description}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </>
+            );
+          })()}
+
           {/* Ligne décorative */}
           <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
-          <Text style={[styles.sectionTitle, { color: colors.primary }]}>✦ SES PUBLICATIONS</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>❖ SES PUBLICATIONS</Text>
 
           {/* Grille de posts */}
           {profile.posts.length === 0 ? (
@@ -272,5 +322,31 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 10,
     fontWeight: "500",
+  },
+  badgesRow: {
+    paddingHorizontal: 20,
+    gap: 8,
+    marginBottom: 8,
+  },
+  badgeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  badgeEmoji: {
+    fontSize: 20,
+  },
+  badgeLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  badgeDesc: {
+    fontSize: 11,
+    fontWeight: "300",
   },
 });

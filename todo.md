@@ -869,3 +869,8 @@
 - [x] Filtre période (Cette semaine / Ce mois) dans onglet Tendances
 - [x] Écran profil utilisateur accessible depuis les posts (avatar tap)
 - [x] Système de Défis look hebdomadaires dans la Communauté
+
+## Communauté v4
+- [x] Onglet MES DÉFIS dans la Communauté avec rappel deadline
+- [x] Création de défis personnalisés par les membres
+- [x] Système de badges de profil automatiques (Styliste, Tendance, Explorateur) (Styliste, Tendance, Explorateur)
