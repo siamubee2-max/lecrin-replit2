@@ -166,6 +166,25 @@ export default function CommunityScreen() {
     position: "bottom",
   });
   const { user } = useAuth();
+  // Notifications in-app pour seuils de partages
+  const [notifications, setNotifications] = useState<{ id: string; message: string; emoji: string }[]>([]);
+  const [shownMilestones, setShownMilestones] = useState<Set<string>>(new Set());
+
+  const triggerShareMilestone = useCallback((postId: string, shares: number) => {
+    const milestones = [{ threshold: 50, emoji: "🔥", label: "50 partages" }, { threshold: 10, emoji: "✨", label: "10 partages" }];
+    for (const m of milestones) {
+      const key = `${postId}-${m.threshold}`;
+      if (shares >= m.threshold && !shownMilestones.has(key)) {
+        setShownMilestones(prev => new Set([...prev, key]));
+        const notifId = `notif-${Date.now()}`;
+        setNotifications(prev => [...prev, { id: notifId, message: `Votre post a atteint ${m.label} !`, emoji: m.emoji }]);
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Auto-dismiss après 4s
+        setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== notifId)), 4000);
+        break;
+      }
+    }
+  }, [shownMilestones]);
 
   // Load posts from server
   const postsQuery = trpc.community.list.useQuery(undefined, { refetchOnWindowFocus: false });
@@ -176,7 +195,12 @@ export default function CommunityScreen() {
 
   // Merge server posts with demo posts (demo shown when server is empty)
   const serverPosts: Post[] = (postsQuery.data ?? []).map(dbPostToPost);
-  const posts: Post[] = serverPosts.length > 0 ? serverPosts : DEMO_POSTS;
+  const allPosts: Post[] = serverPosts.length > 0 ? serverPosts : DEMO_POSTS;
+
+  // Tri selon l'onglet actif
+  const posts: Post[] = activeTab === "trending"
+    ? [...allPosts].sort((a, b) => (b.shares ?? 0) - (a.shares ?? 0))
+    : allPosts;
 
   const handleLike = useCallback((postId: string) => {
     if (Platform.OS !== "web") {
@@ -252,6 +276,8 @@ export default function CommunityScreen() {
       overlayText={item.overlayText}
       overlayFont={item.overlayFont}
       overlayColor={item.overlayColor}
+      onShare={(shares) => triggerShareMilestone(item.id, shares)}
+      rank={activeTab === "trending" ? (posts.indexOf(item) + 1) : undefined}
     />
   );
 
@@ -299,6 +325,20 @@ export default function CommunityScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {/* Notifications in-app */}
+      {notifications.map(n => (
+        <View
+          key={n.id}
+          style={[
+            commStyles.notifBanner,
+            { backgroundColor: colors.foreground },
+          ]}
+        >
+          <Text style={{ fontSize: 18 }}>{n.emoji}</Text>
+          <Text style={[commStyles.notifText, { color: colors.background }]}>{n.message}</Text>
+        </View>
+      ))}
 
       {/* Posts Feed */}
       <FlatList
@@ -531,6 +571,8 @@ function PostCard({
   overlayText,
   overlayFont,
   overlayColor,
+  onShare,
+  rank,
 }: {
   post: Post;
   colors: ReturnType<typeof useColors>;
@@ -540,6 +582,8 @@ function PostCard({
   overlayText?: string;
   overlayFont?: OverlayFont;
   overlayColor?: string;
+  onShare?: (shares: number) => void;
+  rank?: number;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -550,6 +594,9 @@ function PostCard({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     setIsSharing(true);
+    // Déclencher la notification de milestone si applicable
+    const newShares = (post.shares ?? 0) + 1;
+    onShare?.(newShares);
     try {
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
@@ -590,7 +637,13 @@ function PostCard({
           <Text style={[commStyles.posterName, { color: colors.foreground }]}>{post.user.name}</Text>
           <Text style={[commStyles.postTime, { color: colors.muted }]}>{post.timeAgo}</Text>
         </View>
-        {post.jewelryBrand ? (
+        {rank ? (
+          <View style={[commStyles.rankBadge, { backgroundColor: rank === 1 ? "#C9A96E" : rank === 2 ? "#A8A9AD" : rank === 3 ? "#CD7F32" : colors.surface }]}>
+            <Text style={[commStyles.rankText, { color: rank <= 3 ? "#fff" : colors.muted }]}>
+              {rank === 1 ? "🔥" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`}
+            </Text>
+          </View>
+        ) : post.jewelryBrand ? (
           <Text style={[commStyles.brandBadge, { color: colors.primary }]}>
             {post.jewelryBrand}
           </Text>
@@ -834,5 +887,33 @@ const commStyles = StyleSheet.create({
     fontWeight: "300",
     marginTop: 4,
     letterSpacing: 0.3,
+  },
+  notifBanner: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  notifText: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+    flex: 1,
+  },
+  rankBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  rankText: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    letterSpacing: 0.5,
   },
 });
