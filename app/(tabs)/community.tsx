@@ -21,7 +21,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
-import { SnapshotEditor, SnapshotPreview, type SnapshotConfig } from "@/components/community/SnapshotEditor";
+import { SnapshotEditor, SnapshotPreview, type SnapshotConfig, type OverlayFont, type SnapshotOverlay } from "@/components/community/SnapshotEditor";
 
 // Demo community posts with real Moniattitude jewelry images
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
@@ -40,6 +40,10 @@ const DEMO_POSTS = [
     timeAgo: "2h",
     jewelryName: "Boucles fleur dorée",
     jewelryBrand: "MONI'ATTITUDE",
+    snapshotConfig: { frame: "luxe" as const, effect: "golden" as const, decor: "none" as const },
+    overlayText: "Boucles Fleur Dorée",
+    overlayFont: "serif" as const,
+    overlayColor: "#C9A96E",
   },
   {
     id: "post-2",
@@ -53,6 +57,10 @@ const DEMO_POSTS = [
     timeAgo: "5h",
     jewelryName: "Boucles fleur vertes",
     jewelryBrand: "MONI'ATTITUDE",
+    snapshotConfig: { frame: "polaroid" as const, effect: "none" as const, decor: "none" as const },
+    overlayText: "#OOTD ✦",
+    overlayFont: "sans" as const,
+    overlayColor: "#ffffff",
   },
   {
     id: "post-3",
@@ -66,6 +74,10 @@ const DEMO_POSTS = [
     timeAgo: "1j",
     jewelryName: "Boucles cœur tendre",
     jewelryBrand: "MONI'ATTITUDE",
+    snapshotConfig: { frame: "story" as const, effect: "rose" as const, decor: "none" as const },
+    overlayText: "Avec amour 💕",
+    overlayFont: "italic" as const,
+    overlayColor: "#ffffff",
   },
   {
     id: "post-4",
@@ -79,6 +91,7 @@ const DEMO_POSTS = [
     timeAgo: "2j",
     jewelryName: "Boucles résine orange",
     jewelryBrand: "MONI'ATTITUDE",
+    snapshotConfig: { frame: "magazine" as const, effect: "grain" as const, decor: "none" as const },
   },
   {
     id: "post-5",
@@ -95,7 +108,12 @@ const DEMO_POSTS = [
   },
 ];
 
-type Post = typeof DEMO_POSTS[0];
+type Post = typeof DEMO_POSTS[0] & {
+  snapshotConfig?: SnapshotConfig;
+  overlayText?: string;
+  overlayFont?: OverlayFont;
+  overlayColor?: string;
+};
 
 // Merge DB post into local Post format
 function dbPostToPost(p: any): Post {
@@ -127,6 +145,11 @@ export default function CommunityScreen() {
     frame: "none",
     effect: "none",
     decor: "none",
+  });
+  const [snapshotOverlay, setSnapshotOverlay] = useState<SnapshotOverlay>({
+    text: "",
+    font: "sans",
+    color: "#ffffff",
   });
   const { user } = useAuth();
 
@@ -180,7 +203,6 @@ export default function CommunityScreen() {
     }
     setIsPosting(true);
     try {
-      // Utiliser le vrai nom de l'utilisateur connecté, sinon "Anonyme"
       const authorName = user?.name || user?.email?.split("@")[0] || "Anonyme";
       await createPostMutation.mutateAsync({
         authorName,
@@ -192,6 +214,8 @@ export default function CommunityScreen() {
     }
     setNewCaption("");
     setNewImage(null);
+    setSnapshotConfig({ frame: "none", effect: "none", decor: "none" });
+    setSnapshotOverlay({ text: "", font: "sans", color: "#ffffff" });
     setIsPosting(false);
     setShowNewPost(false);
   };
@@ -210,6 +234,10 @@ export default function CommunityScreen() {
           },
         })
       }
+      snapshotConfig={item.snapshotConfig}
+      overlayText={item.overlayText}
+      overlayFont={item.overlayFont}
+      overlayColor={item.overlayColor}
     />
   );
 
@@ -332,7 +360,9 @@ export default function CommunityScreen() {
                   <SnapshotPreview
                     imageUri={newImage}
                     config={snapshotConfig}
-                    size={300}
+                    overlay={snapshotOverlay}
+                    width={300}
+                    height={snapshotConfig.frame === "story" ? Math.round(300 * 16 / 9) : 300}
                     colors={colors}
                   />
                 ) : (
@@ -448,7 +478,9 @@ export default function CommunityScreen() {
               <SnapshotEditor
                 imageUri={newImage}
                 config={snapshotConfig}
+                overlay={snapshotOverlay}
                 onChange={setSnapshotConfig}
+                onOverlay={setSnapshotOverlay}
                 previewSize={280}
               />
             ) : null}
@@ -481,13 +513,28 @@ function PostCard({
   colors,
   onLike,
   onTryOn,
+  snapshotConfig,
+  overlayText,
+  overlayFont,
+  overlayColor,
 }: {
   post: Post;
   colors: ReturnType<typeof useColors>;
   onLike: () => void;
   onTryOn: () => void;
+  snapshotConfig?: SnapshotConfig;
+  overlayText?: string;
+  overlayFont?: OverlayFont;
+  overlayColor?: string;
 }) {
   const [showComments, setShowComments] = useState(false);
+
+  const hasSnapshot = snapshotConfig &&
+    (snapshotConfig.frame !== "none" || snapshotConfig.effect !== "none" || snapshotConfig.decor !== "none");
+  const isStory = snapshotConfig?.frame === "story";
+  const cardWidth = 340; // largeur approximative de la carte
+  const previewW = isStory ? Math.round(cardWidth * 0.55) : cardWidth;
+  const previewH = isStory ? Math.round(previewW * 16 / 9) : cardWidth;
 
   return (
     <View style={[commStyles.postCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -509,15 +556,35 @@ function PostCard({
         ) : null}
       </View>
 
-      {/* Post Image */}
+      {/* Post Image — avec ou sans Snapshot */}
       {post.imageUrl ? (
-        <View style={{ aspectRatio: 1 }}>
-          <Image
-            source={{ uri: post.imageUrl }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-        </View>
+        hasSnapshot ? (
+          <View style={[
+            { overflow: "hidden", alignItems: "center", justifyContent: "center" },
+            isStory ? { backgroundColor: "#000", paddingVertical: 12 } : {},
+          ]}>
+            <SnapshotPreview
+              imageUri={post.imageUrl}
+              config={snapshotConfig!}
+              overlay={{
+                text:  overlayText  ?? "",
+                font:  overlayFont  ?? "sans",
+                color: overlayColor ?? "#ffffff",
+              }}
+              width={previewW}
+              height={previewH}
+              colors={colors}
+            />
+          </View>
+        ) : (
+          <View style={{ aspectRatio: 1 }}>
+            <Image
+              source={{ uri: post.imageUrl }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+            />
+          </View>
+        )
       ) : null}
 
       {/* Actions */}
