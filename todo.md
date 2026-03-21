@@ -883,3 +883,9 @@
 
 ## Classement
 - [x] Écran Classement top 10 membres par likes/partages avec badges
+
+## Monétisation RevenueCat
+- [x] Installer react-native-purchases et configurer RevenueCat
+- [x] Hook useSubscription avec gestion des offres
+- [ ] Composant PaywallModal élégant
+- [ ] Protéger essayage IA, tenue complète, Snapshot premium
