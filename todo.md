@@ -890,3 +890,5 @@
 - [ ] Composant PaywallModal élégant
 - [ ] Protéger essayage IA, tenue complète, Snapshot premium
 - [x] Supprimer les posts de démonstration de la Communauté (fil vide)
+- [x] Mettre à jour limites essayages : Jewelry 100/mois, Premium mensuel 150/mois, Premium annuel 1500/an
+- [x] Mettre à jour page de destination avec les nouvelles limites
