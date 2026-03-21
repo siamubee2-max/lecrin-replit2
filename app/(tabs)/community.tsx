@@ -24,6 +24,8 @@ import { trpc } from "@/lib/trpc";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
 import { SnapshotEditor, SnapshotPreview, type SnapshotConfig, type OverlayFont, type SnapshotOverlay } from "@/components/community/SnapshotEditor";
+import { UserProfileModal, type UserProfile } from "@/components/community/UserProfileModal";
+import { ChallengesBanner } from "@/components/community/ChallengesBanner";
 
 // Demo community posts with real Moniattitude jewelry images
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
@@ -148,6 +150,9 @@ function dbPostToPost(p: any): Post {
 export default function CommunityScreen() {
   const colors = useColors();
   const [activeTab, setActiveTab] = useState<"feed" | "trending" | "following">("feed");
+  const [trendingPeriod, setTrendingPeriod] = useState<"week" | "month">("week");
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [showNewPost, setShowNewPost] = useState(false);
   const [newCaption, setNewCaption] = useState("");
   const [newImage, setNewImage] = useState<string | null>(null);
@@ -197,10 +202,31 @@ export default function CommunityScreen() {
   const serverPosts: Post[] = (postsQuery.data ?? []).map(dbPostToPost);
   const allPosts: Post[] = serverPosts.length > 0 ? serverPosts : DEMO_POSTS;
 
-  // Tri selon l'onglet actif
-  const posts: Post[] = activeTab === "trending"
-    ? [...allPosts].sort((a, b) => (b.shares ?? 0) - (a.shares ?? 0))
-    : allPosts;
+  // Tri selon l'onglet actif + filtre période pour Tendances
+  // Les posts démo ont des timeAgo simulés ; on filtre par "semaine" (<=7j) ou "mois" (<=30j)
+  const trendingPosts = [...allPosts].sort((a, b) => (b.shares ?? 0) - (a.shares ?? 0));
+  const filteredTrending = trendingPeriod === "week"
+    ? trendingPosts.filter(p => !p.timeAgo.includes("j") || parseInt(p.timeAgo) <= 7)
+    : trendingPosts;
+  const posts: Post[] = activeTab === "trending" ? filteredTrending : allPosts;
+
+  const openProfile = useCallback((post: Post) => {
+    const userPosts = allPosts
+      .filter(p => p.user.name === post.user.name)
+      .map(p => ({ id: p.id, imageUrl: p.imageUrl, likes: p.likes, shares: p.shares ?? 0 }));
+    const profile: UserProfile = {
+      name: post.user.name,
+      initials: post.user.initials,
+      avatar: post.user.avatar,
+      bio: "Passionné(e) de bijoux artisanaux ✨",
+      posts: userPosts,
+      totalLikes: userPosts.reduce((s, p) => s + p.likes, 0),
+      totalShares: userPosts.reduce((s, p) => s + p.shares, 0),
+      joinedAgo: "2024",
+    };
+    setSelectedProfile(profile);
+    setShowProfile(true);
+  }, [allPosts]);
 
   const handleLike = useCallback((postId: string) => {
     if (Platform.OS !== "web") {
@@ -278,6 +304,7 @@ export default function CommunityScreen() {
       overlayColor={item.overlayColor}
       onShare={(shares) => triggerShareMilestone(item.id, shares)}
       rank={activeTab === "trending" ? (posts.indexOf(item) + 1) : undefined}
+      onAvatarPress={() => openProfile(item)}
     />
   );
 
@@ -326,6 +353,36 @@ export default function CommunityScreen() {
         ))}
       </ScrollView>
 
+      {/* Filtre période — visible uniquement en mode Tendances */}
+      {activeTab === "trending" && (
+        <View style={{ flexDirection: "row", paddingHorizontal: 20, paddingBottom: 8, gap: 8 }}>
+          {(["week", "month"] as const).map((p) => (
+            <TouchableOpacity
+              key={p}
+              onPress={() => setTrendingPeriod(p)}
+              style={[
+                commStyles.periodChip,
+                {
+                  borderColor: trendingPeriod === p ? colors.primary : colors.border,
+                  backgroundColor: trendingPeriod === p ? colors.primary + "22" : "transparent",
+                },
+              ]}
+            >
+              <Text style={[commStyles.periodChipText, { color: trendingPeriod === p ? colors.primary : colors.muted }]}>
+                {p === "week" ? "CETTE SEMAINE" : "CE MOIS"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Profil utilisateur */}
+      <UserProfileModal
+        visible={showProfile}
+        profile={selectedProfile}
+        onClose={() => setShowProfile(false)}
+      />
+
       {/* Notifications in-app */}
       {notifications.map(n => (
         <View
@@ -346,6 +403,7 @@ export default function CommunityScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderPost}
         contentContainerStyle={{ paddingBottom: 100 }}
+        ListHeaderComponent={activeTab === "feed" ? <ChallengesBanner /> : undefined}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20">
@@ -573,6 +631,7 @@ function PostCard({
   overlayColor,
   onShare,
   rank,
+  onAvatarPress,
 }: {
   post: Post;
   colors: ReturnType<typeof useColors>;
@@ -584,6 +643,7 @@ function PostCard({
   overlayColor?: string;
   onShare?: (shares: number) => void;
   rank?: number;
+  onAvatarPress?: () => void;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -628,11 +688,15 @@ function PostCard({
     <View style={[commStyles.postCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Post Header */}
       <View style={commStyles.postHeader}>
-        <View style={[commStyles.avatar, { borderColor: colors.primary }]}>
+        <TouchableOpacity
+          onPress={onAvatarPress}
+          style={[commStyles.avatar, { borderColor: colors.primary }]}
+          activeOpacity={0.75}
+        >
           <Text style={[commStyles.avatarText, { color: colors.primary }]}>
             {post.user.initials}
           </Text>
-        </View>
+        </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[commStyles.posterName, { color: colors.foreground }]}>{post.user.name}</Text>
           <Text style={[commStyles.postTime, { color: colors.muted }]}>{post.timeAgo}</Text>
@@ -915,5 +979,16 @@ const commStyles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700" as const,
     letterSpacing: 0.5,
+  },
+  periodChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  periodChipText: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+    letterSpacing: 0.8,
   },
 });
