@@ -10,7 +10,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
@@ -27,6 +27,7 @@ import { SnapshotEditor, SnapshotPreview, type SnapshotConfig, type OverlayFont,
 import { UserProfileModal, type UserProfile } from "@/components/community/UserProfileModal";
 import { ChallengesBanner } from "@/components/community/ChallengesBanner";
 import { MyChallengesScreen } from "@/components/community/MyChallengesScreen";
+import { LeaderboardScreen, type LeaderboardMember } from "@/components/community/LeaderboardScreen";
 
 // Demo community posts with real Moniattitude jewelry images
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
@@ -150,7 +151,7 @@ function dbPostToPost(p: any): Post {
 
 export default function CommunityScreen() {
   const colors = useColors();
-  const [activeTab, setActiveTab] = useState<"feed" | "trending" | "following" | "mychallenges">("feed");
+  const [activeTab, setActiveTab] = useState<"feed" | "trending" | "following" | "mychallenges" | "leaderboard">("feed");
   const [joinedChallengeIds, setJoinedChallengeIds] = useState<Set<string>>(new Set());
   const [trendingPeriod, setTrendingPeriod] = useState<"week" | "month">("week");
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
@@ -211,6 +212,31 @@ export default function CommunityScreen() {
     ? trendingPosts.filter(p => !p.timeAgo.includes("j") || parseInt(p.timeAgo) <= 7)
     : trendingPosts;
   const posts: Post[] = activeTab === "trending" ? filteredTrending : allPosts;
+
+  // Calcul du classement depuis les posts
+  const leaderboardMembers: LeaderboardMember[] = useMemo(() => {
+    const map = new Map<string, LeaderboardMember>();
+    for (const p of allPosts) {
+      const key = p.user.name;
+      const existing = map.get(key);
+      if (existing) {
+        existing.totalLikes += p.likes;
+        existing.totalShares += (p.shares ?? 0);
+        existing.postsCount += 1;
+      } else {
+        map.set(key, {
+          id: key,
+          name: p.user.name,
+          initials: p.user.initials,
+          avatar: p.user.avatar,
+          totalLikes: p.likes,
+          totalShares: p.shares ?? 0,
+          postsCount: 1,
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [allPosts]);
 
   const handleChallengeJoin = useCallback((id: string) => {
     setJoinedChallengeIds(prev => {
@@ -341,7 +367,7 @@ export default function CommunityScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
       >
-        {(["feed", "trending", "mychallenges", "following"] as const).map((tab) => (
+        {(["feed", "trending", "leaderboard", "mychallenges", "following"] as const).map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
@@ -357,7 +383,7 @@ export default function CommunityScreen() {
                 { color: activeTab === tab ? colors.background : colors.muted },
               ]}
             >
-              {tab === "feed" ? "FIL" : tab === "trending" ? "TENDANCES" : tab === "mychallenges" ? "MES DÉFIS" : "ABONNEMENTS"}
+              {tab === "feed" ? "FIL" : tab === "trending" ? "TENDANCES" : tab === "leaderboard" ? "CLASSEMENT" : tab === "mychallenges" ? "MES DÉFIS" : "ABONNEMENTS"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -408,7 +434,16 @@ export default function CommunityScreen() {
       ))}
 
       {/* Posts Feed ou MES DÉFIS */}
-      {activeTab === "mychallenges" ? (
+      {activeTab === "leaderboard" ? (
+        <LeaderboardScreen
+          members={leaderboardMembers}
+          colors={colors}
+          onMemberPress={(id) => {
+            const post = allPosts.find(p => p.user.name === id || p.id === id);
+            if (post) openProfile(post);
+          }}
+        />
+      ) : activeTab === "mychallenges" ? (
         <MyChallengesScreen
           joinedIds={joinedChallengeIds}
           onJoin={handleChallengeJoin}
