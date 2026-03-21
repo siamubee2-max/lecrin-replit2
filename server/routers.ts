@@ -904,16 +904,24 @@ export const appRouter = router({
     outfit: publicProcedure
       .input(z.object({
         modelImageUrl: z.string().url(),
-        // Vêtements (slots séparés)
+        // Vêtements
         tshirtImageUrl: z.string().url().optional(),
         jacketImageUrl: z.string().url().optional(),
         pantsImageUrl: z.string().url().optional(),
-        // Bijoux (slots séparés)
+        skirtImageUrl: z.string().url().optional(),
+        // Bijoux
         earringsImageUrl: z.string().url().optional(),
         necklaceImageUrl: z.string().url().optional(),
         braceletImageUrl: z.string().url().optional(),
         ringImageUrl: z.string().url().optional(),
-        // Accessoires (2 slots)
+        // Accessoires dédiés
+        bagImageUrl: z.string().url().optional(),
+        hatImageUrl: z.string().url().optional(),
+        beltImageUrl: z.string().url().optional(),
+        glassesImageUrl: z.string().url().optional(),
+        sunglassesImageUrl: z.string().url().optional(),
+        legwearImageUrl: z.string().url().optional(),
+        // Accessoires génériques (rétro-compat)
         accessory1ImageUrl: z.string().url().optional(),
         accessory2ImageUrl: z.string().url().optional(),
         // Chaussures
@@ -922,10 +930,17 @@ export const appRouter = router({
         tshirtName: z.string().optional(),
         jacketName: z.string().optional(),
         pantsName: z.string().optional(),
+        skirtName: z.string().optional(),
         earringsName: z.string().optional(),
         necklaceName: z.string().optional(),
         braceletName: z.string().optional(),
         ringName: z.string().optional(),
+        bagName: z.string().optional(),
+        hatName: z.string().optional(),
+        beltName: z.string().optional(),
+        glassesName: z.string().optional(),
+        sunglassesName: z.string().optional(),
+        legwearName: z.string().optional(),
         accessory1Name: z.string().optional(),
         accessory2Name: z.string().optional(),
         shoesName: z.string().optional(),
@@ -962,7 +977,11 @@ export const appRouter = router({
         }
         if (input.pantsImageUrl) {
           referenceImages.push({ url: input.pantsImageUrl, mimeType: "image/jpeg" });
-          instructions.push(`Image ${imgIndex++}: pants/skirt — dress the person in these bottoms`);
+          instructions.push(`Image ${imgIndex++}: pants — dress the person in these trousers/pants`);
+        }
+        if (input.skirtImageUrl) {
+          referenceImages.push({ url: input.skirtImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: skirt/dress — dress the person in this skirt or dress`);
         }
         // Bijoux
         if (input.earringsImageUrl) {
@@ -981,7 +1000,32 @@ export const appRouter = router({
           referenceImages.push({ url: input.ringImageUrl, mimeType: "image/jpeg" });
           instructions.push(`Image ${imgIndex++}: ring — place this ring on a finger`);
         }
-        // Accessoires
+        // Accessoires dédiés
+        if (input.bagImageUrl) {
+          referenceImages.push({ url: input.bagImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: handbag/purse — show the person holding or carrying this bag on shoulder or arm`);
+        }
+        if (input.hatImageUrl) {
+          referenceImages.push({ url: input.hatImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: hat/cap — place this hat on the person's head naturally`);
+        }
+        if (input.beltImageUrl) {
+          referenceImages.push({ url: input.beltImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: belt — place this belt around the person's waist`);
+        }
+        if (input.glassesImageUrl) {
+          referenceImages.push({ url: input.glassesImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: eyeglasses — place these glasses on the person's face (on nose and ears)`);
+        }
+        if (input.sunglassesImageUrl) {
+          referenceImages.push({ url: input.sunglassesImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: sunglasses — place these sunglasses on the person's face (on nose and ears)`);
+        }
+        if (input.legwearImageUrl) {
+          referenceImages.push({ url: input.legwearImageUrl, mimeType: "image/jpeg" });
+          instructions.push(`Image ${imgIndex++}: tights/stockings/socks — dress the person's legs in this legwear`);
+        }
+        // Accessoires génériques (rétro-compat)
         if (input.accessory1ImageUrl) {
           referenceImages.push({ url: input.accessory1ImageUrl, mimeType: "image/jpeg" });
           instructions.push(`Image ${imgIndex++}: accessory — style the person with this accessory naturally`);
