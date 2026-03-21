@@ -24,7 +24,7 @@ const SUBSCRIPTION_PLANS = [
     name: "Essentiel",
     price: "14,99€",
     period: "/mois",
-    features: ["Essayages illimités", "Tous les modèles", "Sauvegarde illimitée", "Support email"],
+    features: ["100 essayages bijoux/mois", "Alertes nouvelles collections", "Snapshot cadres basiques", "Badge Communauté Bijoux"],
     popular: false,
   },
   {
@@ -32,15 +32,15 @@ const SUBSCRIPTION_PLANS = [
     name: "Premium",
     price: "24,99€",
     period: "/mois",
-    features: ["Essayages illimités", "Garde-robe virtuelle", "Accès créateurs partenaires", "Support prioritaire"],
+    features: ["150 essayages/mois", "Essayage vêtements & chaussures", "Mode Tenue Complète — 15 slots", "Effets Snapshot premium"],
     popular: true,
   },
   {
     id: "yearly",
     name: "Annuel Premium",
-    price: "199€",
+    price: "199,99€",
     period: "/an",
-    features: ["Tout Premium inclus", "Économisez 100€ (33%)", "Accès anticipé nouveautés", "Badge VIP exclusif"],
+    features: ["1 500 essayages/an", "Tout Premium inclus", "Économisez +100€ (33%)", "Badge VIP exclusif"],
     popular: false,
   },
 ];

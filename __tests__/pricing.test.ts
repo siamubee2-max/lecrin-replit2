@@ -33,9 +33,9 @@ const SUBSCRIPTION_PLANS = [
   {
     id: "yearly",
     name: "Annuel Premium",
-    price: "199€",
+    price: "199,99€",
     period: "/an",
-    features: ["Tout Premium inclus", "Économisez 100€ (33%)", "Accès anticipé nouveautés", "Badge VIP exclusif"],
+    features: ["Tout Premium inclus", "Économisez +100€ (33%)", "Accès anticipé nouveautés", "Badge VIP exclusif"],
     popular: false,
   },
 ];
@@ -68,10 +68,10 @@ describe("Grille Tarifaire", () => {
     expect(premiumPlan?.popular).toBe(true);
   });
 
-  it("devrait avoir le plan Annuel à 199€/an avec 33% d'économie", () => {
+  it("devrait avoir le plan Annuel à 199,99€/an avec 33% d'économie", () => {
     const yearlyPlan = SUBSCRIPTION_PLANS.find(p => p.id === "yearly");
     expect(yearlyPlan).toBeDefined();
-    expect(yearlyPlan?.price).toBe("199€");
+    expect(yearlyPlan?.price).toBe("199,99€");
     expect(yearlyPlan?.period).toBe("/an");
     expect(yearlyPlan?.features.some(f => f.includes("33%"))).toBe(true);
   });
@@ -84,10 +84,10 @@ describe("Grille Tarifaire", () => {
 
   it("devrait calculer correctement l'économie annuelle", () => {
     // Premium mensuel: 24,99€ x 12 = 299,88€
-    // Annuel: 199€
-    // Économie: 299,88€ - 199€ = 100,88€ ≈ 100€
+    // Annuel: 199,99€
+    // Économie: 299,88€ - 199,99€ = 99,89€ ≈ 100€
     const monthlyPremiumPrice = 24.99;
-    const yearlyPrice = 199;
+    const yearlyPrice = 199.99;
     const yearlyCost = monthlyPremiumPrice * 12;
     const savings = yearlyCost - yearlyPrice;
     

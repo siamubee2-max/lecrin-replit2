@@ -115,9 +115,9 @@ export function PaywallModal({
   };
 
   const planLabel = {
-    jewelry: "JEWELRY — 4,99 €/mois",
-    premium_monthly: "PREMIUM — 9,99 €/mois",
-    premium_yearly: "PREMIUM ANNUEL — 95,99 €/an",
+    jewelry: "ESSENTIEL — 14,99 €/mois",
+    premium_monthly: "PREMIUM — 24,99 €/mois",
+    premium_yearly: "PREMIUM ANNUEL — 199,99 €/an",
   }[selectedPlan];
 
   return (
@@ -178,8 +178,8 @@ export function PaywallModal({
                   style={[styles.planCard, { backgroundColor: colors.surface, borderColor: selectedPlan === "jewelry" ? "#C9A96E" : colors.border, borderWidth: selectedPlan === "jewelry" ? 2 : 0.5 }]}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.planName, { color: colors.foreground }]}>💎 Jewelry</Text>
-                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>4,99 €</Text>
+                  <Text style={[styles.planName, { color: colors.foreground }]}>💎 Essentiel</Text>
+                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>14,99 €</Text>
                   <Text style={[styles.planPeriod, { color: colors.muted }]}>/ mois</Text>
                   <Text style={[styles.planDesc, { color: colors.muted }]}>Bijoux illimités</Text>
                 </TouchableOpacity>
@@ -194,7 +194,7 @@ export function PaywallModal({
                     <Text style={styles.popularBadgeText}>POPULAIRE</Text>
                   </View>
                   <Text style={[styles.planName, { color: colors.foreground, marginTop: 10 }]}>✦ Premium</Text>
-                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>9,99 €</Text>
+                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>24,99 €</Text>
                   <Text style={[styles.planPeriod, { color: colors.muted }]}>/ mois</Text>
                   <Text style={[styles.planDesc, { color: colors.muted }]}>Tout inclus</Text>
                 </TouchableOpacity>
@@ -206,19 +206,19 @@ export function PaywallModal({
                   activeOpacity={0.85}
                 >
                   <View style={[styles.saveBadge, { backgroundColor: "#22C55E22" }]}>
-                    <Text style={[styles.saveBadgeText, { color: "#22C55E" }]}>−20%</Text>
+                    <Text style={[styles.saveBadgeText, { color: "#22C55E" }]}>−33%</Text>
                   </View>
                   <Text style={[styles.planName, { color: colors.foreground, marginTop: 10 }]}>✦ Annuel</Text>
-                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>95,99 €</Text>
+                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>199,99 €</Text>
                   <Text style={[styles.planPeriod, { color: colors.muted }]}>/ an</Text>
-                  <Text style={[styles.planDesc, { color: "#22C55E" }]}>8 €/mois</Text>
+                  <Text style={[styles.planDesc, { color: "#22C55E" }]}>16,67 €/mois</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Fonctionnalités du plan sélectionné */}
               <View style={[styles.featuresSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={[styles.featuresTitle, { color: colors.primary }]}>
-                  {selectedPlan === "jewelry" ? "💎 JEWELRY INCLUT" : "✦ PREMIUM INCLUT"}
+                  {selectedPlan === "jewelry" ? "💎 ESSENTIEL INCLUT" : "✦ PREMIUM INCLUT"}
                 </Text>
                 {(selectedPlan === "jewelry" ? JEWELRY_FEATURES : PREMIUM_FEATURES).map((f, i) => (
                   <View key={i} style={styles.featureRow}>
