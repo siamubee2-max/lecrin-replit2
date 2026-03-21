@@ -26,6 +26,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { SnapshotEditor, SnapshotPreview, type SnapshotConfig, type OverlayFont, type SnapshotOverlay } from "@/components/community/SnapshotEditor";
 import { UserProfileModal, type UserProfile } from "@/components/community/UserProfileModal";
 import { ChallengesBanner } from "@/components/community/ChallengesBanner";
+import { MyChallengesScreen } from "@/components/community/MyChallengesScreen";
 
 // Demo community posts with real Moniattitude jewelry images
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
@@ -149,7 +150,8 @@ function dbPostToPost(p: any): Post {
 
 export default function CommunityScreen() {
   const colors = useColors();
-  const [activeTab, setActiveTab] = useState<"feed" | "trending" | "following">("feed");
+  const [activeTab, setActiveTab] = useState<"feed" | "trending" | "following" | "mychallenges">("feed");
+  const [joinedChallengeIds, setJoinedChallengeIds] = useState<Set<string>>(new Set());
   const [trendingPeriod, setTrendingPeriod] = useState<"week" | "month">("week");
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -209,6 +211,14 @@ export default function CommunityScreen() {
     ? trendingPosts.filter(p => !p.timeAgo.includes("j") || parseInt(p.timeAgo) <= 7)
     : trendingPosts;
   const posts: Post[] = activeTab === "trending" ? filteredTrending : allPosts;
+
+  const handleChallengeJoin = useCallback((id: string) => {
+    setJoinedChallengeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
 
   const openProfile = useCallback((post: Post) => {
     const userPosts = allPosts
@@ -331,7 +341,7 @@ export default function CommunityScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
       >
-        {(["feed", "trending", "following"] as const).map((tab) => (
+        {(["feed", "trending", "mychallenges", "following"] as const).map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
@@ -347,7 +357,7 @@ export default function CommunityScreen() {
                 { color: activeTab === tab ? colors.background : colors.muted },
               ]}
             >
-              {tab === "feed" ? "FIL" : tab === "trending" ? "TENDANCES" : "ABONNEMENTS"}
+              {tab === "feed" ? "FIL" : tab === "trending" ? "TENDANCES" : tab === "mychallenges" ? "MES DÉFIS" : "ABONNEMENTS"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -397,26 +407,34 @@ export default function CommunityScreen() {
         </View>
       ))}
 
-      {/* Posts Feed */}
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => item.id}
-        renderItem={renderPost}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        ListHeaderComponent={activeTab === "feed" ? <ChallengesBanner /> : undefined}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-5xl mb-4">📸</Text>
-            <Text className="text-xl font-semibold text-foreground text-center mb-2">
-              Aucune publication
-            </Text>
-            <Text className="text-base text-muted text-center">
-              Soyez le premier à partager vos bijoux !
-            </Text>
-          </View>
-        }
-      />
+      {/* Posts Feed ou MES DÉFIS */}
+      {activeTab === "mychallenges" ? (
+        <MyChallengesScreen
+          joinedIds={joinedChallengeIds}
+          onJoin={handleChallengeJoin}
+          colors={colors}
+        />
+      ) : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPost}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          ListHeaderComponent={activeTab === "feed" ? <ChallengesBanner onJoinChallenge={handleChallengeJoin} /> : undefined}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="flex-1 items-center justify-center py-20">
+              <Text className="text-5xl mb-4">📸</Text>
+              <Text className="text-xl font-semibold text-foreground text-center mb-2">
+                Aucune publication
+              </Text>
+              <Text className="text-base text-muted text-center">
+                Soyez le premier à partager vos bijoux !
+              </Text>
+            </View>
+          }
+        />
+      )}
 
       {/* New Post Modal */}
       <Modal
