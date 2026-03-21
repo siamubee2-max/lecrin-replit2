@@ -29,100 +29,20 @@ import { ChallengesBanner } from "@/components/community/ChallengesBanner";
 import { MyChallengesScreen } from "@/components/community/MyChallengesScreen";
 import { LeaderboardScreen, type LeaderboardMember } from "@/components/community/LeaderboardScreen";
 
-// Demo community posts with real Moniattitude jewelry images
-const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
-const MONI_CDN = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943";
 
-const DEMO_POSTS = [
-  {
-    id: "post-1",
-    user: { name: "Sophie M.", avatar: null, initials: "SM" },
-    imageUrl: `${MONI_CDN}/foIbwvIEZnQRCkLk.jpeg`,
-    caption: "Mes nouvelles boucles d'oreilles fleur dorée de Moni'attitude 🌸 Parfaites pour l'été !",
-    tags: ["#bijoux", "#moniattitude", "#fleur", "#artisanal"],
-    likes: 42,
-    comments: 8,
-    isLiked: false,
-    timeAgo: "2h",
-    jewelryName: "Boucles fleur dorée",
-    jewelryBrand: "MONI'ATTITUDE",
-    snapshotConfig: { frame: "luxe" as const, effect: "golden" as const, decor: "none" as const },
-    overlayText: "Boucles Fleur Dorée",
-    overlayFont: "serif" as const,
-    overlayColor: "#C9A96E",
-    overlayPosition: "bottom" as const,
-    shares: 17,
-  },
-  {
-    id: "post-2",
-    user: { name: "Léa B.", avatar: null, initials: "LB" },
-    imageUrl: `${MONI_CDN}/haAwgRGsClqKFANk.jpeg`,
-    caption: "Look du jour avec ces boucles vertes 💚 J'adore comment elles illuminent ma tenue !",
-    tags: ["#ootd", "#bijoux", "#vert", "#handmade"],
-    likes: 67,
-    comments: 14,
-    isLiked: true,
-    timeAgo: "5h",
-    jewelryName: "Boucles fleur vertes",
-    jewelryBrand: "MONI'ATTITUDE",
-    snapshotConfig: { frame: "polaroid" as const, effect: "none" as const, decor: "none" as const },
-    overlayText: "#OOTD ✦",
-    overlayFont: "sans" as const,
-    overlayColor: "#ffffff",
-    overlayPosition: "bottom" as const,
-    shares: 31,
-  },
-  {
-    id: "post-3",
-    user: { name: "Marie C.", avatar: null, initials: "MC" },
-    imageUrl: `${MONI_CDN}/jxfiqAoWKZPAIFjU.jpeg`,
-    caption: "Cadeau de ma meilleure amie 💕 Ces boucles cœur sont trop mignonnes !",
-    tags: ["#cadeau", "#coeur", "#amitié", "#bijoux"],
-    likes: 89,
-    comments: 23,
-    isLiked: false,
-    timeAgo: "1j",
-    jewelryName: "Boucles cœur tendre",
-    jewelryBrand: "MONI'ATTITUDE",
-    snapshotConfig: { frame: "story" as const, effect: "rose" as const, decor: "none" as const },
-    overlayText: "Avec amour 💕",
-    overlayFont: "italic" as const,
-    overlayColor: "#ffffff",
-    overlayPosition: "center" as const,
-    shares: 58,
-  },
-  {
-    id: "post-4",
-    user: { name: "Clara D.", avatar: null, initials: "CD" },
-    imageUrl: `${MONI_CDN}/rjfmUlamBZcBgUfF.jpeg`,
-    caption: "Ces boucles en résine orange sont incroyables ! Chaque paire est unique 🧡✨",
-    tags: ["#résine", "#artisanat", "#unique", "#orange"],
-    likes: 54,
-    comments: 11,
-    isLiked: false,
-    timeAgo: "2j",
-    jewelryName: "Boucles résine orange",
-    jewelryBrand: "MONI'ATTITUDE",
-    snapshotConfig: { frame: "magazine" as const, effect: "grain" as const, decor: "none" as const },
-    shares: 12,
-  },
-  {
-    id: "post-5",
-    user: { name: "Emma R.", avatar: null, initials: "ER" },
-    imageUrl: `${MONI_CDN}/enfnjOfHaPReDorw.jpeg`,
-    caption: "Ma collection s'agrandit ! Ces feuilles métallisées sont parfaites pour l'automne 🍂",
-    tags: ["#feuille", "#automne", "#collection", "#bijoux"],
-    likes: 38,
-    comments: 6,
-    isLiked: true,
-    timeAgo: "3j",
-    jewelryName: "Boucles feuille métalisée",
-    jewelryBrand: "MONI'ATTITUDE",
-    shares: 9,
-  },
-];
 
-type Post = typeof DEMO_POSTS[0] & {
+type Post = {
+  id: string;
+  user: { name: string; avatar: string | null; initials: string };
+  imageUrl: string;
+  caption: string;
+  tags: string[];
+  likes: number;
+  comments: number;
+  isLiked: boolean;
+  timeAgo: string;
+  jewelryName: string;
+  jewelryBrand: string;
   snapshotConfig?: SnapshotConfig;
   overlayText?: string;
   overlayFont?: OverlayFont;
@@ -201,9 +121,9 @@ export default function CommunityScreen() {
   });
   const likePostMutation = trpc.community.like.useMutation();
 
-  // Merge server posts with demo posts (demo shown when server is empty)
+  // Charger les posts depuis le serveur uniquement (pas de posts démo)
   const serverPosts: Post[] = (postsQuery.data ?? []).map(dbPostToPost);
-  const allPosts: Post[] = serverPosts.length > 0 ? serverPosts : DEMO_POSTS;
+  const allPosts: Post[] = serverPosts;
 
   // Tri selon l'onglet actif + filtre période pour Tendances
   // Les posts démo ont des timeAgo simulés ; on filtre par "semaine" (<=7j) ou "mois" (<=30j)
