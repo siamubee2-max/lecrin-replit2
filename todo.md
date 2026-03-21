@@ -899,3 +899,5 @@
 - [x] Ajouter les secrets EXPO_PUBLIC_POSTHOG_API_KEY et EXPO_PUBLIC_SENTRY_DSN
 - [x] Configurer l'URL du webhook RevenueCat dans le projet (affichage dans les paramètres)
 - [x] Créer l'écran Historique des essayages (20 derniers avec miniature et date)
+- [x] Ajouter bouton "Réessayer" dans le modal de l'historique des essayages (pré-remplit l'écran d'essayage)
+- [x] Configurer le webhook RevenueCat sur app.revenuecat.com

@@ -271,14 +271,38 @@ export default function TryOnHistoryScreen() {
               </View>
             </View>
 
-            {/* CTA Partager */}
-            <TouchableOpacity
-              onPress={() => handleShare(selectedEntry)}
-              style={[styles.modalShareCta, { backgroundColor: colors.primary }]}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.modalShareCtaText}>✦ PARTAGER CET ESSAYAGE</Text>
-            </TouchableOpacity>
+            {/* CTAs : Réessayer + Partager */}
+            <View style={styles.modalCtaRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setSelectedEntry(null);
+                  // Naviguer vers l'écran d'essayage avec les paramètres pré-remplis
+                  router.push({
+                    pathname: "/(tabs)/tryon",
+                    params: {
+                      section: selectedEntry.category,
+                      retryModelUrl: selectedEntry.modelImageUrl,
+                      retryItemUrl: selectedEntry.itemImageUrl,
+                      retryItemName: selectedEntry.itemName,
+                      ...(selectedEntry.subType ? { retrySubType: selectedEntry.subType } : {}),
+                    },
+                  } as any);
+                }}
+                style={[styles.modalRetryCta, { backgroundColor: colors.surface, borderColor: colors.primary }]}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.modalRetryCtaText, { color: colors.primary }]}>↺ RÉESSAYER</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleShare(selectedEntry)}
+                style={[styles.modalShareCta, { backgroundColor: colors.primary, flex: 1 }]}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.modalShareCtaText}>❖ PARTAGER</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </Modal>
@@ -389,12 +413,26 @@ const styles = StyleSheet.create({
   modalThumbImg: { width: 80, height: 80, borderRadius: 12 },
   modalThumbLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
   modalThumbArrow: { alignItems: "center" },
-  modalShareCta: {
+  modalCtaRow: {
+    flexDirection: "row",
+    gap: 10,
     marginHorizontal: 16,
+    marginBottom: 32,
+  },
+  modalRetryCta: {
+    borderRadius: 30,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+  },
+  modalRetryCtaText: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
+  modalShareCta: {
     borderRadius: 30,
     paddingVertical: 16,
     alignItems: "center",
-    marginBottom: 32,
+    justifyContent: "center",
   },
   modalShareCtaText: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 1 },
 });
