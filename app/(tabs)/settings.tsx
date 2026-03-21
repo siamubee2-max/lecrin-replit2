@@ -6,6 +6,8 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useSubscription } from "@/hooks/use-subscription";
+import { PaywallModal } from "@/components/paywall/PaywallModal";
 
 const SUBSCRIPTION_PLANS = [
   {
@@ -55,11 +57,21 @@ const LANGUAGES = [
 export default function SettingsScreen() {
   const colors = useColors();
   const router = useRouter();
+  const subscription = useSubscription();
   const [notifications, setNotifications] = useState(true);
   const [haptics, setHaptics] = useState(true);
   const [currentLang, setCurrentLang] = useState("fr");
   const [showSubscription, setShowSubscription] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  const PLAN_LABELS: Record<string, { name: string; emoji: string; color: string }> = {
+    free:    { name: "Découverte",     emoji: "✨",  color: colors.muted },
+    jewelry: { name: "Jewelry",        emoji: "💎",  color: colors.primary },
+    premium: { name: "Premium",        emoji: "✦",   color: colors.primary },
+  };
+  const planInfo = PLAN_LABELS[subscription.tier] ?? PLAN_LABELS.free;
+  const tryOnsLeft = Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed);
 
   const handleToggle = (setter: (value: boolean) => void, value: boolean) => {
     if (Platform.OS !== "web" && haptics) {
@@ -68,27 +80,19 @@ export default function SettingsScreen() {
     setter(!value);
   };
 
-  const handleSubscribe = (planId: string) => {
+  const handleSubscribe = (_planId: string) => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    // TODO: Implement StoreKit purchase
-    Alert.alert(
-      "Abonnement",
-      "L'achat in-app sera disponible après publication sur l'App Store.",
-      [{ text: "OK" }]
-    );
+    setShowPaywall(true);
   };
 
-  const handleRestorePurchases = () => {
+  const handleRestorePurchases = async () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    Alert.alert(
-      "Restauration",
-      "Vos achats seront restaurés après publication sur l'App Store.",
-      [{ text: "OK" }]
-    );
+    await subscription.restorePurchases();
+    Alert.alert("Restauration", "Vos achats ont été restaurés.", [{ text: "OK" }]);
   };
 
   const handleContact = () => {
@@ -109,14 +113,60 @@ export default function SettingsScreen() {
 
         {/* Subscription Section */}
         <View style={settingsStyles.section}>
-          <Text style={[settingsStyles.sectionLabel, { color: colors.muted }]}>ABONNEMENT</Text>
+          <Text style={[settingsStyles.sectionLabel, { color: colors.muted }]}>MON ABONNEMENT</Text>
+
+          {/* Carte plan actif */}
+          <View style={[settingsStyles.row, { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1.5 }]}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Text style={{ fontSize: 18 }}>{planInfo.emoji}</Text>
+                <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>PLAN {planInfo.name.toUpperCase()}</Text>
+                <View style={{ backgroundColor: colors.primary + '20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, color: colors.primary, fontWeight: '700', letterSpacing: 0.5 }}>ACTIF</Text>
+                </View>
+              </View>
+              {/* Barre de progression des essayages */}
+              <View style={{ marginTop: 4 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 11, color: colors.muted }}>
+                    {subscription.monthlyTryOnsUsed} essayage{subscription.monthlyTryOnsUsed > 1 ? 's' : ''} utilisé{subscription.monthlyTryOnsUsed > 1 ? 's' : ''}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.primary }}>
+                    {tryOnsLeft} restant{tryOnsLeft > 1 ? 's' : ''} / {subscription.monthlyTryOnsLimit}
+                  </Text>
+                </View>
+                <View style={{ height: 4, backgroundColor: colors.border, borderRadius: 2 }}>
+                  <View style={{
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: tryOnsLeft === 0 ? colors.error : colors.primary,
+                    width: `${Math.min(100, (subscription.monthlyTryOnsUsed / subscription.monthlyTryOnsLimit) * 100)}%` as any,
+                  }} />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Bouton upgrade si pas premium */}
+          {subscription.tier !== 'premium' && (
+            <TouchableOpacity
+              onPress={() => setShowPaywall(true)}
+              style={[settingsStyles.row, { backgroundColor: colors.primary, marginTop: 8 }]}
+            >
+              <Text style={{ color: '#0A1A3B', fontWeight: '700', letterSpacing: 1, fontSize: 13 }}>
+                {subscription.tier === 'free' ? '✦ PASSER À JEWELRY OU PREMIUM' : '✦ PASSER À PREMIUM'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Détail plans (collapsible) */}
           <TouchableOpacity
             onPress={() => setShowSubscription(!showSubscription)}
-            style={[settingsStyles.row, { backgroundColor: colors.surface, borderColor: colors.primary }]}
+            style={[settingsStyles.row, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 8 }]}
           >
             <View style={{ flex: 1 }}>
-              <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>PREMIUM</Text>
-              <Text style={[settingsStyles.rowSubtitle, { color: colors.muted }]}>Débloquez toutes les fonctionnalités</Text>
+              <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>VOIR TOUS LES PLANS</Text>
+              <Text style={[settingsStyles.rowSubtitle, { color: colors.muted }]}>Comparer Jewelry, Premium mensuel et annuel</Text>
             </View>
             <IconSymbol 
               name={showSubscription ? "chevron.up" : "chevron.down"} 
@@ -379,6 +429,19 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* PaywallModal */}
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onPurchasePremium={subscription.purchasePremiumMonthly}
+        onPurchasePremiumPlus={subscription.purchasePremiumYearly}
+        onPurchaseJewelry={subscription.purchaseJewelry}
+        onPurchaseCredits={subscription.purchaseCredits}
+        onRestore={subscription.restorePurchases}
+        featureName="Mon abonnement"
+        showCredits
+      />
     </ScreenContainer>
   );
 }
