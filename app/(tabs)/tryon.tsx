@@ -696,7 +696,23 @@ export default function TryOnScreen() {
             <Text style={[styles.title, { color: colors.foreground }]}>{MODE_CONFIG[tryOnMode].title}</Text>
             <Text style={[styles.titleAccent, { color: colors.primary }]}>{MODE_CONFIG[tryOnMode].subtitle}</Text>
           </View>
-          <Text style={{ fontSize: 28 }}>{MODE_CONFIG[tryOnMode].emoji}</Text>
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+            <Text style={{ fontSize: 28 }}>{MODE_CONFIG[tryOnMode].emoji}</Text>
+            {/* Compteur d'essayages restants */}
+            {subscription.tier === 'free' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}>
+                <Text style={{ fontSize: 10, color: colors.muted, letterSpacing: 0.5 }}>
+                  {Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed)} essai{Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed) > 1 ? 's' : ''} gratuit{Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed) > 1 ? 's' : ''}
+                </Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: colors.primary }}>
+                <Text style={{ fontSize: 10, color: colors.primary, letterSpacing: 0.5 }}>
+                  {subscription.tier === 'jewelry' ? '💎' : '✦'} {Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed)} restant{Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed) > 1 ? 's' : ''}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
         {/* Bannière de relance depuis l'historique */}
         {hasRetryParams && (

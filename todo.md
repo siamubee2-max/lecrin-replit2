@@ -892,3 +892,6 @@
 - [x] Supprimer les posts de démonstration de la Communauté (fil vide)
 - [x] Mettre à jour limites essayages : Jewelry 100/mois, Premium mensuel 150/mois, Premium annuel 1500/an
 - [x] Mettre à jour page de destination avec les nouvelles limites
+- [x] Compteur d'essayages restants dans l'écran essayage
+- [x] Écran Mon abonnement dans les paramètres
+- [x] Route webhook RevenueCat côté serveur pour synchroniser les essayages
