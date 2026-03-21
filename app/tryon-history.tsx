@@ -10,11 +10,13 @@ import {
   Modal,
   Share,
   Platform,
+  Animated,
 } from "react-native";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -61,6 +63,8 @@ export default function TryOnHistoryScreen() {
   const [history, setHistory] = useState<TryOnHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<TryOnHistoryEntry | null>(null);
+  // Référence pour fermer les swipeables ouverts
+  const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
@@ -78,6 +82,38 @@ export default function TryOnHistoryScreen() {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  // ─── Suppression individuelle ─────────────────────────────────────────────────
+  const handleDeleteEntry = useCallback(async (id: string, confirm = true) => {
+    const doDelete = async () => {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      // Fermer le swipeable avant de supprimer
+      swipeableRefs.current.get(id)?.close();
+      // Mettre à jour l'état local immédiatement
+      setHistory((prev) => prev.filter((e) => e.id !== id));
+      // Mettre à jour AsyncStorage
+      try {
+        const raw = await AsyncStorage.getItem(HISTORY_KEY);
+        const all: TryOnHistoryEntry[] = raw ? JSON.parse(raw) : [];
+        await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(all.filter((e) => e.id !== id)));
+      } catch {}
+      // Fermer le modal si l'entrée supprimée était ouverte
+      setSelectedEntry((prev) => (prev?.id === id ? null : prev));
+    };
+
+    if (confirm) {
+      Alert.alert(
+        "Supprimer cet essayage",
+        "Voulez-vous supprimer cet essayage de l'historique ?",
+        [
+          { text: "Annuler", style: "cancel", onPress: () => swipeableRefs.current.get(id)?.close() },
+          { text: "Supprimer", style: "destructive", onPress: doDelete },
+        ]
+      );
+    } else {
+      await doDelete();
+    }
+  }, []);
 
   const handleClearHistory = () => {
     Alert.alert(
@@ -108,205 +144,257 @@ export default function TryOnHistoryScreen() {
     } catch {}
   };
 
+  // ─── Action swipe gauche : bouton Supprimer rouge ────────────────────────────
+  const renderRightActions = (
+    progress: Animated.AnimatedInterpolation<number>,
+    _drag: Animated.AnimatedInterpolation<number>,
+    itemId: string
+  ) => {
+    const scale = progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.8, 1],
+      extrapolate: "clamp",
+    });
+    return (
+      <TouchableOpacity
+        onPress={() => handleDeleteEntry(itemId, false)}
+        style={styles.swipeDeleteBtn}
+        activeOpacity={0.85}
+      >
+        <Animated.View style={[styles.swipeDeleteInner, { transform: [{ scale }] }]}>
+          <Text style={styles.swipeDeleteIcon}>🗑</Text>
+          <Text style={styles.swipeDeleteLabel}>Supprimer</Text>
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderItem = ({ item, index }: { item: TryOnHistoryEntry; index: number }) => (
-    <TouchableOpacity
-      onPress={() => {
-        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setSelectedEntry(item);
+    <Swipeable
+      ref={(ref) => { swipeableRefs.current.set(item.id, ref); }}
+      renderRightActions={(progress, drag) => renderRightActions(progress, drag, item.id)}
+      rightThreshold={60}
+      overshootRight={false}
+      onSwipeableOpen={() => {
+        // Fermer les autres swipeables ouverts
+        swipeableRefs.current.forEach((ref, key) => {
+          if (key !== item.id) ref?.close();
+        });
       }}
-      activeOpacity={0.85}
-      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
     >
-      {/* Numéro */}
-      <View style={[styles.indexBadge, { backgroundColor: colors.primary + "20" }]}>
-        <Text style={[styles.indexText, { color: colors.primary }]}>{index + 1}</Text>
-      </View>
-
-      {/* Miniature résultat */}
-      <View style={styles.thumbnailContainer}>
-        <Image
-          source={{ uri: item.resultImageUrl }}
-          style={styles.thumbnail}
-          resizeMode="cover"
-        />
-        {/* Badge catégorie */}
-        <View style={[styles.categoryBadge, { backgroundColor: "#0A1A3B" }]}>
-          <Text style={styles.categoryEmoji}>{CATEGORY_EMOJIS[item.category] ?? "✨"}</Text>
+      <TouchableOpacity
+        onPress={() => {
+          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          // Fermer tout swipeable ouvert avant d'ouvrir le modal
+          swipeableRefs.current.forEach((ref) => ref?.close());
+          setSelectedEntry(item);
+        }}
+        activeOpacity={0.85}
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      >
+        {/* Numéro */}
+        <View style={[styles.indexBadge, { backgroundColor: colors.primary + "20" }]}>
+          <Text style={[styles.indexText, { color: colors.primary }]}>{index + 1}</Text>
         </View>
-      </View>
 
-      {/* Infos */}
-      <View style={styles.cardInfo}>
-        <Text style={[styles.cardTitle, { color: colors.foreground }]} numberOfLines={1}>
-          {item.itemName}
-        </Text>
-        <Text style={[styles.cardCategory, { color: colors.primary }]}>
-          {CATEGORY_LABELS[item.category] ?? item.category}
-          {item.subType ? ` · ${item.subType}` : ""}
-        </Text>
-        <Text style={[styles.cardDate, { color: colors.muted }]}>
-          {formatDate(item.date)}
-        </Text>
-      </View>
+        {/* Miniature résultat */}
+        <View style={styles.thumbnailContainer}>
+          <Image
+            source={{ uri: item.resultImageUrl }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+          />
+          {/* Badge catégorie */}
+          <View style={[styles.categoryBadge, { backgroundColor: "#0A1A3B" }]}>
+            <Text style={styles.categoryEmoji}>{CATEGORY_EMOJIS[item.category] ?? "✨"}</Text>
+          </View>
+        </View>
 
-      {/* Flèche */}
-      <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-    </TouchableOpacity>
+        {/* Infos */}
+        <View style={styles.cardInfo}>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]} numberOfLines={1}>
+            {item.itemName}
+          </Text>
+          <Text style={[styles.cardCategory, { color: colors.primary }]}>
+            {CATEGORY_LABELS[item.category] ?? item.category}
+            {item.subType ? ` · ${item.subType}` : ""}
+          </Text>
+          <Text style={[styles.cardDate, { color: colors.muted }]}>
+            {formatDate(item.date)}
+          </Text>
+        </View>
+
+        {/* Hint swipe */}
+        <View style={styles.swipeHint}>
+          <IconSymbol name="chevron.right" size={14} color={colors.muted} />
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
   );
 
   return (
-    <ScreenContainer containerClassName="bg-background">
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <IconSymbol name="chevron.left" size={22} color={colors.foreground} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>HISTORIQUE</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.primary }]}>MES ESSAYAGES</Text>
-        </View>
-        {history.length > 0 && (
-          <TouchableOpacity onPress={handleClearHistory} style={styles.clearBtn}>
-            <IconSymbol name="trash" size={18} color={colors.error ?? "#EF4444"} />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ScreenContainer containerClassName="bg-background">
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <IconSymbol name="chevron.left" size={22} color={colors.foreground} />
           </TouchableOpacity>
-        )}
-      </View>
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>HISTORIQUE</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.primary }]}>MES ESSAYAGES</Text>
+          </View>
+          {history.length > 0 && (
+            <TouchableOpacity onPress={handleClearHistory} style={styles.clearBtn}>
+              <IconSymbol name="trash" size={18} color={colors.error ?? "#EF4444"} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : history.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>📸</Text>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Aucun essayage</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
-            Vos essayages IA apparaîtront ici après votre première utilisation.
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/(tabs)/tryon" as any)}
-            style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.ctaBtnText}>✦ COMMENCER UN ESSAYAGE</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={history}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <Text style={[styles.listHeader, { color: colors.muted }]}>
-              {history.length} essayage{history.length > 1 ? "s" : ""} récent{history.length > 1 ? "s" : ""}
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : history.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>📸</Text>
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Aucun essayage</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
+              Vos essayages IA apparaîtront ici après votre première utilisation.
             </Text>
-          }
-        />
-      )}
-
-      {/* Modal détail */}
-      <Modal
-        visible={!!selectedEntry}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedEntry(null)}
-      >
-        {selectedEntry && (
-          <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-            {/* Modal Header */}
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <TouchableOpacity onPress={() => setSelectedEntry(null)} style={styles.modalCloseBtn}>
-                <Text style={[styles.modalCloseTxt, { color: colors.muted }]}>✕</Text>
-              </TouchableOpacity>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>DÉTAIL</Text>
-              <TouchableOpacity onPress={() => handleShare(selectedEntry)} style={styles.modalShareBtn}>
-                <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Image résultat grande */}
-            <View style={styles.modalImageContainer}>
-              <Image
-                source={{ uri: selectedEntry.resultImageUrl }}
-                style={styles.modalImage}
-                resizeMode="contain"
-              />
-            </View>
-
-            {/* Infos détaillées */}
-            <View style={[styles.modalInfo, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={styles.modalInfoRow}>
-                <Text style={[styles.modalInfoLabel, { color: colors.muted }]}>ARTICLE</Text>
-                <Text style={[styles.modalInfoValue, { color: colors.foreground }]}>{selectedEntry.itemName}</Text>
-              </View>
-              <View style={[styles.modalDivider, { backgroundColor: colors.border }]} />
-              <View style={styles.modalInfoRow}>
-                <Text style={[styles.modalInfoLabel, { color: colors.muted }]}>CATÉGORIE</Text>
-                <Text style={[styles.modalInfoValue, { color: colors.primary }]}>
-                  {CATEGORY_EMOJIS[selectedEntry.category]} {CATEGORY_LABELS[selectedEntry.category] ?? selectedEntry.category}
-                  {selectedEntry.subType ? ` · ${selectedEntry.subType}` : ""}
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/tryon" as any)}
+              style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.ctaBtnText}>✦ COMMENCER UN ESSAYAGE</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={history}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View style={styles.listHeaderRow}>
+                <Text style={[styles.listHeader, { color: colors.muted }]}>
+                  {history.length} essayage{history.length > 1 ? "s" : ""} récent{history.length > 1 ? "s" : ""}
+                </Text>
+                <Text style={[styles.listHint, { color: colors.muted }]}>
+                  ← Glisser pour supprimer
                 </Text>
               </View>
-              <View style={[styles.modalDivider, { backgroundColor: colors.border }]} />
-              <View style={styles.modalInfoRow}>
-                <Text style={[styles.modalInfoLabel, { color: colors.muted }]}>DATE</Text>
-                <Text style={[styles.modalInfoValue, { color: colors.foreground }]}>{formatDate(selectedEntry.date)}</Text>
-              </View>
-            </View>
-
-            {/* Miniatures modèle + article */}
-            <View style={styles.modalThumbs}>
-              <View style={styles.modalThumb}>
-                <Image source={{ uri: selectedEntry.modelImageUrl }} style={styles.modalThumbImg} resizeMode="cover" />
-                <Text style={[styles.modalThumbLabel, { color: colors.muted }]}>Modèle</Text>
-              </View>
-              <View style={[styles.modalThumbArrow]}>
-                <Text style={{ color: colors.primary, fontSize: 20 }}>✦</Text>
-              </View>
-              <View style={styles.modalThumb}>
-                <Image source={{ uri: selectedEntry.itemImageUrl }} style={styles.modalThumbImg} resizeMode="contain" />
-                <Text style={[styles.modalThumbLabel, { color: colors.muted }]}>Article</Text>
-              </View>
-            </View>
-
-            {/* CTAs : Réessayer + Partager */}
-            <View style={styles.modalCtaRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  setSelectedEntry(null);
-                  // Naviguer vers l'écran d'essayage avec les paramètres pré-remplis
-                  router.push({
-                    pathname: "/(tabs)/tryon",
-                    params: {
-                      section: selectedEntry.category,
-                      retryModelUrl: selectedEntry.modelImageUrl,
-                      retryItemUrl: selectedEntry.itemImageUrl,
-                      retryItemName: selectedEntry.itemName,
-                      ...(selectedEntry.subType ? { retrySubType: selectedEntry.subType } : {}),
-                    },
-                  } as any);
-                }}
-                style={[styles.modalRetryCta, { backgroundColor: colors.surface, borderColor: colors.primary }]}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.modalRetryCtaText, { color: colors.primary }]}>↺ RÉESSAYER</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleShare(selectedEntry)}
-                style={[styles.modalShareCta, { backgroundColor: colors.primary, flex: 1 }]}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalShareCtaText}>❖ PARTAGER</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            }
+          />
         )}
-      </Modal>
-    </ScreenContainer>
+
+        {/* Modal détail */}
+        <Modal
+          visible={!!selectedEntry}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setSelectedEntry(null)}
+        >
+          {selectedEntry && (
+            <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+              {/* Modal Header avec bouton corbeille */}
+              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                <TouchableOpacity onPress={() => setSelectedEntry(null)} style={styles.modalCloseBtn}>
+                  <Text style={[styles.modalCloseTxt, { color: colors.muted }]}>✕</Text>
+                </TouchableOpacity>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>DÉTAIL</Text>
+                {/* Bouton corbeille dans le modal */}
+                <TouchableOpacity
+                  onPress={() => handleDeleteEntry(selectedEntry.id, true)}
+                  style={styles.modalDeleteBtn}
+                >
+                  <IconSymbol name="trash" size={18} color={colors.error ?? "#EF4444"} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Image résultat grande */}
+              <View style={styles.modalImageContainer}>
+                <Image
+                  source={{ uri: selectedEntry.resultImageUrl }}
+                  style={styles.modalImage}
+                  resizeMode="contain"
+                />
+              </View>
+
+              {/* Infos détaillées */}
+              <View style={[styles.modalInfo, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={styles.modalInfoRow}>
+                  <Text style={[styles.modalInfoLabel, { color: colors.muted }]}>ARTICLE</Text>
+                  <Text style={[styles.modalInfoValue, { color: colors.foreground }]}>{selectedEntry.itemName}</Text>
+                </View>
+                <View style={[styles.modalDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.modalInfoRow}>
+                  <Text style={[styles.modalInfoLabel, { color: colors.muted }]}>CATÉGORIE</Text>
+                  <Text style={[styles.modalInfoValue, { color: colors.primary }]}>
+                    {CATEGORY_EMOJIS[selectedEntry.category]} {CATEGORY_LABELS[selectedEntry.category] ?? selectedEntry.category}
+                    {selectedEntry.subType ? ` · ${selectedEntry.subType}` : ""}
+                  </Text>
+                </View>
+                <View style={[styles.modalDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.modalInfoRow}>
+                  <Text style={[styles.modalInfoLabel, { color: colors.muted }]}>DATE</Text>
+                  <Text style={[styles.modalInfoValue, { color: colors.foreground }]}>{formatDate(selectedEntry.date)}</Text>
+                </View>
+              </View>
+
+              {/* Miniatures modèle + article */}
+              <View style={styles.modalThumbs}>
+                <View style={styles.modalThumb}>
+                  <Image source={{ uri: selectedEntry.modelImageUrl }} style={styles.modalThumbImg} resizeMode="cover" />
+                  <Text style={[styles.modalThumbLabel, { color: colors.muted }]}>Modèle</Text>
+                </View>
+                <View style={[styles.modalThumbArrow]}>
+                  <Text style={{ color: colors.primary, fontSize: 20 }}>✦</Text>
+                </View>
+                <View style={styles.modalThumb}>
+                  <Image source={{ uri: selectedEntry.itemImageUrl }} style={styles.modalThumbImg} resizeMode="contain" />
+                  <Text style={[styles.modalThumbLabel, { color: colors.muted }]}>Article</Text>
+                </View>
+              </View>
+
+              {/* CTAs : Réessayer + Partager */}
+              <View style={styles.modalCtaRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setSelectedEntry(null);
+                    router.push({
+                      pathname: "/(tabs)/tryon",
+                      params: {
+                        section: selectedEntry.category,
+                        retryModelUrl: selectedEntry.modelImageUrl,
+                        retryItemUrl: selectedEntry.itemImageUrl,
+                        retryItemName: selectedEntry.itemName,
+                        ...(selectedEntry.subType ? { retrySubType: selectedEntry.subType } : {}),
+                      },
+                    } as any);
+                  }}
+                  style={[styles.modalRetryCta, { backgroundColor: colors.surface, borderColor: colors.primary }]}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.modalRetryCtaText, { color: colors.primary }]}>↺ RÉESSAYER</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleShare(selectedEntry)}
+                  style={[styles.modalShareCta, { backgroundColor: colors.primary, flex: 1 }]}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.modalShareCtaText}>❖ PARTAGER</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </Modal>
+      </ScreenContainer>
+    </GestureHandlerRootView>
   );
 }
 
@@ -328,7 +416,23 @@ const styles = StyleSheet.create({
   ctaBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 30 },
   ctaBtnText: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 1 },
   listContent: { padding: 16, gap: 12 },
-  listHeader: { fontSize: 11, letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" },
+  listHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  listHeader: { fontSize: 11, letterSpacing: 1, textTransform: "uppercase" },
+  listHint: { fontSize: 10, letterSpacing: 0.5, fontStyle: "italic" },
+  // Swipe delete
+  swipeDeleteBtn: {
+    width: 90,
+    marginLeft: 8,
+    borderRadius: 16,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 0,
+  },
+  swipeDeleteInner: { alignItems: "center", gap: 4 },
+  swipeDeleteIcon: { fontSize: 20 },
+  swipeDeleteLabel: { fontSize: 10, color: "#fff", fontWeight: "700", letterSpacing: 0.5 },
+  swipeHint: { width: 20, alignItems: "center" },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -376,7 +480,7 @@ const styles = StyleSheet.create({
   modalCloseBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   modalCloseTxt: { fontSize: 18 },
   modalTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 3 },
-  modalShareBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  modalDeleteBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   modalImageContainer: {
     height: 280,
     alignItems: "center",

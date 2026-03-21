@@ -901,3 +901,4 @@
 - [x] Créer l'écran Historique des essayages (20 derniers avec miniature et date)
 - [x] Ajouter bouton "Réessayer" dans le modal de l'historique des essayages (pré-remplit l'écran d'essayage)
 - [x] Configurer le webhook RevenueCat sur app.revenuecat.com
+- [x] Suppression individuelle d'une entrée dans l'historique (swipe-to-delete + bouton corbeille dans le modal)
