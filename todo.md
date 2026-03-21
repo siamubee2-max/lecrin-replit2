@@ -828,3 +828,9 @@
 - [x] Intégrer les mannequins masculins dans OutfitBuilder (OUTFIT_MANNEQUINS)
 - [x] Intégrer les mannequins masculins dans les galeries de l'écran essayage (bijoux, vêtements, chaussures, accessoires)
 - [x] Intégrer les mannequins non-genrés dans les deux galeries
+
+## OutfitBuilder - Look Complet
+- [x] OutfitBuilder : ajouter slots dédiés jupe/robe, sac, chapeau, bas/collants
+- [x] OutfitBuilder : ajouter slots dédiés ceinture, lunettes, lunettes de soleil
+- [x] OutfitBuilder : mettre à jour la route serveur outfit avec tous les nouveaux slots
+- [x] OutfitBuilder : corriger modal galerie (FlatList → ScrollView)

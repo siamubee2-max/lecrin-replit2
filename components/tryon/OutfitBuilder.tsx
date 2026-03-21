@@ -39,10 +39,10 @@ import { useRouter } from "expo-router";
 type GalleryItem = { id: string; uri: string; label: string };
 
 type OutfitSlotKey =
-  | "tshirt" | "jacket" | "pants"
+  | "tshirt" | "jacket" | "pants" | "skirt"
   | "earrings" | "necklace" | "bracelet" | "ring"
-  | "accessory1" | "accessory2"
-  | "shoes";
+  | "bag" | "hat" | "belt" | "glasses" | "sunglasses"
+  | "shoes" | "legwear";
 
 type OutfitSlot = {
   key: OutfitSlotKey;
@@ -77,12 +77,21 @@ const OUTFIT_SLOTS: OutfitSlot[] = [
   },
   {
     key: "pants",
-    label: "Pantalon / Jupe",
+    label: "Pantalon",
     emoji: "👖",
     category: "clothing",
     gallery: [
       { id: "pants-navy", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_pants_navy-mtvRm4h698yNo9YWgMgVkq.png", label: "Pantalon Marine" },
+    ],
+  },
+  {
+    key: "skirt",
+    label: "Jupe / Robe",
+    emoji: "👗",
+    category: "clothing",
+    gallery: [
       { id: "dress-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_dress_black-C4XiYtX54R2EZijznwBAsb.png", label: "Robe Noire" },
+      { id: "skirt-beige", uri: `${CDN}/foIbwvIEZnQRCkLk.jpeg`, label: "Jupe Beige" },
     ],
   },
   {
@@ -133,39 +142,59 @@ const OUTFIT_SLOTS: OutfitSlot[] = [
     ],
   },
   {
-    key: "accessory1",
-    label: "Accessoire 1",
+    key: "bag",
+    label: "Sac",
     emoji: "👜",
     category: "accessories",
     gallery: [
       { id: "bag-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_bag_black-gMLsmwChKXggLLiGyaLkMb.png", label: "Sac à Main Noir" },
-      { id: "belt-gold", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_belt_gold-Dk95mij6htDppq7nu96YMr.png", label: "Ceinture Dorée" },
-      { id: "sunglasses-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_sunglasses_black-GND6LDni5Tdui7goSAgoGZ.png", label: "Lunettes Cat-Eye" },
-      { id: "scarf-beige", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_scarf_beige-ntRsXz97J7pnhvggCL3sN7.png", label: "Écharpe Beige" },
-      { id: "hat-bob-beige", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_bob_beige-HhGboqTxDiL54ad8MnDCD7.webp", label: "Bob Beige" },
-      { id: "hat-cap-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_cap_black-eoUQeGAR5BDm5SGqfmFg9L.webp", label: "Casquette Noire" },
-      { id: "hat-straw-summer", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_straw_summer-bQwBFDXdKH6t8VdBv33RsZ.webp", label: "Chapeau de Paille" },
-      { id: "watch-classic-gold", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_classic_gold-hCfAhBvMghWX3VNW8SLVcz.webp", label: "Montre Classique Or" },
-      { id: "watch-sport-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_sport_black-SexGEybF3TtRBCe7XBSQbM.webp", label: "Montre Sport Noire" },
-      { id: "watch-luxury-silver", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_luxury_silver-9mRSmbzaU66Q4hPwbfEnP9.webp", label: "Montre Luxe Argent" },
     ],
   },
   {
-    key: "accessory2",
-    label: "Accessoire 2",
-    emoji: "🧣",
+    key: "hat",
+    label: "Chapeau",
+    emoji: "🎩",
     category: "accessories",
     gallery: [
-      { id: "bag-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_bag_black-gMLsmwChKXggLLiGyaLkMb.png", label: "Sac à Main Noir" },
-      { id: "belt-gold", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_belt_gold-Dk95mij6htDppq7nu96YMr.png", label: "Ceinture Dorée" },
-      { id: "sunglasses-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_sunglasses_black-GND6LDni5Tdui7goSAgoGZ.png", label: "Lunettes Cat-Eye" },
-      { id: "scarf-beige", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_scarf_beige-ntRsXz97J7pnhvggCL3sN7.png", label: "Écharpe Beige" },
       { id: "hat-bob-beige", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_bob_beige-HhGboqTxDiL54ad8MnDCD7.webp", label: "Bob Beige" },
       { id: "hat-cap-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_cap_black-eoUQeGAR5BDm5SGqfmFg9L.webp", label: "Casquette Noire" },
       { id: "hat-straw-summer", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/hat_straw_summer-bQwBFDXdKH6t8VdBv33RsZ.webp", label: "Chapeau de Paille" },
-      { id: "watch-classic-gold", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_classic_gold-hCfAhBvMghWX3VNW8SLVcz.webp", label: "Montre Classique Or" },
-      { id: "watch-sport-black", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_sport_black-SexGEybF3TtRBCe7XBSQbM.webp", label: "Montre Sport Noire" },
-      { id: "watch-luxury-silver", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/watch_luxury_silver-9mRSmbzaU66Q4hPwbfEnP9.webp", label: "Montre Luxe Argent" },
+    ],
+  },
+  {
+    key: "belt",
+    label: "Ceinture",
+    emoji: "👟",
+    category: "accessories",
+    gallery: [
+      { id: "belt-gold", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_belt_gold-Dk95mij6htDppq7nu96YMr.png", label: "Ceinture Dorée" },
+    ],
+  },
+  {
+    key: "glasses",
+    label: "Lunettes",
+    emoji: "👓",
+    category: "accessories",
+    gallery: [
+      { id: "glasses-classic", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_sunglasses_black-GND6LDni5Tdui7goSAgoGZ.png", label: "Lunettes Classiques" },
+    ],
+  },
+  {
+    key: "sunglasses",
+    label: "Lunettes de soleil",
+    emoji: "😎",
+    category: "accessories",
+    gallery: [
+      { id: "sunglasses-cat", uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_sunglasses_black-GND6LDni5Tdui7goSAgoGZ.png", label: "Cat-Eye Noir" },
+    ],
+  },
+  {
+    key: "legwear",
+    label: "Bas / Collants",
+    emoji: "🧦",
+    category: "accessories",
+    gallery: [
+      { id: "tights-black", uri: `${CDN}/QGrKcPORwuBopwXN.jpg`, label: "Collants Noirs" },
     ],
   },
   {
@@ -399,18 +428,31 @@ export function OutfitBuilder() {
         necklaceImageUrl: slotUrls.necklace,
         braceletImageUrl: slotUrls.bracelet,
         ringImageUrl: slotUrls.ring,
-        accessory1ImageUrl: slotUrls.accessory1,
-        accessory2ImageUrl: slotUrls.accessory2,
+        // Nouveaux slots mappés vers les champs existants du serveur
+        accessory1ImageUrl: slotUrls.bag ?? slotUrls.belt ?? slotUrls.glasses ?? slotUrls.sunglasses ?? slotUrls.legwear ?? slotUrls.hat ?? slotUrls.skirt,
+        accessory2ImageUrl: slotUrls.bag
+          ? (slotUrls.belt ?? slotUrls.glasses ?? slotUrls.sunglasses ?? slotUrls.legwear ?? slotUrls.hat ?? slotUrls.skirt)
+          : slotUrls.belt
+          ? (slotUrls.glasses ?? slotUrls.sunglasses ?? slotUrls.legwear ?? slotUrls.hat ?? slotUrls.skirt)
+          : slotUrls.glasses
+          ? (slotUrls.sunglasses ?? slotUrls.legwear ?? slotUrls.hat ?? slotUrls.skirt)
+          : undefined,
         shoesImageUrl: slotUrls.shoes,
         tshirtName: slots.tshirt?.label,
         jacketName: slots.jacket?.label,
-        pantsName: slots.pants?.label,
+        pantsName: slots.pants?.label ?? slots.skirt?.label,
         earringsName: slots.earrings?.label,
         necklaceName: slots.necklace?.label,
         braceletName: slots.bracelet?.label,
         ringName: slots.ring?.label,
-        accessory1Name: slots.accessory1?.label,
-        accessory2Name: slots.accessory2?.label,
+        accessory1Name: slots.bag?.label ?? slots.belt?.label ?? slots.glasses?.label ?? slots.sunglasses?.label ?? slots.legwear?.label ?? slots.hat?.label ?? slots.skirt?.label,
+        accessory2Name: slots.bag
+          ? (slots.belt?.label ?? slots.glasses?.label ?? slots.sunglasses?.label ?? slots.legwear?.label ?? slots.hat?.label ?? slots.skirt?.label)
+          : slots.belt
+          ? (slots.glasses?.label ?? slots.sunglasses?.label ?? slots.legwear?.label ?? slots.hat?.label ?? slots.skirt?.label)
+          : slots.glasses
+          ? (slots.sunglasses?.label ?? slots.legwear?.label ?? slots.hat?.label ?? slots.skirt?.label)
+          : undefined,
         shoesName: slots.shoes?.label,
         pose: selectedPose,
         numSamples,
@@ -709,33 +751,41 @@ export function OutfitBuilder() {
               <Text style={{ color: colors.foreground, fontSize: 16 }}>✕</Text>
             </TouchableOpacity>
           </View>
-          <FlatList
-            data={activeSlot ? OUTFIT_SLOTS.find(s => s.key === activeSlot)?.gallery ?? [] : []}
-            keyExtractor={item => item.id}
-            numColumns={3}
-            contentContainerStyle={{ padding: 12, gap: 8 }}
-            columnWrapperStyle={{ gap: 8 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                onPress={() => handleSelectItem(item)}
-                style={[styles.galleryItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                activeOpacity={0.8}
-              >
-                <Image source={{ uri: item.uri }} style={{ width: "100%", height: 100 }} contentFit="contain" />
-                <Text style={[styles.galleryLabel, { color: colors.foreground }]} numberOfLines={1}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={
-              <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40 }}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>📷</Text>
-                <Text style={[{ color: colors.muted, textAlign: "center", fontSize: 13 }]}>
-                  Aucun article disponible.{"\n"}Utilisez votre galerie photo pour en ajouter.
-                </Text>
-              </View>
-            }
-          />
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
+            {(() => {
+              const gallery = activeSlot ? OUTFIT_SLOTS.find(s => s.key === activeSlot)?.gallery ?? [] : [];
+              if (gallery.length === 0) {
+                return (
+                  <View style={{ alignItems: "center", justifyContent: "center", padding: 40 }}>
+                    <Text style={{ fontSize: 32, marginBottom: 8 }}>📷</Text>
+                    <Text style={{ color: colors.muted, textAlign: "center", fontSize: 13 }}>
+                      Aucun article disponible.{"\n"}Utilisez votre galerie photo pour en ajouter.
+                    </Text>
+                  </View>
+                );
+              }
+              const rows: GalleryItem[][] = [];
+              for (let i = 0; i < gallery.length; i += 3) rows.push(gallery.slice(i, i + 3));
+              return rows.map((row, ri) => (
+                <View key={ri} style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+                  {row.map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => handleSelectItem(item)}
+                      style={[styles.galleryItem, { flex: 1, backgroundColor: colors.surface, borderColor: colors.border }]}
+                      activeOpacity={0.8}
+                    >
+                      <Image source={{ uri: item.uri }} style={{ width: "100%", height: 100 }} contentFit="contain" />
+                      <Text style={[styles.galleryLabel, { color: colors.foreground }]} numberOfLines={1}>{item.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, ei) => (
+                    <View key={`empty-${ei}`} style={{ flex: 1 }} />
+                  ))}
+                </View>
+              ));
+            })()}
+          </ScrollView>
           {/* Bouton pour choisir depuis la galerie photo */}
           <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
             <TouchableOpacity
@@ -774,29 +824,34 @@ export function OutfitBuilder() {
               <Text style={{ color: colors.foreground, fontSize: 16 }}>✕</Text>
             </TouchableOpacity>
           </View>
-          <FlatList
-            data={OUTFIT_MANNEQUINS}
-            keyExtractor={item => item.id}
-            numColumns={3}
-            contentContainerStyle={{ padding: 12, gap: 8 }}
-            columnWrapperStyle={{ gap: 8 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                onPress={() => {
-                  setModelPhoto(item.uri);
-                  setShowMannequinModal(false);
-                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                style={[styles.galleryItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                activeOpacity={0.8}
-              >
-                <Image source={{ uri: item.uri }} style={{ width: "100%", height: 100 }} contentFit="cover" />
-                <Text style={[styles.galleryLabel, { color: colors.foreground }]} numberOfLines={1}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
+            {(() => {
+              const rows: GalleryItem[][] = [];
+              for (let i = 0; i < OUTFIT_MANNEQUINS.length; i += 3) rows.push(OUTFIT_MANNEQUINS.slice(i, i + 3));
+              return rows.map((row, ri) => (
+                <View key={ri} style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+                  {row.map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => {
+                        setModelPhoto(item.uri);
+                        setShowMannequinModal(false);
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                      style={[styles.galleryItem, { flex: 1, backgroundColor: colors.surface, borderColor: colors.border }]}
+                      activeOpacity={0.8}
+                    >
+                      <Image source={{ uri: item.uri }} style={{ width: "100%", height: 100 }} contentFit="cover" />
+                      <Text style={[styles.galleryLabel, { color: colors.foreground }]} numberOfLines={1}>{item.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, ei) => (
+                    <View key={`empty-${ei}`} style={{ flex: 1 }} />
+                  ))}
+                </View>
+              ));
+            })()}
+          </ScrollView>
         </View>
       </Modal>
 
