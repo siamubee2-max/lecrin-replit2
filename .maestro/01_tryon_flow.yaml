@@ -1,0 +1,60 @@
+appId: space.manus.ecrin
+name: "Essayage Virtuel — Flow principal"
+tags:
+  - essayage
+  - critique
+
+---
+# ─── 1. Lancement & Onboarding ───────────────────────────────────────────────
+- launchApp:
+    clearState: true
+
+# Passer l'onboarding si présent
+- optional:
+    - tapOn: "Commencer"
+- optional:
+    - tapOn: "Continuer"
+- optional:
+    - tapOn: "Passer"
+
+# ─── 2. Navigation vers l'onglet Essayage ────────────────────────────────────
+- tapOn:
+    text: "Essayer"
+- assertVisible: "Essayage Virtuel"
+
+# ─── 3. Sélectionner un modèle ───────────────────────────────────────────────
+- tapOn:
+    text: "Choisir un modèle"
+- assertVisible:
+    text: "Sélectionner un modèle"
+- tapOn:
+    index: 0  # Premier modèle disponible
+- assertVisible: "Essayage Virtuel"
+
+# ─── 4. Sélectionner un bijou ────────────────────────────────────────────────
+- tapOn:
+    text: "Galerie Bijoux"
+- assertVisible:
+    text: "Galerie"
+- tapOn:
+    index: 0  # Premier bijou disponible
+- tapOn:
+    text: "Fermer"
+
+# ─── 5. Lancer l'essayage IA ─────────────────────────────────────────────────
+- tapOn:
+    text: "Essayer"
+- assertVisible:
+    text: "Génération"
+    timeout: 30000
+
+# ─── 6. Vérifier le résultat ─────────────────────────────────────────────────
+- assertVisible:
+    text: "Résultat"
+    timeout: 60000
+
+# ─── 7. Partager le résultat ─────────────────────────────────────────────────
+- tapOn:
+    text: "Partager"
+- assertVisible:
+    text: "Partager"
