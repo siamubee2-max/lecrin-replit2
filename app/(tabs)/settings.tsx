@@ -101,7 +101,32 @@ export default function SettingsScreen() {
   };
 
   const deleteAccountMutation = trpc.auth.deleteAccount.useMutation();
+  const syncSubscriptionMutation = trpc.auth.syncSubscription.useMutation();
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isSyncingSubscription, setIsSyncingSubscription] = useState(false);
+
+  const handleSyncSubscription = async () => {
+    try {
+      setIsSyncingSubscription(true);
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      const result = await syncSubscriptionMutation.mutateAsync();
+      if (result.success) {
+        Alert.alert(
+          "Abonnement synchronisé",
+          `Votre plan est maintenant à jour : ${{ free: 'Découverte', basic: 'Essentiel', premium: 'Premium', yearly: 'Annuel Premium' }[result.tier] ?? result.tier}.`,
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert("Synchronisation", "Impossible de vérifier votre abonnement. Réessayez plus tard.", [{ text: "OK" }]);
+      }
+    } catch {
+      Alert.alert("Erreur", "La synchronisation a échoué. Vérifiez votre connexion.", [{ text: "OK" }]);
+    } finally {
+      setIsSyncingSubscription(false);
+    }
+  };
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -128,11 +153,7 @@ export default function SettingsScreen() {
                         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                       }
                       await deleteAccountMutation.mutateAsync();
-                      Alert.alert(
-                        "Compte supprimé",
-                        "Votre compte a été supprimé avec succès.",
-                        [{ text: "OK", onPress: () => router.replace("/") }]
-                      );
+                      router.replace("/account-deleted");
                     } catch {
                       Alert.alert("Erreur", "Impossible de supprimer le compte. Réessayez ou contactez le support.");
                     } finally {
@@ -297,6 +318,22 @@ export default function SettingsScreen() {
                 <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
                 <Text className="text-sm ml-2" style={{ color: colors.primary }}>
                   Restaurer mes achats
+                </Text>
+              </TouchableOpacity>
+              {/* Sync Subscription */}
+              <TouchableOpacity
+                onPress={handleSyncSubscription}
+                disabled={isSyncingSubscription}
+                className="flex-row items-center justify-center py-3"
+                style={{ opacity: isSyncingSubscription ? 0.5 : 1 }}
+              >
+                {isSyncingSubscription ? (
+                  <ActivityIndicator size="small" color={colors.muted} />
+                ) : (
+                  <IconSymbol name="arrow.triangle.2.circlepath" size={16} color={colors.muted} />
+                )}
+                <Text className="text-sm ml-2" style={{ color: colors.muted }}>
+                  Synchroniser mon abonnement
                 </Text>
               </TouchableOpacity>
             </View>

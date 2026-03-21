@@ -906,3 +906,6 @@
 - [x] Ajouter UI suppression de compte dans les Paramètres
 - [x] Implémenter /api/sync-subscription (fix bug IA après achat)
 - [x] Mettre à jour URL webhook RevenueCat dans le code
+- [x] Ajouter bouton "Synchroniser mon abonnement" dans les Paramètres
+- [x] Configurer REVENUECAT_API_KEY dans les secrets
+- [x] Créer l'écran de confirmation post-suppression de compte
