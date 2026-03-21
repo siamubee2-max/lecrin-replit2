@@ -1,0 +1,41 @@
+appId: space.manus.ecrin
+name: "Boutique → Essayage — Flow partenaire"
+tags:
+  - boutique
+  - tryon
+  - partenaire
+
+---
+# ─── 1. Lancement ────────────────────────────────────────────────────────────
+- launchApp:
+    clearState: false
+
+# ─── 2. Navigation vers la Boutique ──────────────────────────────────────────
+- tapOn:
+    text: "Boutique"
+- assertVisible:
+    text: "Boutique"
+    timeout: 5000
+
+# ─── 3. Sélectionner un article ──────────────────────────────────────────────
+- tapOn:
+    index: 0  # Premier article de la boutique
+- assertVisible:
+    text: "ESSAYER"
+    timeout: 3000
+
+# ─── 4. Lancer l'essayage depuis la boutique ─────────────────────────────────
+- tapOn:
+    text: "ESSAYER"
+- assertVisible:
+    text: "Essayage Virtuel"
+    timeout: 5000
+
+# ─── 5. Vérifier que l'article est pré-sélectionné ───────────────────────────
+- assertVisible:
+    text: "Moni"  # Nom partiel de l'article Moniattitude
+
+# ─── 6. Retour à la boutique ─────────────────────────────────────────────────
+- tapOn:
+    text: "Boutique"
+- assertVisible: "Boutique"

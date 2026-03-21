@@ -1,0 +1,55 @@
+appId: space.manus.ecrin
+name: "Achat In-App — Paywall et Abonnement"
+tags:
+  - achat
+  - revenuecat
+  - critique
+
+---
+# ─── 1. Lancement ────────────────────────────────────────────────────────────
+- launchApp:
+    clearState: false  # Conserver l'état pour simuler un utilisateur existant
+
+# ─── 2. Déclencher le paywall via l'essayage (utilisateur gratuit épuisé) ────
+- tapOn:
+    text: "Essayer"
+- tapOn:
+    text: "Essayer"  # Bouton de lancement de l'essayage IA
+
+# Le paywall doit apparaître si les essayages gratuits sont épuisés
+- optional:
+    - assertVisible:
+        text: "Débloquer"
+        timeout: 5000
+
+# ─── 3. Vérifier le PaywallModal ─────────────────────────────────────────────
+- optional:
+    - assertVisible: "Jewelry"
+    - assertVisible: "Premium"
+    - assertVisible: "14,99"
+    - assertVisible: "24,99"
+
+# ─── 4. Naviguer vers les paramètres — Section abonnement ────────────────────
+- tapOn:
+    text: "Plus"
+- tapOn:
+    text: "Paramètres"
+- scrollUntilVisible:
+    text: "MON ABONNEMENT"
+- assertVisible: "MON ABONNEMENT"
+
+# ─── 5. Vérifier l'affichage du plan actuel ──────────────────────────────────
+- assertVisible:
+    text: "Découverte"
+
+# ─── 6. Ouvrir le paywall depuis les paramètres ──────────────────────────────
+- tapOn:
+    text: "Passer à Premium"
+- assertVisible:
+    text: "Jewelry"
+    timeout: 5000
+
+# ─── 7. Fermer le paywall ────────────────────────────────────────────────────
+- tapOn:
+    text: "Fermer"
+- assertNotVisible: "Jewelry"

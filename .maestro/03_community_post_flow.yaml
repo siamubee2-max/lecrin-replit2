@@ -1,0 +1,50 @@
+appId: space.manus.ecrin
+name: "Communauté — Création de publication avec Snapshot"
+tags:
+  - communaute
+  - snapshot
+  - critique
+
+---
+# ─── 1. Lancement ────────────────────────────────────────────────────────────
+- launchApp:
+    clearState: false
+
+# ─── 2. Navigation vers la Communauté ────────────────────────────────────────
+- tapOn:
+    text: "Communauté"
+- assertVisible:
+    text: "À DU STYLE"
+
+# ─── 3. Vérifier les onglets ─────────────────────────────────────────────────
+- assertVisible: "FIL"
+- assertVisible: "TENDANCES"
+- assertVisible: "CLASSEMENT"
+- assertVisible: "MES DÉFIS"
+
+# ─── 4. Ouvrir la modal de création de post ──────────────────────────────────
+- tapOn:
+    id: "create-post-button"
+- optional:
+    - tapOn:
+        text: "Nouvelle publication"
+
+# ─── 5. Vérifier la modal de création ───────────────────────────────────────
+- assertVisible:
+    text: "Nouvelle publication"
+    timeout: 3000
+
+# ─── 6. Saisir une légende ───────────────────────────────────────────────────
+- tapOn:
+    text: "Décrivez votre look"
+- inputText: "Mon look du jour ✨ #EcrinVirtuel #AduStyle"
+
+# ─── 7. Publier ──────────────────────────────────────────────────────────────
+- tapOn:
+    text: "Publier"
+- assertNotVisible:
+    text: "Nouvelle publication"
+    timeout: 5000
+
+# ─── 8. Vérifier le fil ──────────────────────────────────────────────────────
+- assertVisible: "FIL"

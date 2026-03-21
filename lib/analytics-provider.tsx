@@ -1,11 +1,14 @@
 /**
- * Provider Analytics pour L'Écrin Virtuel
- * Initialise Mixpanel et fournit le contexte analytics à l'application
+ * Provider Analytics — Écrin Virtuel
+ * Initialise PostHog et fournit le contexte analytics à l'application.
+ *
+ * Variables d'environnement requises :
+ *   EXPO_PUBLIC_POSTHOG_API_KEY  — clé publique PostHog (ex: phc_xxxx)
+ *   EXPO_PUBLIC_POSTHOG_HOST     — host PostHog (défaut: https://eu.i.posthog.com)
  */
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { analytics } from '@/services/analytics-service';
-import Constants from 'expo-constants';
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { initPostHog } from "@/lib/analytics";
 
 interface AnalyticsContextType {
   isReady: boolean;
@@ -13,40 +16,22 @@ interface AnalyticsContextType {
 
 const AnalyticsContext = createContext<AnalyticsContextType>({ isReady: false });
 
-interface AnalyticsProviderProps {
-  children: ReactNode;
-}
-
 /**
- * Provider qui initialise Mixpanel au démarrage de l'application
+ * Provider qui initialise PostHog au démarrage de l'application
  */
-export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
+export function AnalyticsProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const initializeAnalytics = async () => {
-      try {
-        // Récupérer le token Mixpanel depuis les variables d'environnement
-        const mixpanelToken = Constants.expoConfig?.extra?.mixpanelToken || 
-                              process.env.EXPO_PUBLIC_MIXPANEL_TOKEN ||
-                              process.env.MIXPANEL_TOKEN;
-
-        if (mixpanelToken) {
-          await analytics.initialize(mixpanelToken);
-          setIsReady(true);
-          console.log('[AnalyticsProvider] Mixpanel initialized');
-        } else {
-          console.log('[AnalyticsProvider] No Mixpanel token found, analytics disabled');
-          // Même sans token, on marque comme prêt pour ne pas bloquer l'app
-          setIsReady(true);
-        }
-      } catch (error) {
-        console.error('[AnalyticsProvider] Failed to initialize:', error);
+    initPostHog()
+      .then(() => {
+        setIsReady(true);
+        console.log("[AnalyticsProvider] PostHog initialized");
+      })
+      .catch((error) => {
+        console.warn("[AnalyticsProvider] PostHog init failed:", error);
         setIsReady(true); // Ne pas bloquer l'app en cas d'erreur
-      }
-    };
-
-    initializeAnalytics();
+      });
   }, []);
 
   return (
