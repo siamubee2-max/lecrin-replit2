@@ -860,3 +860,7 @@
 ## Snapshot v4
 - [ ] Bouton Partager en Story dans la modal de résultat d'essayage
 - [ ] Compteur de partages dans PostCard et données démo
+
+## Communauté v2
+- [ ] Onglet Tendances avec tri par partages décroissants + badge rang
+- [x] Notifications in-app pour seuils de partages (10 et 50)
