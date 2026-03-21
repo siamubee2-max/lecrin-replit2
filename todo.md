@@ -896,3 +896,6 @@
 - [x] Écran Mon abonnement dans les paramètres
 - [x] Route webhook RevenueCat côté serveur pour synchroniser les essayages
 - [x] Corriger les prix des abonnements : Essentiel 14,99€/mois, Premium mensuel 24,99€/mois, Premium annuel 199,99€/an (PaywallModal, settings, page HTML, tests)
+- [x] Ajouter les secrets EXPO_PUBLIC_POSTHOG_API_KEY et EXPO_PUBLIC_SENTRY_DSN
+- [x] Configurer l'URL du webhook RevenueCat dans le projet (affichage dans les paramètres)
+- [x] Créer l'écran Historique des essayages (20 derniers avec miniature et date)

@@ -308,6 +308,21 @@ export default function SettingsScreen() {
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
             Ma Garde-Robe
           </Text>
+          {/* Historique des essayages */}
+          <TouchableOpacity
+            onPress={() => router.push("/tryon-history" as any)}
+            className="flex-row items-center justify-between p-4 rounded-2xl mb-2"
+            style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+          >
+            <View className="flex-row items-center">
+              <Text className="text-2xl mr-3">📸</Text>
+              <View>
+                <Text className="text-lg font-semibold text-foreground">Historique des essayages</Text>
+                <Text className="text-sm text-muted">Vos 20 derniers essayages IA</Text>
+              </View>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.muted} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/wardrobe")}
             className="flex-row items-center justify-between p-4 rounded-2xl"
@@ -367,6 +382,30 @@ export default function SettingsScreen() {
               onPress={() => router.push("/terms")}
               colors={colors}
             />
+          </View>
+        </View>
+
+        {/* RevenueCat Webhook Section */}
+        <View className="px-4 mb-4">
+          <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
+            Intégration RevenueCat
+          </Text>
+          <View
+            className="p-4 rounded-2xl"
+            style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+          >
+            <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 6, letterSpacing: 0.5 }}>URL WEBHOOK (RevenueCat Dashboard)</Text>
+            <View style={{ backgroundColor: colors.background, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: colors.border }}>
+              <Text
+                selectable
+                style={{ fontSize: 11, color: colors.primary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 18 }}
+              >
+                https://ecrinapp-cir7qz3c.manus.space/api/webhooks/revenuecat
+              </Text>
+            </View>
+            <Text style={{ fontSize: 10, color: colors.muted, marginTop: 8, lineHeight: 15 }}>
+              Copiez cette URL dans RevenueCat → Project Settings → Integrations → Webhooks pour synchroniser les achats avec le serveur.
+            </Text>
           </View>
         </View>
 
