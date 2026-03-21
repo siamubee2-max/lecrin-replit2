@@ -912,3 +912,6 @@
 - [x] Ajouter entitlement yearly_access dans syncSubscription et webhook
 - [x] Notification push 3 jours avant expiration abonnement
 - [x] Écran "Bienvenue de retour" après reconnexion avec historique
+- [x] Configurer entitlement yearly_access dans RevenueCat (associer à ecrin.premium.yearly)
+- [x] Filtre par catégorie dans l'historique des essayages (chips horizontaux)
+- [x] Badge compteur d'essayages restants sur l'onglet essayage

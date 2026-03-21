@@ -5,6 +5,7 @@ import { Platform, View, StyleSheet } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { TryOnTabIcon } from "@/components/TryOnTabIcon";
 
 export default function TabLayout() {
   const colors = useColors();
@@ -48,9 +49,7 @@ export default function TabLayout() {
         options={{
           title: "Essayer",
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? [styles.activeIconBg, { backgroundColor: colors.primary + "20" }] : null}>
-              <IconSymbol size={24} name="wand.and.stars" color={color} />
-            </View>
+            <TryOnTabIcon color={color} focused={focused} />
           ),
         }}
       />

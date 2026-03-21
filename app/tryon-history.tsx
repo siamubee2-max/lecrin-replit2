@@ -11,6 +11,7 @@ import {
   Share,
   Platform,
   Animated,
+  ScrollView as HScrollView,
 } from "react-native";
 import { useEffect, useState, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -25,6 +26,23 @@ import type { TryOnHistoryEntry } from "@/app/(tabs)/tryon";
 
 const HISTORY_KEY = "tryon_history";
 const MAX_DISPLAY = 20;
+
+const ALL_CATEGORIES = ["all", "jewelry", "clothing", "shoes", "accessories"] as const;
+type FilterCategory = typeof ALL_CATEGORIES[number];
+const FILTER_LABELS: Record<FilterCategory, string> = {
+  all: "Tous",
+  jewelry: "Bijoux",
+  clothing: "Vêtements",
+  shoes: "Chaussures",
+  accessories: "Accessoires",
+};
+const FILTER_EMOJIS: Record<FilterCategory, string> = {
+  all: "✨",
+  jewelry: "💎",
+  clothing: "👗",
+  shoes: "👠",
+  accessories: "✨",
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
   jewelry: "Bijoux",
@@ -63,6 +81,7 @@ export default function TryOnHistoryScreen() {
   const [history, setHistory] = useState<TryOnHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<TryOnHistoryEntry | null>(null);
+  const [activeFilter, setActiveFilter] = useState<FilterCategory>("all");
   // Référence pour fermer les swipeables ouverts
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
 
@@ -82,6 +101,11 @@ export default function TryOnHistoryScreen() {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  // Historique filtré selon la catégorie active
+  const filteredHistory = activeFilter === "all"
+    ? history
+    : history.filter((e) => e.category === activeFilter);
 
   // ─── Suppression individuelle ─────────────────────────────────────────────────
   const handleDeleteEntry = useCallback(async (id: string, confirm = true) => {
@@ -271,23 +295,84 @@ export default function TryOnHistoryScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <FlatList
-            data={history}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            ListHeaderComponent={
-              <View style={styles.listHeaderRow}>
-                <Text style={[styles.listHeader, { color: colors.muted }]}>
-                  {history.length} essayage{history.length > 1 ? "s" : ""} récent{history.length > 1 ? "s" : ""}
-                </Text>
-                <Text style={[styles.listHint, { color: colors.muted }]}>
-                  ← Glisser pour supprimer
-                </Text>
-              </View>
-            }
-          />
+          <>
+            {/* Chips de filtre par catégorie */}
+            <HScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRow}
+            >
+              {ALL_CATEGORIES.map((cat) => {
+                const isActive = activeFilter === cat;
+                const count = cat === "all" ? history.length : history.filter((e) => e.category === cat).length;
+                if (cat !== "all" && count === 0) return null;
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setActiveFilter(cat);
+                    }}
+                    style={[
+                      styles.filterChip,
+                      isActive
+                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                        : { backgroundColor: colors.surface, borderColor: colors.border },
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.filterChipEmoji}>{FILTER_EMOJIS[cat]}</Text>
+                    <Text style={[
+                      styles.filterChipLabel,
+                      { color: isActive ? "#0A1A3B" : colors.foreground },
+                    ]}>
+                      {FILTER_LABELS[cat]}
+                    </Text>
+                    {count > 0 && (
+                      <View style={[
+                        styles.filterBadge,
+                        { backgroundColor: isActive ? "rgba(10,26,59,0.2)" : colors.primary + "20" },
+                      ]}>
+                        <Text style={[
+                          styles.filterBadgeText,
+                          { color: isActive ? "#0A1A3B" : colors.primary },
+                        ]}>{count}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </HScrollView>
+
+            <FlatList
+              data={filteredHistory}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListHeaderComponent={
+                <View style={styles.listHeaderRow}>
+                  <Text style={[styles.listHeader, { color: colors.muted }]}>
+                    {filteredHistory.length} essayage{filteredHistory.length > 1 ? "s" : ""}{activeFilter !== "all" ? ` · ${FILTER_LABELS[activeFilter]}` : " récent" + (filteredHistory.length > 1 ? "s" : "")}
+                  </Text>
+                  <Text style={[styles.listHint, { color: colors.muted }]}>
+                    ← Glisser pour supprimer
+                  </Text>
+                </View>
+              }
+              ListEmptyComponent={
+                <View style={styles.center}>
+                  <Text style={{ fontSize: 36, marginBottom: 12 }}>{FILTER_EMOJIS[activeFilter]}</Text>
+                  <Text style={[styles.emptyTitle, { color: colors.foreground, fontSize: 16 }]}>
+                    Aucun essayage {FILTER_LABELS[activeFilter].toLowerCase()}
+                  </Text>
+                  <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
+                    Essayez un(e) {FILTER_LABELS[activeFilter].toLowerCase()} pour qu’il apparaisse ici.
+                  </Text>
+                </View>
+              }
+            />
+          </>
         )}
 
         {/* Modal détail */}
@@ -539,4 +624,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalShareCtaText: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 1 },
+  // Filtre catégorie
+  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: "row" },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterChipEmoji: { fontSize: 13 },
+  filterChipLabel: { fontSize: 12, fontWeight: "600" },
+  filterBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: { fontSize: 10, fontWeight: "700" },
 });
