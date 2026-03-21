@@ -864,3 +864,8 @@
 ## Communauté v2
 - [ ] Onglet Tendances avec tri par partages décroissants + badge rang
 - [x] Notifications in-app pour seuils de partages (10 et 50)
+
+## Communauté v3
+- [x] Filtre période (Cette semaine / Ce mois) dans onglet Tendances
+- [x] Écran profil utilisateur accessible depuis les posts (avatar tap)
+- [x] Système de Défis look hebdomadaires dans la Communauté
