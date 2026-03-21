@@ -21,6 +21,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
+import { SnapshotEditor, SnapshotPreview, type SnapshotConfig } from "@/components/community/SnapshotEditor";
 
 // Demo community posts with real Moniattitude jewelry images
 const CDN = "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK";
@@ -121,6 +122,12 @@ export default function CommunityScreen() {
   const [newImage, setNewImage] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [showSnapshot, setShowSnapshot] = useState(false);
+  const [snapshotConfig, setSnapshotConfig] = useState<SnapshotConfig>({
+    frame: "none",
+    effect: "none",
+    decor: "none",
+  });
   const { user } = useAuth();
 
   // Load posts from server
@@ -309,10 +316,10 @@ export default function CommunityScreen() {
           </View>
 
           <ScrollView className="flex-1 px-4 py-4">
-            {/* Image picker */}
+            {/* Image picker + bouton Snapshot */}
             <TouchableOpacity
               onPress={handlePickImage}
-              className="w-full aspect-square rounded-2xl overflow-hidden mb-4 items-center justify-center"
+              className="w-full aspect-square rounded-2xl overflow-hidden mb-3 items-center justify-center"
               style={{
                 backgroundColor: colors.surface,
                 borderWidth: 2,
@@ -321,11 +328,20 @@ export default function CommunityScreen() {
               }}
             >
               {newImage ? (
-                <Image
-                  source={{ uri: newImage }}
-                  style={{ width: "100%", height: "100%" }}
-                  contentFit="cover"
-                />
+                snapshotConfig.frame !== "none" || snapshotConfig.effect !== "none" || snapshotConfig.decor !== "none" ? (
+                  <SnapshotPreview
+                    imageUri={newImage}
+                    config={snapshotConfig}
+                    size={300}
+                    colors={colors}
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: newImage }}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="cover"
+                  />
+                )
               ) : (
                 <View className="items-center gap-3">
                   <View
@@ -338,6 +354,33 @@ export default function CommunityScreen() {
                 </View>
               )}
             </TouchableOpacity>
+
+            {/* Bouton mode Snapshot */}
+            {newImage && (
+              <TouchableOpacity
+                onPress={() => setShowSnapshot(true)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: colors.primary,
+                  marginBottom: 12,
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>📷</Text>
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700", letterSpacing: 1 }}>
+                  MODE SNAPSHOT
+                </Text>
+                {(snapshotConfig.frame !== "none" || snapshotConfig.effect !== "none" || snapshotConfig.decor !== "none") && (
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />
+                )}
+              </TouchableOpacity>
+            )}
 
             {/* Caption */}
             <TextInput
@@ -358,6 +401,74 @@ export default function CommunityScreen() {
                 textAlignVertical: "top",
               }}
             />
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ── Modal Snapshot ── */}
+      <Modal
+        visible={showSnapshot}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSnapshot(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 20,
+              paddingVertical: 16,
+              paddingTop: 56,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
+            }}
+          >
+            <TouchableOpacity onPress={() => setShowSnapshot(false)}>
+              <Text style={{ color: colors.muted, fontSize: 14 }}>Annuler</Text>
+            </TouchableOpacity>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", letterSpacing: 1.5 }}>
+              📷 MODE SNAPSHOT
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                setShowSnapshot(false);
+              }}
+            >
+              <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "700" }}>Appliquer</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Éditeur Snapshot */}
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 20, gap: 16 }}>
+            {newImage ? (
+              <SnapshotEditor
+                imageUri={newImage}
+                config={snapshotConfig}
+                onChange={setSnapshotConfig}
+                previewSize={280}
+              />
+            ) : null}
+
+            {/* Bouton reset */}
+            {(snapshotConfig.frame !== "none" || snapshotConfig.effect !== "none" || snapshotConfig.decor !== "none") && (
+              <TouchableOpacity
+                onPress={() => setSnapshotConfig({ frame: "none", effect: "none", decor: "none" })}
+                style={{
+                  marginHorizontal: 20,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.muted, fontSize: 12, letterSpacing: 0.5 }}>Réinitialiser</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       </Modal>

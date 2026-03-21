@@ -834,3 +834,10 @@
 - [x] OutfitBuilder : ajouter slots dédiés ceinture, lunettes, lunettes de soleil
 - [x] OutfitBuilder : mettre à jour la route serveur outfit avec tous les nouveaux slots
 - [x] OutfitBuilder : corriger modal galerie (FlatList → ScrollView)
+
+## Mode Snapshot Communauté
+- [x] Créer le composant SnapshotEditor avec cadres stylisés (Polaroid, Magazine, Carte postale, Luxe, Minimal)
+- [x] Ajouter les effets photo subtils (Original, Grain argentique, Lumière dorée, N&B chic, Rosé)
+- [x] Ajouter les décors interchangeables (Studio, Rue parisienne, Jardin, Intérieur chic, Plage)
+- [x] Intégrer le bouton Snapshot dans la modal de création de post
+- [ ] Permettre la capture ViewShot du résultat Snapshot avant publication
