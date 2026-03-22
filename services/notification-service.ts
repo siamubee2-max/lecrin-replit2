@@ -401,3 +401,39 @@ export async function cancelSubscriptionExpiryReminder(): Promise<void> {
     }
   } catch {}
 }
+
+const WELCOME_NOTIF_KEY = "welcome_notif_scheduled";
+
+/**
+ * Schedule a welcome notification 24h after first registration.
+ * Only fires once — skipped if already scheduled.
+ */
+export async function scheduleWelcomeNotification(): Promise<void> {
+  if (Platform.OS === "web") return;
+  try {
+    const alreadyScheduled = await AsyncStorage.getItem(WELCOME_NOTIF_KEY);
+    if (alreadyScheduled) return;
+
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) return;
+
+    const triggerDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // J+1
+
+    const notifId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "✨ Prêt(e) pour votre premier essayage ?",
+        body: "Importez un bijou ou choisissez un modèle et visualisez le résultat en quelques secondes.",
+        data: { type: "welcome", screen: "tryon" },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+      },
+    });
+
+    await AsyncStorage.setItem(WELCOME_NOTIF_KEY, notifId);
+    console.log(`[Notifications] Welcome notification scheduled for ${triggerDate.toISOString()}`);
+  } catch (err) {
+    console.warn("[Notifications] Failed to schedule welcome notification:", err);
+  }
+}

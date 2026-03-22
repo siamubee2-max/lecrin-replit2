@@ -1,5 +1,5 @@
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator } from "react-native";
-import { useState } from "react";
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator, TextInput, Modal } from "react-native";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -8,6 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useFavorites, FavoriteTryOn } from "@/lib/favorites-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n-context";
 import { StylePreferencesTab } from "@/components/profile/StylePreferencesTab";
@@ -24,6 +25,36 @@ export default function ProfileScreen() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>("favorites");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem("profile_display_name").then((saved) => {
+      if (saved) setDisplayName(saved);
+    });
+  }, []);
+
+  const handleEditName = () => {
+    setEditedName(displayName || user?.name || "");
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!editedName.trim()) return;
+    setIsSavingName(true);
+    try {
+      await AsyncStorage.setItem("profile_display_name", editedName.trim());
+      setDisplayName(editedName.trim());
+      setIsEditingName(false);
+      Alert.alert("Profil mis à jour", `Prénom modifié en "${editedName.trim()}".`);
+    } catch {
+      Alert.alert("Erreur", "Impossible de sauvegarder le prénom.");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const handleRemoveFavorite = (id: string) => {
     if (Platform.OS !== "web") {
@@ -192,9 +223,14 @@ export default function ProfileScreen() {
           
           {isAuthenticated ? (
             <>
-              <Text className="text-2xl font-bold text-foreground">
-                {user?.name || "Utilisateur"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text className="text-2xl font-bold text-foreground">
+                  {displayName || user?.name || "Utilisateur"}
+                </Text>
+                <TouchableOpacity onPress={handleEditName} activeOpacity={0.7}>
+                  <IconSymbol name="pencil" size={16} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
               <Text className="text-base text-muted mt-1">{user?.email}</Text>
               
               {/* Cloud Sync Badge */}
@@ -432,6 +468,59 @@ export default function ProfileScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Modal édition prénom */}
+      <Modal
+        visible={isEditingName}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEditingName(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 24, width: "100%", gap: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, letterSpacing: 0.5 }}>Modifier le prénom</Text>
+            <TextInput
+              value={editedName}
+              onChangeText={setEditedName}
+              placeholder="Votre prénom"
+              placeholderTextColor={colors.muted}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 10,
+                padding: 12,
+                fontSize: 16,
+                color: colors.foreground,
+                backgroundColor: colors.background,
+              }}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleSaveName}
+            />
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setIsEditingName(false)}
+                style={{ flex: 1, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: "center" }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: colors.muted, fontWeight: "600" }}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveName}
+                disabled={isSavingName || !editedName.trim()}
+                style={{ flex: 1, padding: 14, borderRadius: 10, backgroundColor: colors.primary, alignItems: "center", opacity: isSavingName || !editedName.trim() ? 0.6 : 1 }}
+                activeOpacity={0.8}
+              >
+                {isSavingName ? (
+                  <ActivityIndicator size="small" color="#0A1A3B" />
+                ) : (
+                  <Text style={{ color: "#0A1A3B", fontWeight: "700" }}>Enregistrer</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
