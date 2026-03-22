@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   Text,
@@ -17,6 +17,10 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { TryOnHistoryEntry } from "@/app/(tabs)/tryon";
+
+const HISTORY_KEY = "tryon_history";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -33,6 +37,18 @@ export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
+  const [recentTryOns, setRecentTryOns] = useState<TryOnHistoryEntry[]>([]);
+
+  useEffect(() => {
+    AsyncStorage.getItem(HISTORY_KEY).then((raw) => {
+      if (raw) {
+        try {
+          const all: TryOnHistoryEntry[] = JSON.parse(raw);
+          setRecentTryOns(all.slice(0, 3));
+        } catch {}
+      }
+    });
+  }, []);
 
   const handleStartTryOn = () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -189,6 +205,57 @@ export default function HomeScreen() {
             <Text style={[styles.galleryMoreText, { color: colors.primary }]}>Voir{"\n"}tout</Text>
           </TouchableOpacity>
         </ScrollView>
+
+        {/* ── Essayages récents ─────────────────────────────────────────── */}
+        {recentTryOns.length > 0 && (
+          <View style={styles.recentSection}>
+            <View style={styles.recentHeader}>
+              <Text style={[styles.recentTitle, { color: colors.foreground }]}>MES ESSAYAGES RÉCENTS</Text>
+              <TouchableOpacity onPress={() => router.push("/tryon-history")} activeOpacity={0.7}>
+                <Text style={[styles.recentSeeAll, { color: colors.primary }]}>Voir tout →</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recentRow}
+            >
+              {recentTryOns.map((entry, idx) => (
+                <TouchableOpacity
+                  key={entry.id}
+                  onPress={() => router.push("/tryon-history")}
+                  style={[styles.recentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  activeOpacity={0.85}
+                >
+                  <Image
+                    source={{ uri: entry.resultImageUrl }}
+                    style={styles.recentImg}
+                    contentFit="cover"
+                  />
+                  <View style={styles.recentOverlay}>
+                    <Text style={styles.recentItemName} numberOfLines={1}>{entry.itemName}</Text>
+                    <Text style={[styles.recentDate, { color: colors.primary }]}>
+                      {new Date(entry.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </Text>
+                  </View>
+                  {idx === 0 && (
+                    <View style={[styles.recentBadge, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.recentBadgeText}>DERNIER</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                onPress={handleStartTryOn}
+                style={[styles.recentCardNew, { backgroundColor: colors.foreground }]}
+                activeOpacity={0.85}
+              >
+                <IconSymbol name="wand.and.stars" size={24} color={colors.primary} />
+                <Text style={[styles.recentNewText, { color: colors.primary }]}>Nouvel{"\n"}essayage</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── Footer ───────────────────────────────────────────────────── */}
         <View style={styles.footer}>
@@ -475,5 +542,91 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "300",
     letterSpacing: 2,
+  },
+
+  // Essayages récents
+  recentSection: {
+    marginTop: 28,
+    marginBottom: 8,
+  },
+  recentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  recentTitle: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 2.5,
+  },
+  recentSeeAll: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
+  recentRow: {
+    paddingHorizontal: 16,
+    gap: 10,
+    paddingBottom: 4,
+  },
+  recentCard: {
+    width: 120,
+    height: 160,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 0.5,
+  },
+  recentImg: {
+    width: "100%",
+    height: "100%",
+  },
+  recentOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    padding: 8,
+  },
+  recentItemName: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  recentDate: {
+    fontSize: 9,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  recentBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  recentBadgeText: {
+    color: "#0A1A3B",
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  recentCardNew: {
+    width: 90,
+    height: 160,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  recentNewText: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textAlign: "center",
   },
 });

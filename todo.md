@@ -915,3 +915,6 @@
 - [x] Configurer entitlement yearly_access dans RevenueCat (associer à ecrin.premium.yearly)
 - [x] Filtre par catégorie dans l'historique des essayages (chips horizontaux)
 - [x] Badge compteur d'essayages restants sur l'onglet essayage
+- [x] Écran Mon profil (prénom, avatar, préférences de style)
+- [x] Notification push de bienvenue à J+1 après inscription
+- [x] Widget Essayages récents sur l'écran d'accueil (3 dernières miniatures)
