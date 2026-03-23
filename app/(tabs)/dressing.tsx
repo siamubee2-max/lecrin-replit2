@@ -18,6 +18,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
@@ -374,17 +375,16 @@ export default function DressingScreen() {
               { backgroundColor: colors.background },
             ]}
           >
-            {item.imageUrl ? (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.cardImage}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={styles.cardImagePlaceholder}>
-                <Text style={styles.cardEmoji}>{currentSection.emoji}</Text>
-              </View>
-            )}
+            <ImageWithFallback
+              source={item.imageUrl ? { uri: item.imageUrl } : null}
+              style={styles.cardImage}
+              contentFit="cover"
+              fallbackContent={
+                <View style={styles.cardImagePlaceholder}>
+                  <Text style={styles.cardEmoji}>{currentSection.emoji}</Text>
+                </View>
+              }
+            />
             {/* Favorite */}
             <TouchableOpacity
               style={styles.favBtn}

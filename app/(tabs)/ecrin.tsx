@@ -8,6 +8,7 @@ import { router } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
@@ -413,7 +414,7 @@ export default function EcrinScreen() {
                     key={item.id}
                     className="w-[48%] bg-surface rounded-xl overflow-hidden border border-border mb-4"
                   >
-                    <Image
+                    <ImageWithFallback
                       source={item.image}
                       style={{ width: "100%", height: 150 }}
                       contentFit="cover"
@@ -603,15 +604,11 @@ function JewelryCard({
         onPress={onTryOn}
         activeOpacity={0.85}
       >
-        {item.image ? (
-          <Image
-            source={typeof item.image === "string" ? { uri: item.image } : item.image}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-        ) : (
-          <IconSymbol name="diamond.fill" size={32} color={colors.border} />
-        )}
+        <ImageWithFallback
+          source={typeof item.image === "string" ? { uri: item.image } : item.image}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
+        />
         {/* Favori */}
         <TouchableOpacity
           onPress={onToggleFavorite}

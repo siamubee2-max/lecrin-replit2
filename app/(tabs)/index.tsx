@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -184,7 +185,7 @@ export default function HomeScreen() {
               style={[styles.galleryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               activeOpacity={0.85}
             >
-              <Image
+              <ImageWithFallback
                 source={{ uri: item.uri }}
                 style={styles.galleryImg}
                 contentFit="cover"
@@ -227,7 +228,7 @@ export default function HomeScreen() {
                   style={[styles.recentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   activeOpacity={0.85}
                 >
-                  <Image
+                  <ImageWithFallback
                     source={{ uri: entry.resultImageUrl }}
                     style={styles.recentImg}
                     contentFit="cover"

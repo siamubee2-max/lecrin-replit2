@@ -49,7 +49,7 @@ interface PartnerJewelry {
   description: string | null;
   priceInCents: number | null;
   currency: string | null;
-  imageUrl: string | number | { uri: string } | null;
+  imageUrl: string | { uri: string } | null;
   productUrl: string | null;
   metalType: MetalType | null;
   gemType: GemType | null;
@@ -544,7 +544,8 @@ function JewelryCard({
 }) {
   const colors = useColors();
   const tags = parseTags(jewelry.tags);
-  
+  const [imgError, setImgError] = useState(false);
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -553,14 +554,15 @@ function JewelryCard({
     >
       {/* Image */}
       <View style={{ position: "relative" }}>
-        {jewelry.imageUrl ? (
+        {jewelry.imageUrl && !imgError ? (
           <Image
-            source={typeof jewelry.imageUrl === 'string' ? { uri: jewelry.imageUrl } : jewelry.imageUrl}
+            source={jewelry.imageUrl}
             style={{ width: "100%", height: 180 }}
             contentFit="cover"
+            onError={() => setImgError(true)}
           />
         ) : (
-          <View 
+          <View
             className="items-center justify-center"
             style={{ width: "100%", height: 180, backgroundColor: colors.border }}
           >
@@ -732,8 +734,9 @@ export default function BoutiqueScreen() {
     imageUrl: (() => {
       const raw = (j as { imageUrl?: string | { uri: string } }).imageUrl;
       if (!raw) return null;
+      if (typeof raw === 'string') return { uri: raw };
       if (typeof raw === 'object' && 'uri' in raw) return raw;
-      return { uri: raw as string };
+      return null;
     })(),
     productUrl: (j as { productUrl?: string }).productUrl ?? null,
     metalType: (j as { metalType?: MetalType }).metalType ?? null,
@@ -837,7 +840,7 @@ export default function BoutiqueScreen() {
         partnerJewelryId: jewelry.id,
         partnerJewelryName: jewelry.name,
         partnerJewelryType: jewelry.type,
-        partnerJewelryImage: typeof jewelry.imageUrl === 'object' && jewelry.imageUrl !== null && 'uri' in jewelry.imageUrl ? jewelry.imageUrl.uri : (jewelry.imageUrl as string) || "",
+        partnerJewelryImage: jewelry.imageUrl && typeof jewelry.imageUrl === 'object' && 'uri' in jewelry.imageUrl ? jewelry.imageUrl.uri : (typeof jewelry.imageUrl === 'string' ? jewelry.imageUrl : ""),
       },
     });
   }, [router]);
@@ -1019,7 +1022,7 @@ export default function BoutiqueScreen() {
               {/* Image */}
               {selectedJewelry.imageUrl && (
                 <Image
-                  source={typeof selectedJewelry.imageUrl === 'string' ? { uri: selectedJewelry.imageUrl } : selectedJewelry.imageUrl}
+                  source={selectedJewelry.imageUrl}
                   style={{ width: "100%", height: 300 }}
                   contentFit="cover"
                 />
