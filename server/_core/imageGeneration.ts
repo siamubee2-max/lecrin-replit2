@@ -53,7 +53,11 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
     },
     body: JSON.stringify({
       prompt: options.prompt,
-      original_images: options.originalImages || [],
+      original_images: (options.originalImages || []).map((img) => ({
+        url: img.url,
+        b64_json: img.b64Json,
+        mime_type: img.mimeType,
+      })),
     }),
   });
 
@@ -64,17 +68,35 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
     );
   }
 
-  const result = (await response.json()) as {
-    image: {
-      b64Json: string;
-      mimeType: string;
-    };
-  };
-  const base64Data = result.image.b64Json;
+  // Parse JSON safely — the API may return non-JSON on some edge cases
+  const responseText = await response.text();
+  let result: Record<string, unknown>;
+  try {
+    result = JSON.parse(responseText);
+  } catch {
+    throw new Error(
+      `Image generation returned invalid JSON (status ${response.status}): ${responseText.slice(0, 200)}`,
+    );
+  }
+
+  const image = result.image as Record<string, string> | undefined;
+  if (!image) {
+    throw new Error(
+      `Image generation returned unexpected format: ${JSON.stringify(result).slice(0, 200)}`,
+    );
+  }
+  // Handle both camelCase (b64Json) and snake_case (b64_json) field names
+  const base64Data = image.b64Json || image.b64_json;
+  const imageMimeType = image.mimeType || image.mime_type || "image/png";
+  if (!base64Data) {
+    throw new Error(
+      `Image generation returned no image data: ${JSON.stringify(result).slice(0, 200)}`,
+    );
+  }
   const buffer = Buffer.from(base64Data, "base64");
 
   // Save to S3
-  const { url } = await storagePut(`generated/${Date.now()}.png`, buffer, result.image.mimeType);
+  const { url } = await storagePut(`generated/${Date.now()}.png`, buffer, imageMimeType);
   return {
     url,
   };

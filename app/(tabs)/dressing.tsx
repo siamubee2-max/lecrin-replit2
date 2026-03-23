@@ -149,7 +149,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "accessories",
     brand: "Moni'attitude",
     color: "gold",
-    imageUrl: null,
+    imageUrl:
+      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/jGuXuEkhGyksTrjf.png",
     isFavorite: false,
     isDemo: true,
   },
@@ -160,7 +161,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "shoes",
     brand: "Jonak",
     color: "beige",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_sandals_nude-A8rHiR6HNekahFBBff3Anu.png",
     isFavorite: true,
     isDemo: true,
   },
@@ -170,7 +172,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "shoes",
     brand: "Nike",
     color: "white",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_sneakers_white-TcUCe77Tti8vbH2Tg2aasU.png",
     isFavorite: false,
     isDemo: true,
   },
@@ -180,7 +183,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "shoes",
     brand: "Sandro",
     color: "black",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_boots_black-h7zsKaSzi9qv5jNSQAHbHy.png",
     isFavorite: true,
     isDemo: true,
   },
@@ -191,7 +195,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "tops",
     brand: "Sandro",
     color: "beige",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_blouse_ivory-FqFvVqikVUAH8cJaGp8y2Q.png",
     isFavorite: true,
     isDemo: true,
   },
@@ -201,7 +206,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "bottoms",
     brand: "Maje",
     color: "navy",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_pants_navy-mtvRm4h698yNo9YWgMgVkq.png",
     isFavorite: false,
     isDemo: true,
   },
@@ -211,7 +217,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "dresses",
     brand: "Ba&sh",
     color: "black",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_dress_black-C4XiYtX54R2EZijznwBAsb.png",
     isFavorite: true,
     isDemo: true,
   },
@@ -221,7 +228,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "outerwear",
     brand: "The Kooples",
     color: "beige",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_blazer_camel-auFvdrjD8tJ3RwphvuczjX.png",
     isFavorite: false,
     isDemo: true,
   },
@@ -232,7 +240,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "bags",
     brand: "Polène",
     color: "brown",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_bag_black-gMLsmwChKXggLLiGyaLkMb.png",
     isFavorite: true,
     isDemo: true,
   },
@@ -242,7 +251,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "other",
     brand: "Zara",
     color: "gold",
-    imageUrl: null,
+    imageUrl:
+      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_belt_gold-Dk95mij6htDppq7nu96YMr.png",
     isFavorite: false,
     isDemo: true,
   },

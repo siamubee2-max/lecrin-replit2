@@ -729,7 +729,12 @@ export default function BoutiqueScreen() {
     description: j.description ?? null,
     priceInCents: (j as { priceInCents?: number }).priceInCents ?? null,
     currency: (j as { currency?: string }).currency ?? null,
-    imageUrl: (j as { imageUrl?: string }).imageUrl ? { uri: (j as { imageUrl: string }).imageUrl } : null,
+    imageUrl: (() => {
+      const raw = (j as { imageUrl?: string | { uri: string } }).imageUrl;
+      if (!raw) return null;
+      if (typeof raw === 'object' && 'uri' in raw) return raw;
+      return { uri: raw as string };
+    })(),
     productUrl: (j as { productUrl?: string }).productUrl ?? null,
     metalType: (j as { metalType?: MetalType }).metalType ?? null,
     gemType: (j as { gemType?: GemType }).gemType ?? null,
