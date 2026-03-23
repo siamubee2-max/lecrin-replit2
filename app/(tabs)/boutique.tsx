@@ -479,7 +479,7 @@ const boutiqueStyles = StyleSheet.create({
 // Brand Card Component
 function BrandCard({ brand, onPress }: { brand: PartnerBrand; onPress: () => void }) {
   const colors = useColors();
-  
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -501,15 +501,15 @@ function BrandCard({ brand, onPress }: { brand: PartnerBrand; onPress: () => voi
           </View>
         )}
       </View>
-      
+
       <Text style={[boutiqueStyles.brandName, { color: colors.foreground }]} numberOfLines={1}>
         {brand.name}
       </Text>
-      
+
       <Text style={[boutiqueStyles.brandDesc, { color: colors.muted }]} numberOfLines={2}>
         {brand.specialty || brand.description}
       </Text>
-      
+
       <TouchableOpacity
         onPress={() => {
           if (brand.websiteUrl) {
@@ -527,15 +527,15 @@ function BrandCard({ brand, onPress }: { brand: PartnerBrand; onPress: () => voi
 }
 
 // Jewelry Card Component
-function JewelryCard({ 
-  jewelry, 
+function JewelryCard({
+  jewelry,
   brand,
   isFavorite,
-  onPress, 
+  onPress,
   onFavoriteToggle,
   onTryOn,
-}: { 
-  jewelry: PartnerJewelry; 
+}: {
+  jewelry: PartnerJewelry;
   brand: PartnerBrand | undefined;
   isFavorite: boolean;
   onPress: () => void;
@@ -544,7 +544,7 @@ function JewelryCard({
 }) {
   const colors = useColors();
   const tags = parseTags(jewelry.tags);
-  
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -560,14 +560,14 @@ function JewelryCard({
             contentFit="cover"
           />
         ) : (
-          <View 
+          <View
             className="items-center justify-center"
             style={{ width: "100%", height: 180, backgroundColor: colors.border }}
           >
             <IconSymbol name="diamond.fill" size={48} color={colors.muted} />
           </View>
         )}
-        
+
         {/* Favorite button */}
         <TouchableOpacity
           onPress={(e) => {
@@ -577,14 +577,14 @@ function JewelryCard({
           style={boutiqueStyles.cardFavBtn}
           activeOpacity={0.7}
         >
-          <IconSymbol 
-            name={isFavorite ? "heart.fill" : "heart"} 
-            size={16} 
-            color={isFavorite ? "#C9A96E" : "#fff"} 
+          <IconSymbol
+            name={isFavorite ? "heart.fill" : "heart"}
+            size={16}
+            color={isFavorite ? "#C9A96E" : "#fff"}
           />
         </TouchableOpacity>
       </View>
-      
+
       {/* Content */}
       <View style={boutiqueStyles.cardContent}>
         <Text style={[boutiqueStyles.cardName, { color: colors.foreground }]} numberOfLines={2}>
@@ -611,12 +611,12 @@ function JewelryCard({
 }
 
 // Filter Dropdown Component
-function FilterDropdown({ 
-  label, 
-  value, 
-  options, 
-  onChange 
-}: { 
+function FilterDropdown({
+  label,
+  value,
+  options,
+  onChange
+}: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
@@ -625,7 +625,7 @@ function FilterDropdown({
   const colors = useColors();
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find(o => o.value === value);
-  
+
   return (
     <View className="relative">
       <TouchableOpacity
@@ -638,7 +638,7 @@ function FilterDropdown({
         </Text>
         <IconSymbol name="chevron.down" size={16} color={colors.muted} />
       </TouchableOpacity>
-      
+
       {isOpen && (
         <Modal
           visible={isOpen}
@@ -646,7 +646,7 @@ function FilterDropdown({
           animationType="fade"
           onRequestClose={() => setIsOpen(false)}
         >
-          <Pressable 
+          <Pressable
             className="flex-1 bg-black/50 justify-center items-center"
             onPress={() => setIsOpen(false)}
           >
@@ -681,7 +681,7 @@ function FilterDropdown({
 export default function BoutiqueScreen() {
   const colors = useColors();
   const router = useRouter();
-  
+
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<JewelryType | "all">("all");
@@ -690,7 +690,7 @@ export default function BoutiqueScreen() {
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
   const [selectedJewelry, setSelectedJewelry] = useState<PartnerJewelry | null>(null);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
-  
+
   // API queries - Supabase via tRPC
   const brandsQuery = trpc.partnerBrands.list.useQuery();
   const jewelryQuery = trpc.partnerJewelry.list.useQuery({
@@ -721,61 +721,67 @@ export default function BoutiqueScreen() {
   }));
 
   // Normalize jewelry to PartnerJewelry type
-  const jewelry: PartnerJewelry[] = rawJewelry.map(j => ({
-    id: j.id,
-    brandId: (j as { brandId?: number }).brandId ?? 1,
-    name: j.name,
-    type: (j.type as JewelryType) ?? "earrings",
-    description: j.description ?? null,
-    priceInCents: (j as { priceInCents?: number }).priceInCents ?? null,
-    currency: (j as { currency?: string }).currency ?? null,
-    imageUrl: (j as { imageUrl?: string }).imageUrl ? { uri: (j as { imageUrl: string }).imageUrl } : null,
-    productUrl: (j as { productUrl?: string }).productUrl ?? null,
-    metalType: (j as { metalType?: MetalType }).metalType ?? null,
-    gemType: (j as { gemType?: GemType }).gemType ?? null,
-    collection: (j as { collection?: string }).collection ?? null,
-    tags: (j as { tags?: string }).tags ?? null,
-    isTryOnEnabled: (j as { isTryOnEnabled?: boolean }).isTryOnEnabled ?? true,
-    tryOnImageUrl: (j as { tryOnImageUrl?: string }).tryOnImageUrl ?? null,
-  }));
-  
+  const jewelry: PartnerJewelry[] = rawJewelry.map(j => {
+    // Handle both camelCase and snake_case field names from database
+    const jAny = j as any;
+    const imageUrlValue = jAny.imageUrl || jAny.image_url || null;
+
+    return {
+      id: j.id,
+      brandId: jAny.brandId ?? jAny.brand_id ?? 1,
+      name: j.name,
+      type: (j.type as JewelryType) ?? "earrings",
+      description: j.description ?? null,
+      priceInCents: jAny.priceInCents ?? jAny.price_in_cents ?? null,
+      currency: jAny.currency ?? null,
+      imageUrl: imageUrlValue ? { uri: imageUrlValue } : null,
+      productUrl: jAny.productUrl ?? jAny.product_url ?? null,
+      metalType: jAny.metalType ?? jAny.metal_type ?? null,
+      gemType: jAny.gemType ?? jAny.gem_type ?? null,
+      collection: jAny.collection ?? null,
+      tags: jAny.tags ?? null,
+      isTryOnEnabled: jAny.isTryOnEnabled ?? jAny.is_try_on_enabled ?? true,
+      tryOnImageUrl: jAny.tryOnImageUrl ?? jAny.try_on_image_url ?? null,
+    };
+  });
+
   // Filter jewelry
   const filteredJewelry = useMemo(() => {
     let filtered = jewelry;
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(j => 
+      filtered = filtered.filter(j =>
         j.name.toLowerCase().includes(query) ||
         j.description?.toLowerCase().includes(query) ||
         parseTags(j.tags).some(t => t.toLowerCase().includes(query))
       );
     }
-    
+
     if (selectedType !== "all") {
       filtered = filtered.filter(j => j.type === selectedType);
     }
-    
+
     if (selectedMetal !== "all") {
       filtered = filtered.filter(j => j.metalType === selectedMetal);
     }
-    
+
     if (selectedGem !== "all") {
       filtered = filtered.filter(j => j.gemType === selectedGem);
     }
-    
+
     if (selectedBrandId) {
       filtered = filtered.filter(j => j.brandId === selectedBrandId);
     }
-    
+
     return filtered;
   }, [jewelry, searchQuery, selectedType, selectedMetal, selectedGem, selectedBrandId]);
-  
+
   // Get brand by ID
   const getBrand = useCallback((brandId: number) => {
     return brands.find(b => b.id === brandId);
   }, [brands]);
-  
+
   // Toggle favorite
   const toggleFavorite = useCallback((jewelryId: number) => {
     if (Platform.OS !== "web") {
@@ -783,7 +789,7 @@ export default function BoutiqueScreen() {
     }
     // Find the jewelry item for tracking
     const jewelry = filteredJewelry.find(j => j.id === jewelryId) || DEMO_JEWELRY.find((j: PartnerJewelry) => j.id === jewelryId);
-    
+
     setFavorites(prev => {
       const next = new Set(prev);
       if (next.has(jewelryId)) {
@@ -812,7 +818,7 @@ export default function BoutiqueScreen() {
       return next;
     });
   }, [filteredJewelry]);
-  
+
   // Handle try-on
   const handleTryOn = useCallback((jewelry: PartnerJewelry) => {
     if (Platform.OS !== "web") {
@@ -836,7 +842,7 @@ export default function BoutiqueScreen() {
       },
     });
   }, [router]);
-  
+
   // Handle visit brand
   const handleVisitBrand = useCallback((brand: PartnerBrand) => {
     if (brand.websiteUrl) {
@@ -849,7 +855,7 @@ export default function BoutiqueScreen() {
       Linking.openURL(brand.websiteUrl);
     }
   }, []);
-  
+
   return (
     <ScreenContainer containerClassName="bg-background">
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -985,7 +991,7 @@ export default function BoutiqueScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-      
+
       {/* Jewelry Detail Modal */}
       <Modal
         visible={selectedJewelry !== null}
@@ -1003,14 +1009,14 @@ export default function BoutiqueScreen() {
                 </TouchableOpacity>
                 <Text className="text-lg font-semibold text-foreground">Détails</Text>
                 <TouchableOpacity onPress={() => toggleFavorite(selectedJewelry.id)}>
-                  <IconSymbol 
-                    name={favorites.has(selectedJewelry.id) ? "heart.fill" : "heart"} 
-                    size={24} 
-                    color={favorites.has(selectedJewelry.id) ? "#EF4444" : colors.foreground} 
+                  <IconSymbol
+                    name={favorites.has(selectedJewelry.id) ? "heart.fill" : "heart"}
+                    size={24}
+                    color={favorites.has(selectedJewelry.id) ? "#EF4444" : colors.foreground}
                   />
                 </TouchableOpacity>
               </View>
-              
+
               {/* Image */}
               {selectedJewelry.imageUrl && (
                 <Image
@@ -1019,27 +1025,27 @@ export default function BoutiqueScreen() {
                   contentFit="cover"
                 />
               )}
-              
+
               {/* Content */}
               <View className="p-4">
                 <Text className="text-xs text-primary font-medium uppercase">
                   {getBrand(selectedJewelry.brandId)?.name || "Marque"}
                 </Text>
-                
+
                 <Text className="text-2xl font-bold text-foreground mt-1">
                   {selectedJewelry.name}
                 </Text>
-                
+
                 <Text className="text-2xl font-bold text-primary mt-2">
                   {formatPrice(selectedJewelry.priceInCents, selectedJewelry.currency)}
                 </Text>
-                
+
                 {selectedJewelry.description && (
                   <Text className="text-base text-muted mt-4 leading-6">
                     {selectedJewelry.description}
                   </Text>
                 )}
-                
+
                 {/* Tags */}
                 {parseTags(selectedJewelry.tags).length > 0 && (
                   <View className="flex-row flex-wrap mt-4 gap-2">
@@ -1050,13 +1056,13 @@ export default function BoutiqueScreen() {
                     ))}
                   </View>
                 )}
-                
+
                 {/* Details */}
                 <View className="mt-6 bg-surface rounded-xl p-4">
                   <Text className="text-base font-semibold text-foreground mb-3">
                     Caractéristiques
                   </Text>
-                  
+
                   {selectedJewelry.metalType && (
                     <View className="flex-row justify-between py-2 border-b border-border">
                       <Text className="text-sm text-muted">Matériau</Text>
@@ -1065,7 +1071,7 @@ export default function BoutiqueScreen() {
                       </Text>
                     </View>
                   )}
-                  
+
                   {selectedJewelry.gemType && selectedJewelry.gemType !== "none" && (
                     <View className="flex-row justify-between py-2 border-b border-border">
                       <Text className="text-sm text-muted">Pierre</Text>
@@ -1074,7 +1080,7 @@ export default function BoutiqueScreen() {
                       </Text>
                     </View>
                   )}
-                  
+
                   {selectedJewelry.collection && (
                     <View className="flex-row justify-between py-2">
                       <Text className="text-sm text-muted">Collection</Text>
@@ -1086,7 +1092,7 @@ export default function BoutiqueScreen() {
                 </View>
               </View>
             </ScrollView>
-            
+
             {/* Bottom Actions */}
             <View className="p-4 border-t border-border bg-background">
               <View className="flex-row gap-3">
@@ -1105,7 +1111,7 @@ export default function BoutiqueScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                
+
                 <TouchableOpacity
                   onPress={() => {
                     const brand = getBrand(selectedJewelry.brandId);

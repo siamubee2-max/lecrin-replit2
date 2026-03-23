@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  Alert,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
@@ -44,6 +45,12 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error("[Login] Error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
+      Alert.alert(
+        "Erreur de connexion",
+        errorMessage,
+        [{ text: "OK", style: "default" }]
+      );
     } finally {
       setIsLoading(false);
     }

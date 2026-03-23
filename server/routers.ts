@@ -2,7 +2,7 @@ import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
 import { storagePut } from "./storage";
@@ -11,7 +11,7 @@ import { generateLookSuggestions, generateStylingTips, analyzeColorHarmony } fro
 
 export const appRouter = router({
   system: systemRouter,
-  
+
   // ============================================
   // AUTH ROUTES
   // ============================================
@@ -223,7 +223,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const creator = await db.getCreatorById(input.id);
         if (!creator) return null;
-        
+
         const jewelry = await db.getCreatorJewelry(input.id);
         return { ...creator, jewelry };
       }),
@@ -245,16 +245,16 @@ export const appRouter = router({
 
     // Get body parts by type (supports all types)
     byType: publicProcedure
-      .input(z.object({ 
+      .input(z.object({
         type: z.enum([
-          "face", "neck", "bust_with_hands", 
+          "face", "neck", "bust_with_hands",
           "left_ear_profile", "right_ear_profile",
-          "left_wrist", "right_wrist", 
+          "left_wrist", "right_wrist",
           "left_hand", "right_hand",
-          "left_ankle", "right_ankle", 
+          "left_ankle", "right_ankle",
           "full_body",
           "earrings", "ring", "wrist", "foot", "full"
-        ]) 
+        ])
       }))
       .query(async ({ input }) => {
         return db.getBodyPartsByType(input.type);
@@ -270,11 +270,11 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().min(1).max(255),
         type: z.enum([
-          "face", "neck", "bust_with_hands", 
+          "face", "neck", "bust_with_hands",
           "left_ear_profile", "right_ear_profile",
-          "left_wrist", "right_wrist", 
+          "left_wrist", "right_wrist",
           "left_hand", "right_hand",
-          "left_ankle", "right_ankle", 
+          "left_ankle", "right_ankle",
           "full_body",
           "earrings", "ring", "wrist", "foot", "full"
         ]),
@@ -358,13 +358,13 @@ export const appRouter = router({
           input.base64Data,
           input.mimeType || "image/jpeg"
         );
-        
+
         // Then analyze
         const result = await analyzeImageForJewelry(
           imageUrl,
           input.jewelryType
         );
-        
+
         return {
           imageUrl,
           ...result,
@@ -402,8 +402,8 @@ export const appRouter = router({
     // Remove item from collection
     remove: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        await db.removeFromCollection(input.id);
+      .mutation(async ({ ctx, input }) => {
+        await db.removeFromCollection(input.id, ctx.user.id);
         return { success: true };
       }),
 
@@ -422,9 +422,9 @@ export const appRouter = router({
         tags: z.string().optional(),
         isFavorite: z.boolean().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
-        await db.updateCollectionItem(id, data);
+        await db.updateCollectionItem(id, ctx.user.id, data);
         return { success: true };
       }),
   }),
@@ -525,11 +525,11 @@ export const appRouter = router({
         const timestamp = Date.now();
         const ext = input.mimeType?.includes("png") ? "png" : "jpg";
         const key = `wardrobe/${ctx.user.id}/${timestamp}.${ext}`;
-        
+
         // Decode base64 and upload
         const buffer = Buffer.from(input.base64Data, "base64");
         const result = await storagePut(key, buffer, input.mimeType || "image/jpeg");
-        
+
         return { url: result.url };
       }),
   }),
@@ -613,7 +613,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // Get user's wardrobe items
         const wardrobeItems = await db.getUserWardrobeItems(ctx.user.id);
-        
+
         // Get user's favorite jewelry (from favorites)
         const favorites = await db.getUserFavorites(ctx.user.id);
         const jewelryItems = favorites.map((f) => ({
@@ -658,13 +658,13 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         // Get wardrobe items by IDs
         const allWardrobeItems = await db.getUserWardrobeItems(ctx.user.id);
-        const wardrobeItems = allWardrobeItems.filter((item) => 
+        const wardrobeItems = allWardrobeItems.filter((item) =>
           input.wardrobeItemIds.includes(item.id)
         );
 
         // Get jewelry items by IDs
         const allFavorites = await db.getUserFavorites(ctx.user.id);
-        const jewelryItems = input.jewelryItemIds 
+        const jewelryItems = input.jewelryItemIds
           ? allFavorites.filter((f) => input.jewelryItemIds!.includes(f.id))
           : [];
 
@@ -733,8 +733,8 @@ export const appRouter = router({
         return db.getPartnerBrandBySlug(input.slug);
       }),
 
-    // Create a new partner brand (admin only in production)
-    create: protectedProcedure
+    // Create a new partner brand (admin only)
+    create: adminProcedure
       .input(z.object({
         name: z.string().min(1).max(255),
         slug: z.string().min(1).max(128),
@@ -785,8 +785,8 @@ export const appRouter = router({
         return db.getPartnerJewelryByBrand(input.brandId);
       }),
 
-    // Create partner jewelry (admin only in production)
-    create: protectedProcedure
+    // Create partner jewelry (admin only)
+    create: adminProcedure
       .input(z.object({
         brandId: z.number(),
         name: z.string().min(1).max(255),
@@ -885,10 +885,10 @@ export const appRouter = router({
 
         // Pose courte (1 phrase max)
         const posePhrases: Record<string, string> = {
-          front:   "front-facing, standing upright",
-          side:    "3/4 side profile pose",
+          front: "front-facing, standing upright",
+          side: "3/4 side profile pose",
           walking: "natural walking pose, mid-stride",
-          back:    "back to camera, rear view",
+          back: "back to camera, rear view",
         };
         const pose = posePhrases[input.pose ?? "front"] ?? posePhrases.front;
 
@@ -903,9 +903,9 @@ export const appRouter = router({
             earrings: "on the earlobes",
             necklace: "around the neck, draped on the chest",
             bracelet: "on the wrist",
-            ring:     "on a finger",
-            anklet:   "around the ankle",
-            set:      "earrings on ears, necklace on neck, bracelet on wrist",
+            ring: "on a finger",
+            anklet: "around the ankle",
+            set: "earrings on ears, necklace on neck, bracelet on wrist",
           };
           const where = placement[input.jewelryType || "earrings"] ?? placement.earrings;
           prompt = `Virtual try-on. Image 1: person. Image 2: ${input.jewelryType ?? "jewelry"}. Place the jewelry ${where}. Keep face, skin tone, hair, and pose identical. Photorealistic luxury jewelry photography. ${lightingRule}`;
@@ -918,13 +918,13 @@ export const appRouter = router({
 
         } else {
           const accPlacement: Record<string, string> = {
-            bag:        "holding or carrying the bag on shoulder/arm",
-            belt:       "wearing the belt around the waist",
+            bag: "holding or carrying the bag on shoulder/arm",
+            belt: "wearing the belt around the waist",
             sunglasses: "wearing the glasses on the face",
-            scarf:      "wearing the scarf draped around the neck",
-            hat:        "wearing the hat on the head",
-            watch:      "wearing the watch on the wrist",
-            other:      "wearing or carrying the accessory naturally",
+            scarf: "wearing the scarf draped around the neck",
+            hat: "wearing the hat on the head",
+            watch: "wearing the watch on the wrist",
+            other: "wearing or carrying the accessory naturally",
           };
           const where = accPlacement[input.accessoryType || "other"] ?? accPlacement.other;
           prompt = `Virtual try-on. Image 1: person (${pose}). Image 2: ${input.accessoryType ?? "accessory"}. Show the person ${where}. Correct scale, realistic materials. Keep appearance identical. ${lightingRule}`;
@@ -1024,10 +1024,10 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const posePhrases: Record<string, string> = {
-          front:   "front-facing, standing upright",
-          side:    "3/4 side profile pose",
+          front: "front-facing, standing upright",
+          side: "3/4 side profile pose",
           walking: "natural walking pose, mid-stride",
-          back:    "back to camera, rear view",
+          back: "back to camera, rear view",
         };
         const pose = posePhrases[input.pose ?? "front"] ?? posePhrases.front;
         const lightingRule = "LIGHTING: Match the lighting, shadows, and color temperature of Image 1 exactly on all added items.";
@@ -1177,8 +1177,8 @@ export const appRouter = router({
         return posts;
       }),
 
-    // Create a new post
-    create: publicProcedure
+    // Create a new post (authenticated users only)
+    create: protectedProcedure
       .input(z.object({
         authorName: z.string().min(1).max(255),
         authorAvatar: z.string().optional(),
@@ -1186,11 +1186,12 @@ export const appRouter = router({
         imageUrl: z.string().optional(),
         jewelryType: z.string().max(64).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const dbInstance = await db.getDb();
         if (!dbInstance) throw new Error('DB not available');
         const { communityPosts } = await import('../drizzle/schema');
         const [result] = await dbInstance.insert(communityPosts).values({
+          userId: ctx.user.id,
           authorName: input.authorName,
           authorAvatar: input.authorAvatar || null,
           content: input.content,
@@ -1202,18 +1203,50 @@ export const appRouter = router({
         return { success: true, id: (result as any)?.insertId ?? null };
       }),
 
-    // Toggle like on a post
-    like: publicProcedure
+    // Toggle like on a post (authenticated users only)
+    like: protectedProcedure
       .input(z.object({ postId: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const dbInstance = await db.getDb();
         if (!dbInstance) throw new Error('DB not available');
-        const { communityPosts } = await import('../drizzle/schema');
-        const { eq, sql } = await import('drizzle-orm');
-        await dbInstance
-          .update(communityPosts)
-          .set({ likesCount: sql`${communityPosts.likesCount} + 1` })
-          .where(eq(communityPosts.id, input.postId));
+        const { communityPosts, communityPostLikes } = await import('../drizzle/schema');
+        const { eq, and, sql } = await import('drizzle-orm');
+
+        // Wrap entire like/unlike operation in a transaction to prevent race conditions
+        await dbInstance.transaction(async (tx) => {
+          // Check if user already liked this post
+          const existingLike = await tx
+            .select()
+            .from(communityPostLikes)
+            .where(and(
+              eq(communityPostLikes.postId, input.postId),
+              eq(communityPostLikes.userId, ctx.user.id)
+            ));
+
+          if (existingLike.length > 0) {
+            // Unlike: remove the like and decrement counter
+            await tx
+              .delete(communityPostLikes)
+              .where(and(
+                eq(communityPostLikes.postId, input.postId),
+                eq(communityPostLikes.userId, ctx.user.id)
+              ));
+            await tx
+              .update(communityPosts)
+              .set({ likesCount: sql`GREATEST(${communityPosts.likesCount} - 1, 0)` })
+              .where(eq(communityPosts.id, input.postId));
+          } else {
+            // Like: add the like record and increment counter
+            await tx.insert(communityPostLikes).values({
+              postId: input.postId,
+              userId: ctx.user.id,
+            });
+            await tx
+              .update(communityPosts)
+              .set({ likesCount: sql`${communityPosts.likesCount} + 1` })
+              .where(eq(communityPosts.id, input.postId));
+          }
+        });
         return { success: true };
       }),
   }),
@@ -1289,8 +1322,15 @@ export const appRouter = router({
         adminCode: z.string(),
       }))
       .query(async ({ input }) => {
-        const ADMIN_CODE = process.env.ADMIN_CODE || 'ADMIN_CODE_REDACTED';
-        if (input.adminCode !== ADMIN_CODE) {
+        const ADMIN_CODE = process.env.ADMIN_CODE;
+        if (!ADMIN_CODE) {
+          console.error('[Admin] Admin code not configured on server');
+          throw new Error('Serveur non configuré pour les operations admin');
+        }
+        const { timingSafeEqual } = await import('crypto');
+        const a = Buffer.from(input.adminCode);
+        const b = Buffer.from(ADMIN_CODE);
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
           throw new Error('Code admin invalide');
         }
         const dbInstance = await db.getDb();
@@ -1311,8 +1351,15 @@ export const appRouter = router({
         status: z.enum(['pending', 'approved', 'rejected']),
       }))
       .mutation(async ({ input }) => {
-        const ADMIN_CODE = process.env.ADMIN_CODE || 'ADMIN_CODE_REDACTED';
-        if (input.adminCode !== ADMIN_CODE) {
+        const ADMIN_CODE = process.env.ADMIN_CODE;
+        if (!ADMIN_CODE) {
+          console.error('[Admin] Admin code not configured on server');
+          throw new Error('Serveur non configuré pour les operations admin');
+        }
+        const { timingSafeEqual } = await import('crypto');
+        const a = Buffer.from(input.adminCode);
+        const b = Buffer.from(ADMIN_CODE);
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
           throw new Error('Code admin invalide');
         }
         const dbInstance = await db.getDb();

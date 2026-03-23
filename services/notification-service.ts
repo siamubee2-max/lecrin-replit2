@@ -113,10 +113,16 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
       AsyncStorage.getItem(STORAGE_KEYS.TODAY_EVENT_TYPE),
     ]);
 
+    let parsedLocation = DEFAULT_LOCATION;
+    if (locationStr) {
+      try { parsedLocation = JSON.parse(locationStr); }
+      catch (e) { if (__DEV__) console.warn("[Notifications] Failed to parse location:", e); /* use default */ }
+    }
+
     return {
       enabled: enabled === "true",
       time: (time as "morning" | "evening") || "morning",
-      location: locationStr ? JSON.parse(locationStr) : DEFAULT_LOCATION,
+      location: parsedLocation,
       todayEventType: (eventType as EventType) || "none",
     };
   } catch (error) {
@@ -176,12 +182,12 @@ export async function scheduleDailyNotification(
 
     // Get weather and generate suggestion
     const weather = await getCurrentWeather(settings.location);
-    
+
     // Create a simple event based on user's selection
     const events: CalendarEvent[] = settings.todayEventType !== "none"
       ? [createManualEvent(settings.todayEventType, settings.todayEventType)]
       : [];
-    
+
     const schedule = getTodaySchedule(events);
     const suggestion = generateDailySuggestion(weather, schedule);
     const notificationContent = generateNotificationContent(suggestion);
@@ -191,7 +197,7 @@ export async function scheduleDailyNotification(
 
     // Schedule notification
     const { hour, minute } = NOTIFICATION_TIMES[settings.time];
-    
+
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: notificationContent.title,
@@ -221,11 +227,11 @@ export async function sendTestNotification(settings: NotificationSettings): Prom
   try {
     // Get weather and generate suggestion
     const weather = await getCurrentWeather(settings.location);
-    
+
     const events: CalendarEvent[] = settings.todayEventType !== "none"
       ? [createManualEvent(settings.todayEventType, settings.todayEventType)]
       : [];
-    
+
     const schedule = getTodaySchedule(events);
     const suggestion = generateDailySuggestion(weather, schedule);
     const notificationContent = generateNotificationContent(suggestion);
@@ -266,10 +272,15 @@ export async function getLastSuggestion(): Promise<DailySuggestion | null> {
   try {
     const suggestionStr = await AsyncStorage.getItem(STORAGE_KEYS.LAST_SUGGESTION);
     if (!suggestionStr) return null;
-    
-    const suggestion = JSON.parse(suggestionStr) as DailySuggestion;
-    suggestion.date = new Date(suggestion.date);
-    return suggestion;
+
+    try {
+      const suggestion = JSON.parse(suggestionStr) as DailySuggestion;
+      suggestion.date = new Date(suggestion.date);
+      return suggestion;
+    } catch (e) {
+      if (__DEV__) console.warn("[Notifications] Failed to parse suggestion:", e);
+      return null;
+    }
   } catch (error) {
     console.error("[Notifications] Error loading last suggestion:", error);
     return null;
@@ -281,17 +292,17 @@ export async function getLastSuggestion(): Promise<DailySuggestion | null> {
  */
 export async function generateFreshSuggestion(settings: NotificationSettings): Promise<DailySuggestion> {
   const weather = await getCurrentWeather(settings.location);
-  
+
   const events: CalendarEvent[] = settings.todayEventType !== "none"
     ? [createManualEvent(settings.todayEventType, settings.todayEventType)]
     : [];
-  
+
   const schedule = getTodaySchedule(events);
   const suggestion = generateDailySuggestion(weather, schedule);
-  
+
   // Save for later
   await AsyncStorage.setItem(STORAGE_KEYS.LAST_SUGGESTION, JSON.stringify(suggestion));
-  
+
   return suggestion;
 }
 
@@ -325,7 +336,7 @@ export async function getScheduledNotifications(): Promise<Notifications.Notific
  */
 export async function areNotificationsEnabled(): Promise<boolean> {
   if (Platform.OS === "web") return false;
-  
+
   const { status } = await Notifications.getPermissionsAsync();
   return status === "granted";
 }
@@ -348,7 +359,7 @@ export async function scheduleSubscriptionExpiryReminder(
     // Cancel previous subscription reminder if any
     const prevId = await AsyncStorage.getItem(SUBSCRIPTION_REMINDER_ID_KEY);
     if (prevId) {
-      await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => {});
+      await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => { });
       await AsyncStorage.removeItem(SUBSCRIPTION_REMINDER_ID_KEY);
     }
 
@@ -396,10 +407,10 @@ export async function cancelSubscriptionExpiryReminder(): Promise<void> {
   try {
     const prevId = await AsyncStorage.getItem(SUBSCRIPTION_REMINDER_ID_KEY);
     if (prevId) {
-      await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => {});
+      await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => { });
       await AsyncStorage.removeItem(SUBSCRIPTION_REMINDER_ID_KEY);
     }
-  } catch {}
+  } catch { }
 }
 
 const WELCOME_NOTIF_KEY = "welcome_notif_scheduled";

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Platform } from "react-native";
+import { getUserInfo } from "@/lib/_core/auth";
 
 // ─── RevenueCat Configuration ─────────────────────────────────────────────────
 // SDK public key (offering ID = ofrnga01c25df3f)
@@ -9,21 +10,24 @@ export const RC_API_KEY_ANDROID = "ofrnga01c25df3f";
 // ─── Entitlements (lookup_key dans RevenueCat) ────────────────────────────────
 export const ENTITLEMENT_JEWELRY = "jewelry_access";   // Jewelry Mensuel
 export const ENTITLEMENT_PREMIUM = "premium_access";   // Premium Mensuel / Annuel
+export const ENTITLEMENT_LIFETIME = "lifetime_access"; // Premium à vie (achat unique)
 
 // ─── Store identifiers des produits ──────────────────────────────────────────
 export const PRODUCT_JEWELRY_MONTHLY = "ecrin.jewelry.monthly";
 export const PRODUCT_PREMIUM_MONTHLY = "ecrin.premium.monthly";
-export const PRODUCT_PREMIUM_YEARLY  = "ecrin.premium.yearly";
-export const PRODUCT_CREDITS_50      = "ecrin.credits.50";
-export const PRODUCT_CREDITS_100     = "ecrin.credits.100";
-export const PRODUCT_CREDITS_250     = "ecrin.credits.250";
-export const PRODUCT_CREDITS_500     = "ecrin.credits.500";
+export const PRODUCT_PREMIUM_YEARLY = "ecrin.premium.yearly";
+export const PRODUCT_LIFETIME = "ecrin.lifetime.premium"; // Premium à vie
+export const PRODUCT_CREDITS_50 = "ecrin.credits.50";
+export const PRODUCT_CREDITS_100 = "ecrin.credits.100";
+export const PRODUCT_CREDITS_250 = "ecrin.credits.250";
+export const PRODUCT_CREDITS_500 = "ecrin.credits.500";
 
 // ─── Tiers ────────────────────────────────────────────────────────────────────
 // free       → aucun abonnement actif
 // jewelry    → jewelry_access actif (essayage bijoux uniquement)
 // premium    → premium_access actif (essayage complet + tenue complète)
-export type SubscriptionTier = "free" | "jewelry" | "premium";
+// lifetime   → lifetime_access actif (premium à vie, achat unique)
+export type SubscriptionTier = "free" | "jewelry" | "premium" | "lifetime";
 
 export type SubscriptionState = {
   tier: SubscriptionTier;
@@ -50,6 +54,25 @@ const PREMIUM_YEARLY_LIMIT = 1500;   // essayages Premium annuel/an
 
 let purchasesInitialized = false;
 
+// ─── Accès Développeur (Lifetime Premium) ────────────────────────────────────
+// WARNING: This only works in development builds (__DEV__). In production builds,
+// this function returns false immediately since __DEV__ is false.
+// Configured via EXPO_PUBLIC_DEV_PREMIUM_EMAIL environment variable.
+const DEV_USER_EMAIL: string | null = __DEV__ ? (process.env.EXPO_PUBLIC_DEV_PREMIUM_EMAIL ?? null) : null;
+
+async function isDeveloper(): Promise<boolean> {
+  // Only allow developer access in development builds
+  if (!__DEV__ || !DEV_USER_EMAIL) return false;
+
+  try {
+    const user = await getUserInfo();
+    if (!user) return false;
+    return user.email?.toLowerCase() === DEV_USER_EMAIL.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 async function initRevenueCat() {
   if (purchasesInitialized || Platform.OS === "web") return;
   try {
@@ -66,6 +89,7 @@ export function useSubscription(): SubscriptionState & {
   purchaseJewelry: () => Promise<boolean>;
   purchasePremiumMonthly: () => Promise<boolean>;
   purchasePremiumYearly: () => Promise<boolean>;
+  purchaseLifetime: () => Promise<boolean>;
   purchaseCredits: (pack: "50" | "100" | "250" | "500") => Promise<boolean>;
   restorePurchases: () => Promise<void>;
   incrementTryOnUsage: () => void;
@@ -77,6 +101,16 @@ export function useSubscription(): SubscriptionState & {
   const [monthlyTryOnsUsed, setMonthlyTryOnsUsed] = useState(0);
 
   const loadCustomerInfo = useCallback(async () => {
+    // Vérifier l'accès développeur en premier
+    const devAccess = await isDeveloper();
+    if (devAccess) {
+      setTier("lifetime");
+      setActiveEntitlements([ENTITLEMENT_LIFETIME, ENTITLEMENT_PREMIUM]);
+      setIsLoading(false);
+      console.log("[Subscription] 🎉 Accès développeur détecté - Premium à vie activé !");
+      return;
+    }
+
     if (Platform.OS === "web") {
       setTier("free");
       setIsLoading(false);
@@ -89,7 +123,9 @@ export function useSubscription(): SubscriptionState & {
       const entitlements = Object.keys(info.entitlements.active);
       setActiveEntitlements(entitlements);
 
-      if (entitlements.includes(ENTITLEMENT_PREMIUM)) {
+      if (entitlements.includes(ENTITLEMENT_LIFETIME)) {
+        setTier("lifetime");
+      } else if (entitlements.includes(ENTITLEMENT_PREMIUM)) {
         setTier("premium");
       } else if (entitlements.includes(ENTITLEMENT_JEWELRY)) {
         setTier("jewelry");
@@ -143,10 +179,13 @@ export function useSubscription(): SubscriptionState & {
   const purchasePremiumYearly = useCallback(() =>
     purchaseByStoreId(PRODUCT_PREMIUM_YEARLY), [purchaseByStoreId]);
 
+  const purchaseLifetime = useCallback(() =>
+    purchaseByStoreId(PRODUCT_LIFETIME), [purchaseByStoreId]);
+
   // ─── Achats crédits consommables ─────────────────────────────────────────
   const purchaseCredits = useCallback(async (pack: "50" | "100" | "250" | "500"): Promise<boolean> => {
     const storeIdMap = {
-      "50":  PRODUCT_CREDITS_50,
+      "50": PRODUCT_CREDITS_50,
       "100": PRODUCT_CREDITS_100,
       "250": PRODUCT_CREDITS_250,
       "500": PRODUCT_CREDITS_500,
@@ -175,8 +214,8 @@ export function useSubscription(): SubscriptionState & {
   }, []);
 
   // ─── Permissions dérivées ────────────────────────────────────────────────
-  const hasJewelryAccess = tier === "jewelry" || tier === "premium";
-  const hasPremiumAccess = tier === "premium";
+  const hasJewelryAccess = tier === "jewelry" || tier === "premium" || tier === "lifetime";
+  const hasPremiumAccess = tier === "premium" || tier === "lifetime";
 
   return {
     tier,
@@ -192,12 +231,14 @@ export function useSubscription(): SubscriptionState & {
     canUseSnapshotPremium: hasPremiumAccess,
     canUseUnlimitedTryOns: hasJewelryAccess,
     monthlyTryOnsUsed,
-    monthlyTryOnsLimit: tier === "jewelry" ? JEWELRY_TRYON_LIMIT
-      : tier === "premium" ? PREMIUM_MONTHLY_LIMIT
-      : FREE_TRYON_LIMIT,
+    monthlyTryOnsLimit: tier === "lifetime" ? Infinity
+      : tier === "jewelry" ? JEWELRY_TRYON_LIMIT
+        : tier === "premium" ? PREMIUM_MONTHLY_LIMIT
+          : FREE_TRYON_LIMIT,
     purchaseJewelry,
     purchasePremiumMonthly,
     purchasePremiumYearly,
+    purchaseLifetime,
     purchaseCredits,
     restorePurchases,
     incrementTryOnUsage,

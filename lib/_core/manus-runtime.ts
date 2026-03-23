@@ -11,8 +11,8 @@
 import { Platform } from "react-native";
 import type { Metrics } from "react-native-safe-area-context";
 
-// Debug logging with timestamps
-const DEBUG = true;
+// Debug logging with timestamps (disabled in production)
+const DEBUG = __DEV__ ?? false;
 const log = (msg: string) => {
   if (!DEBUG) return;
   const ts = new Date().toISOString();
@@ -71,7 +71,21 @@ function isValidInsets(payload: Record<string, unknown>): payload is SafeAreaIns
 }
 
 function handleMessage(event: MessageEvent<unknown>): void {
-  // NOTE: Validate event.origin if we need to transfer sensitive data
+  // Validate origin to prevent cross-origin message injection
+  if (event.origin && event.origin !== window.location.origin) {
+    // Allow parent container origin (same host, possibly different port)
+    try {
+      const eventUrl = new URL(event.origin);
+      const selfUrl = new URL(window.location.origin);
+      if (eventUrl.hostname !== selfUrl.hostname) {
+        log(`Rejected message from foreign origin: ${event.origin}`);
+        return;
+      }
+    } catch {
+      return;
+    }
+  }
+
   const data = event.data as SpacePreviewerMessage | undefined;
   if (!data || data.type !== "SpacePreviewerChannel") return;
 

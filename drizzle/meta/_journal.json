@@ -64,6 +64,13 @@
       "when": 1773774280910,
       "tag": "0008_cloudy_rhino",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1774440000000,
+      "tag": "0009_security_hardening",
+      "breakpoints": true
     }
   ]
 }

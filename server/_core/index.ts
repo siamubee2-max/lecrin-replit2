@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import { timingSafeEqual } from "crypto";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
@@ -31,11 +32,22 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
+  // Enable CORS with origin allowlist
+  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean);
+
+  // Validate CORS configuration in production
+  if (process.env.NODE_ENV === "production" && ALLOWED_ORIGINS.length === 0) {
+    console.warn("[Server] WARNING: ALLOWED_ORIGINS not configured for production! Only localhost will be allowed.");
+  }
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
+      // Allow if in allowlist, or localhost only in non-production
+      const isAllowed = ALLOWED_ORIGINS.includes(origin)
+        || (process.env.NODE_ENV !== "production" && origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/));
+      if (isAllowed) {
+        res.header("Access-Control-Allow-Origin", origin);
+      }
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header(
@@ -62,6 +74,34 @@ async function startServer() {
   // ============================================
   app.post("/api/webhooks/revenuecat", async (req, res) => {
     try {
+      // Verify webhook authorization
+      const webhookSecret = process.env.REVENUECAT_WEBHOOK_SECRET;
+      if (webhookSecret) {
+        const authHeader = req.headers.authorization;
+        const expectedAuth = `Bearer ${webhookSecret}`;
+
+        // Use timing-safe comparison to prevent timing attacks
+        if (!authHeader || typeof authHeader !== "string") {
+          console.warn("[RevenueCat] Webhook rejected: invalid authorization");
+          res.status(401).json({ error: "Unauthorized" });
+          return;
+        }
+
+        const authBuffer = Buffer.from(authHeader);
+        const expectedBuffer = Buffer.from(expectedAuth);
+
+        // Fail fast if lengths don't match, then use timing-safe comparison
+        if (authBuffer.length !== expectedBuffer.length || !timingSafeEqual(authBuffer, expectedBuffer)) {
+          console.warn("[RevenueCat] Webhook rejected: invalid authorization");
+          res.status(401).json({ error: "Unauthorized" });
+          return;
+        }
+      } else {
+        console.error("[RevenueCat] REVENUECAT_WEBHOOK_SECRET not configured — rejecting webhook");
+        res.status(503).json({ error: "Webhook not configured" });
+        return;
+      }
+
       const body = req.body instanceof Buffer ? JSON.parse(req.body.toString()) : req.body;
       const event = body?.event;
       if (!event) { res.status(400).json({ error: "Missing event" }); return; }
@@ -74,10 +114,10 @@ async function startServer() {
 
       // Map product IDs to tier + monthly limit
       const PRODUCT_MAP: Record<string, { tier: string; monthlyLimit: number }> = {
-        "ecrin.jewelry.monthly":   { tier: "basic", monthlyLimit: 100 },  // Essentiel 14,99€
+        "ecrin.jewelry.monthly": { tier: "basic", monthlyLimit: 100 },  // Essentiel 14,99€
         "ecrin.essentiel.monthly": { tier: "basic", monthlyLimit: 100 },  // alias renommé
-        "ecrin.premium.monthly":   { tier: "premium", monthlyLimit: 150 }, // Premium 24,99€
-        "ecrin.premium.yearly":    { tier: "yearly", monthlyLimit: 1500 }, // Annuel 199,99€
+        "ecrin.premium.monthly": { tier: "premium", monthlyLimit: 150 }, // Premium 24,99€
+        "ecrin.premium.yearly": { tier: "yearly", monthlyLimit: 1500 }, // Annuel 199,99€
       };
 
       if (appUserId) {
@@ -148,7 +188,7 @@ async function startServer() {
 
   server.listen(port, async () => {
     console.log(`[api] server listening on port ${port}`);
-    
+
     // Seed initial data
     try {
       await seedMoniattitude();

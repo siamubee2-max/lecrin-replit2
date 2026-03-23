@@ -38,7 +38,7 @@ const JEWELRY_FEATURES = [
 ];
 
 const PREMIUM_FEATURES = [
-  { emoji: "✦",  label: "Tout Jewelry inclus" },
+  { emoji: "✦", label: "Tout Jewelry inclus" },
   { emoji: "💎", label: "150 essayages / mois (mensuel)" },
   { emoji: "🗓️", label: "1 500 essayages / an (annuel)" },
   { emoji: "👗", label: "Essayage vêtements & chaussures" },
@@ -49,8 +49,8 @@ const PREMIUM_FEATURES = [
 ];
 
 const CREDIT_PACKS: { pack: "50" | "100" | "250" | "500"; label: string; price: string; bonus?: string }[] = [
-  { pack: "50",  label: "50 crédits",  price: "4,99 €" },
-  { pack: "100", label: "100 crédits", price: "9,99 €",  bonus: "+10%" },
+  { pack: "50", label: "50 crédits", price: "4,99 €" },
+  { pack: "100", label: "100 crédits", price: "9,99 €", bonus: "+10%" },
   { pack: "250", label: "250 crédits", price: "19,99 €", bonus: "+25%" },
   { pack: "500", label: "500 crédits", price: "35,99 €", bonus: "+40%" },
 ];
@@ -69,13 +69,16 @@ export function PaywallModal({
 }: Props) {
   const colors = useColors();
   const [selectedPlan, setSelectedPlan] = useState<Plan>("premium_monthly");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isBuyingCredits, setIsBuyingCredits] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [activeTab, setActiveTab] = useState<"plans" | "credits">(showCredits ? "credits" : "plans");
 
+  const isLoading = isPurchasing || isBuyingCredits;
+
   const handlePurchase = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsLoading(true);
+    setIsPurchasing(true);
     try {
       let success = false;
       if (selectedPlan === "jewelry" && onPurchaseJewelry) {
@@ -90,14 +93,14 @@ export function PaywallModal({
         onClose();
       }
     } finally {
-      setIsLoading(false);
+      setIsPurchasing(false);
     }
   };
 
   const handleBuyCredits = async (pack: "50" | "100" | "250" | "500") => {
     if (!onPurchaseCredits) return;
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsLoading(true);
+    setIsBuyingCredits(true);
     try {
       const success = await onPurchaseCredits(pack);
       if (success) {
@@ -105,7 +108,7 @@ export function PaywallModal({
         onClose();
       }
     } finally {
-      setIsLoading(false);
+      setIsBuyingCredits(false);
     }
   };
 
@@ -243,7 +246,7 @@ export function PaywallModal({
               </TouchableOpacity>
 
               <Text style={[styles.legalText, { color: colors.muted }]}>
-                7 jours d'essai gratuit · Résiliable à tout moment · App Store / Google Play
+                3 jours d'essai gratuit · Résiliable à tout moment · App Store / Google Play
               </Text>
             </>
           ) : (

@@ -9,6 +9,11 @@ export function useSupabaseJewelry(type?: string) {
 
   useEffect(() => {
     async function fetchJewelry() {
+      if (!supabase) {
+        setIsLoading(false);
+        setError("Supabase non configuré");
+        return;
+      }
       setIsLoading(true);
       setError(null);
       try {
@@ -50,6 +55,11 @@ export function useSupabaseBodyParts(jewelryType?: string) {
 
   useEffect(() => {
     async function fetchBodyParts() {
+      if (!supabase) {
+        setIsLoading(false);
+        setError("Supabase non configuré");
+        return;
+      }
       setIsLoading(true);
       setError(null);
       try {

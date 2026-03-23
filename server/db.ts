@@ -288,18 +288,22 @@ export async function addToCollection(data: InsertJewelryItem) {
   return (result as any)[0]?.insertId ?? 0;
 }
 
-export async function removeFromCollection(itemId: number) {
+export async function removeFromCollection(itemId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(jewelryCollection).where(eq(jewelryCollection.id, itemId));
+  await db.delete(jewelryCollection).where(
+    and(eq(jewelryCollection.id, itemId), eq(jewelryCollection.userId, userId))
+  );
 }
 
-export async function updateCollectionItem(itemId: number, data: Partial<InsertJewelryItem>) {
+export async function updateCollectionItem(itemId: number, userId: number, data: Partial<InsertJewelryItem>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.update(jewelryCollection).set(data).where(eq(jewelryCollection.id, itemId));
+  await db.update(jewelryCollection).set(data).where(
+    and(eq(jewelryCollection.id, itemId), eq(jewelryCollection.userId, userId))
+  );
 }
 
 // ============================================

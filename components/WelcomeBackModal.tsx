@@ -39,6 +39,9 @@ export function WelcomeBackModal() {
   const slideAnim = useRef(new Animated.Value(60)).current;
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+
     const checkHistory = async () => {
       try {
         // Ne montrer qu'une fois par session (pas plus d'une fois par 24h)
@@ -53,6 +56,7 @@ export function WelcomeBackModal() {
         const history: TryOnEntry[] = JSON.parse(raw);
         if (!history || history.length === 0) return;
 
+        if (cancelled) return;
         setLastEntry(history[0]);
         setHistoryCount(history.length);
 
@@ -60,7 +64,8 @@ export function WelcomeBackModal() {
         await AsyncStorage.setItem(WELCOME_BACK_SHOWN_KEY, String(Date.now()));
 
         // Délai pour laisser l'app s'initialiser
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
+          if (cancelled) return;
           setVisible(true);
           Animated.parallel([
             Animated.timing(fadeAnim, {
@@ -80,6 +85,11 @@ export function WelcomeBackModal() {
     };
 
     checkHistory();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   const dismiss = () => {
@@ -138,6 +148,7 @@ export function WelcomeBackModal() {
                 source={{ uri: lastEntry.resultImageUri }}
                 style={styles.thumbnail}
                 resizeMode="cover"
+                accessibilityLabel={lastEntry.itemName ? `Dernier essayage : ${lastEntry.itemName}` : "Dernier essayage virtuel"}
               />
             </View>
           ) : (

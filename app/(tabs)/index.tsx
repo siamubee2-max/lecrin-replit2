@@ -68,6 +68,7 @@ export default function HomeScreen() {
               source={require("@/assets/images/icon.png")}
               style={styles.logo}
               contentFit="contain"
+              accessibilityLabel="Logo L'Écrin Virtuel"
             />
             <View style={styles.logoText}>
               <Text style={[styles.brandName, { color: colors.foreground }]}>L'ÉCRIN</Text>
@@ -188,6 +189,7 @@ export default function HomeScreen() {
                 source={{ uri: item.uri }}
                 style={styles.galleryImg}
                 contentFit="cover"
+                accessibilityLabel={item.label}
               />
               <View style={styles.galleryOverlay}>
                 <Text style={styles.galleryLabel}>{item.label}</Text>
@@ -231,6 +233,7 @@ export default function HomeScreen() {
                     source={{ uri: entry.resultImageUrl }}
                     style={styles.recentImg}
                     contentFit="cover"
+                    accessibilityLabel={`Essayage récent : ${entry.itemName}`}
                   />
                   <View style={styles.recentOverlay}>
                     <Text style={styles.recentItemName} numberOfLines={1}>{entry.itemName}</Text>

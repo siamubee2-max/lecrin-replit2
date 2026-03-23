@@ -64,6 +64,18 @@ const encodeState = (value: string) => {
 };
 
 export const getLoginUrl = () => {
+  // Check if OAuth is properly configured
+  if (!OAUTH_PORTAL_URL) {
+    throw new Error(
+      "OAuth non configuré. Veuillez définir EXPO_PUBLIC_OAUTH_PORTAL_URL dans votre fichier .env"
+    );
+  }
+  if (!APP_ID) {
+    throw new Error(
+      "OAuth non configuré. Veuillez définir EXPO_PUBLIC_APP_ID dans votre fichier .env"
+    );
+  }
+
   let redirectUri: string;
 
   if (ReactNative.Platform.OS === "web") {

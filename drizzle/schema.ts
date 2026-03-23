@@ -17,8 +17,8 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  /** Subscription tier: free, basic, premium, yearly */
-  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "basic", "premium", "yearly"]).default("free").notNull(),
+  /** Subscription tier: free, basic, premium, yearly, lifetime */
+  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "basic", "premium", "yearly", "lifetime"]).default("free").notNull(),
   /** Preferred language */
   language: varchar("language", { length: 5 }).default("fr"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -1,11 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import Constants from "expo-constants";
 
-// Supabase "Ecrin" project - primary database
-const SUPABASE_URL = "SUPABASE_URL_REDACTED";
-const SUPABASE_ANON_KEY =
-  "SUPABASE_ANON_KEY_REDACTED";
+// Supabase credentials from environment variables
+const SUPABASE_URL = Constants.expoConfig?.extra?.supabaseUrl
+  || process.env.EXPO_PUBLIC_SUPABASE_URL
+  || "";
+const SUPABASE_ANON_KEY = Constants.expoConfig?.extra?.supabaseAnonKey
+  || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+  || "";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn("[Supabase] Missing credentials - configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env");
+}
+
+// Only create a real client when credentials are available; otherwise null.
+// All consumers must handle the null case gracefully.
+export const supabase: SupabaseClient | null =
+  SUPABASE_URL && SUPABASE_ANON_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
 
 // Types matching Supabase schema
 export interface SupabaseJewelry {
@@ -35,6 +48,8 @@ export interface SupabaseBodyPart {
 
 // Fetch all demo jewelry (no user_id filter for public catalog)
 export async function fetchJewelryCatalog(): Promise<SupabaseJewelry[]> {
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from("jewelry")
     .select("*")
@@ -52,6 +67,8 @@ export async function fetchJewelryCatalog(): Promise<SupabaseJewelry[]> {
 export async function fetchBodyParts(
   type?: string
 ): Promise<SupabaseBodyPart[]> {
+  if (!supabase) return [];
+
   let query = supabase.from("body_parts").select("*").is("user_id", null);
 
   if (type) {
@@ -90,6 +107,8 @@ export async function saveTryOnSession(params: {
   bodyPartId: string;
   imageUrl?: string;
 }): Promise<void> {
+  if (!supabase) return;
+
   const { error } = await supabase.from("try_on_sessions").insert({
     jewelry_id: params.jewelryId,
     body_part_id: params.bodyPartId,

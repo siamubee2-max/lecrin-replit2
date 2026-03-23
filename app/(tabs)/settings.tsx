@@ -68,9 +68,9 @@ export default function SettingsScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
 
   const PLAN_LABELS: Record<string, { name: string; emoji: string; color: string }> = {
-    free:    { name: "Découverte",     emoji: "✨",  color: colors.muted },
-    jewelry: { name: "Jewelry",        emoji: "💎",  color: colors.primary },
-    premium: { name: "Premium",        emoji: "✦",   color: colors.primary },
+    free: { name: "Découverte", emoji: "✨", color: colors.muted },
+    jewelry: { name: "Jewelry", emoji: "💎", color: colors.primary },
+    premium: { name: "Premium", emoji: "✦", color: colors.primary },
   };
   const planInfo = PLAN_LABELS[subscription.tier] ?? PLAN_LABELS.free;
   const tryOnsLeft = Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed);
@@ -246,10 +246,10 @@ export default function SettingsScreen() {
               <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>VOIR TOUS LES PLANS</Text>
               <Text style={[settingsStyles.rowSubtitle, { color: colors.muted }]}>Comparer Jewelry, Premium mensuel et annuel</Text>
             </View>
-            <IconSymbol 
-              name={showSubscription ? "chevron.up" : "chevron.down"} 
-              size={16} 
-              color={colors.primary} 
+            <IconSymbol
+              name={showSubscription ? "chevron.up" : "chevron.down"}
+              size={16}
+              color={colors.primary}
             />
           </TouchableOpacity>
 
@@ -268,7 +268,7 @@ export default function SettingsScreen() {
                   ]}
                 >
                   {plan.popular && (
-                    <View 
+                    <View
                       className="absolute -top-3 right-4 px-3 py-1 rounded-full"
                       style={{ backgroundColor: colors.primary }}
                     >
@@ -278,7 +278,7 @@ export default function SettingsScreen() {
                     </View>
                   )}
                   {plan.isFree && (
-                    <View 
+                    <View
                       className="absolute -top-3 right-4 px-3 py-1 rounded-full"
                       style={{ backgroundColor: colors.success }}
                     >
@@ -287,23 +287,23 @@ export default function SettingsScreen() {
                       </Text>
                     </View>
                   )}
-                  
+
                   <View className="flex-row items-baseline mb-2">
                     <Text className="text-2xl font-bold text-foreground">{plan.price}</Text>
                     <Text className="text-sm text-muted ml-1">{plan.period}</Text>
                   </View>
-                  
+
                   <Text className="text-lg font-semibold text-foreground mb-2">{plan.name}</Text>
-                  
+
                   {plan.features.map((feature: string, index: number) => (
                     <View key={index} className="flex-row items-center mb-1">
                       <IconSymbol name="checkmark" size={16} color={plan.isFree ? colors.success : colors.primary} />
                       <Text className="text-sm text-muted ml-2">{feature}</Text>
                     </View>
                   ))}
-                  
+
                   {!plan.isFree && (
-                    <View 
+                    <View
                       className="mt-3 py-2 rounded-xl items-center"
                       style={{ backgroundColor: plan.popular ? colors.primary : colors.primary + '20' }}
                     >
@@ -362,15 +362,15 @@ export default function SettingsScreen() {
               <Text className="text-lg mr-3">{currentLanguage?.flag}</Text>
               <Text className="text-base text-foreground">{currentLanguage?.name}</Text>
             </View>
-            <IconSymbol 
-              name={showLanguages ? "chevron.up" : "chevron.down"} 
-              size={18} 
-              color={colors.muted} 
+            <IconSymbol
+              name={showLanguages ? "chevron.up" : "chevron.down"}
+              size={18}
+              color={colors.muted}
             />
           </TouchableOpacity>
 
           {showLanguages && (
-            <View 
+            <View
               className="mt-2 rounded-2xl overflow-hidden"
               style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
             >
@@ -479,30 +479,6 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* RevenueCat Webhook Section */}
-        <View className="px-4 mb-4">
-          <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
-            Intégration RevenueCat
-          </Text>
-          <View
-            className="p-4 rounded-2xl"
-            style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
-          >
-            <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 6, letterSpacing: 0.5 }}>URL WEBHOOK (RevenueCat Dashboard)</Text>
-            <View style={{ backgroundColor: colors.background, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: colors.border }}>
-              <Text
-                selectable
-                style={{ fontSize: 11, color: colors.primary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 18 }}
-              >
-                https://ecrinapp-cir7qz3c.manus.space/api/webhooks/revenuecat
-              </Text>
-            </View>
-            <Text style={{ fontSize: 10, color: colors.muted, marginTop: 8, lineHeight: 15 }}>
-              Copiez cette URL dans RevenueCat → Project Settings → Integrations → Webhooks pour synchroniser les achats avec le serveur.
-            </Text>
-          </View>
-        </View>
-
         {/* Support Section */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
@@ -573,7 +549,7 @@ export default function SettingsScreen() {
 
         {/* App Info */}
         <View className="items-center py-8 px-4">
-          <View 
+          <View
             className="w-16 h-16 rounded-2xl items-center justify-center mb-3"
             style={{ backgroundColor: colors.primary }}
           >
@@ -610,16 +586,16 @@ export default function SettingsScreen() {
   );
 }
 
-function SettingRow({ 
-  title, 
-  subtitle, 
-  value, 
+function SettingRow({
+  title,
+  subtitle,
+  value,
   onToggle,
-  colors 
-}: { 
-  title: string; 
-  subtitle: string; 
-  value: boolean; 
+  colors
+}: {
+  title: string;
+  subtitle: string;
+  value: boolean;
   onToggle: () => void;
   colors: ReturnType<typeof useColors>;
 }) {
@@ -639,19 +615,19 @@ function SettingRow({
   );
 }
 
-function LinkRow({ 
+function LinkRow({
   icon,
-  title, 
+  title,
   onPress,
-  colors 
-}: { 
+  colors
+}: {
   icon?: string;
-  title: string; 
+  title: string;
   onPress: () => void;
   colors: ReturnType<typeof useColors>;
 }) {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={onPress}
       className="flex-row items-center justify-between px-4 py-4 active:opacity-70"
     >

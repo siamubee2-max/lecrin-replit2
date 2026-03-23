@@ -40,15 +40,15 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     lastTryOnDate: null as string | null,
   });
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const { isAuthenticated, user } = useAuth();
-  
+
   // tRPC mutations
   const addFavoriteMutation = trpc.favorites.add.useMutation();
   const removeFavoriteMutation = trpc.favorites.remove.useMutation();
   const syncFavoritesMutation = trpc.favorites.sync.useMutation();
   const incrementTryOnMutation = trpc.stats.incrementTryOn.useMutation();
-  
+
   // tRPC queries (only fetch when authenticated)
   const { data: serverFavorites, refetch: refetchFavorites } = trpc.favorites.list.useQuery(
     undefined,
@@ -91,13 +91,23 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (favoritesData) {
-        const parsed = JSON.parse(favoritesData);
-        setFavorites(parsed);
+        try {
+          const parsed = JSON.parse(favoritesData);
+          if (Array.isArray(parsed)) setFavorites(parsed);
+        } catch (e) {
+          if (__DEV__) console.warn("[Favorites] Failed to parse favorites:", e);
+          /* corrupted data, ignore */
+        }
       }
 
       if (statsData) {
-        const parsed = JSON.parse(statsData);
-        setStats(parsed);
+        try {
+          const parsed = JSON.parse(statsData);
+          if (parsed && typeof parsed.totalTryOns === "number") setStats(parsed);
+        } catch (e) {
+          if (__DEV__) console.warn("[Favorites] Failed to parse stats:", e);
+          /* corrupted data, ignore */
+        }
       }
     } catch (error) {
       console.error("Error loading favorites:", error);
@@ -152,6 +162,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
 
+    // Optimistic update
+    const previousFavorites = favorites;
+    const previousStats = stats;
     const newFavorites = [newFavorite, ...favorites];
     setFavorites(newFavorites);
     await saveFavorites(newFavorites);
@@ -173,7 +186,19 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           imageUri: tryOn.imageUri,
         });
       } catch (error) {
+        // Rollback optimistic update on server failure
+        setFavorites(previousFavorites);
+        setStats(previousStats);
+        await saveFavorites(previousFavorites);
+        await saveStats(previousStats);
         console.error("Error syncing favorite to server:", error);
+        // Notify user that their action couldn't be saved
+        const { Alert } = await import('react-native');
+        Alert.alert(
+          'Erreur',
+          'Impossible de sauvegarder cet essayage. Veuillez reessayer.',
+          [{ text: 'OK', style: 'default' }]
+        );
       }
     }
   };

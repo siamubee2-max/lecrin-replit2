@@ -59,7 +59,7 @@ export default function EcrinScreen() {
   const [selectedType, setSelectedType] = useState("Tous");
   const [showFilters, setShowFilters] = useState(false);
   const [jewelry, setJewelry] = useState<JewelryItem[]>([]);
-  const [isLoadingSupabase, setIsLoadingSupabase] = useState(true);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
 
   // tRPC hooks for persistent collection (requires auth)
   const collectionQuery = trpc.collection.list.useQuery(undefined, {
@@ -109,10 +109,17 @@ export default function EcrinScreen() {
         collection: j.collection ?? null,
         tags: j.tags ? (typeof j.tags === 'string' ? JSON.parse(j.tags) : j.tags) : null,
       }));
-      setJewelry(items);
-      setIsLoadingSupabase(false);
+      // Merge with existing user items, avoiding duplicates by ID
+      setJewelry(prev => {
+        const userItems = prev.filter(j => !j.isDemo);
+        // Deduplicate by ID to prevent issues when effect runs multiple times
+        const seenIds = new Set(items.map(j => j.id));
+        const uniqueUserItems = userItems.filter(j => !seenIds.has(j.id));
+        return [...items, ...uniqueUserItems];
+      });
+      setIsLoadingCatalog(false);
     } else if (!partnerJewelryQuery.isLoading) {
-      setIsLoadingSupabase(false);
+      setIsLoadingCatalog(false);
     }
   }, [partnerJewelryQuery.data, partnerJewelryQuery.isLoading]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -190,11 +197,11 @@ export default function EcrinScreen() {
 
   const handleSaveNewJewelry = async () => {
     if (!newJewelryName.trim()) return;
-    
+
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    
+
     // Optimistic local update
     const tempId = `temp_${Date.now()}`;
     const newItem: JewelryItem = {
@@ -241,8 +248,8 @@ export default function EcrinScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setJewelry(prev => 
-      prev.map(item => 
+    setJewelry(prev =>
+      prev.map(item =>
         item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
       )
     );
@@ -279,7 +286,7 @@ export default function EcrinScreen() {
           <View>
             <Text style={[ecrinStyles.title, { color: colors.foreground }]}>MON ÉCRIN</Text>
             <Text style={[ecrinStyles.subtitle, { color: colors.primary }]}>
-              {isLoadingSupabase ? "Chargement..." : `${jewelry.length} pièces`}
+              {isLoadingCatalog ? "Chargement..." : `${jewelry.length} pièces`}
             </Text>
           </View>
           <TouchableOpacity
@@ -360,7 +367,7 @@ export default function EcrinScreen() {
         </ScrollView>
 
         {/* Jewelry Grid */}
-        {isLoadingSupabase ? (
+        {isLoadingCatalog ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" color={colors.primary} />
             <Text className="text-muted mt-4">Chargement du catalogue MONI'ATTITUDE...</Text>
@@ -436,7 +443,7 @@ export default function EcrinScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowAddModal(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
         >
@@ -505,7 +512,7 @@ export default function EcrinScreen() {
               {/* Photo Section */}
               <View className="mb-6">
                 <Text className="text-sm font-medium text-foreground mb-3">Photo du bijou</Text>
-                
+
                 {newJewelryImage ? (
                   <View className="items-center">
                     <View className="relative">
@@ -584,13 +591,13 @@ function FilterDropdown({ label, colors }: { label: string; colors: ReturnType<t
   );
 }
 
-function JewelryCard({ 
-  item, 
+function JewelryCard({
+  item,
   colors,
   onToggleFavorite,
   onTryOn,
-}: { 
-  item: JewelryItem; 
+}: {
+  item: JewelryItem;
   colors: ReturnType<typeof useColors>;
   onToggleFavorite: () => void;
   onTryOn?: () => void;
