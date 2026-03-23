@@ -739,14 +739,15 @@ export default function TryOnScreen() {
           </View>
         )}
 
-        {/* Sélecteur de mode (Bijoux / Chaussures / Vêtements / Accessoires) */}
+        {/* Sélecteur de mode (Bijoux / Chaussures / Tenue / Vêtements / Accessoires) */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, alignItems: "center" }}
         >
-          {(["jewelry", "shoes", "clothing", "accessories", "outfit"] as TryOnMode[]).map((mode) => {
+          {(["jewelry", "shoes", "outfit", "clothing", "accessories"] as TryOnMode[]).map((mode) => {
             const isActive = tryOnMode === mode;
+            const isOutfit = mode === "outfit";
             return (
               <TouchableOpacity
                 key={mode}
@@ -759,16 +760,31 @@ export default function TryOnScreen() {
                 style={[
                   styles.typeChip,
                   {
-                    backgroundColor: isActive ? colors.foreground : "transparent",
-                    borderColor: isActive ? colors.primary : colors.border,
+                    backgroundColor: isActive
+                      ? (isOutfit ? "#C9A96E" : colors.foreground)
+                      : (isOutfit ? "rgba(201,169,110,0.08)" : "transparent"),
+                    borderColor: isActive
+                      ? (isOutfit ? "#C9A96E" : colors.primary)
+                      : (isOutfit ? "#C9A96E" : colors.border),
+                    ...(isOutfit ? {
+                      paddingHorizontal: 22,
+                      paddingVertical: 10,
+                      borderWidth: 1.5,
+                      borderRadius: 24,
+                    } : {}),
                   },
                 ]}
               >
-                <Text style={{ fontSize: 14, marginRight: 4 }}>{MODE_CONFIG[mode].emoji}</Text>
+                <Text style={{ fontSize: isOutfit ? 16 : 14, marginRight: 4 }}>{MODE_CONFIG[mode].emoji}</Text>
                 <Text
                   style={[
                     styles.typeChipText,
-                    { color: isActive ? colors.background : colors.muted },
+                    {
+                      color: isActive
+                        ? (isOutfit ? "#fff" : colors.background)
+                        : (isOutfit ? "#C9A96E" : colors.muted),
+                      ...(isOutfit ? { fontSize: 11, fontWeight: "700", letterSpacing: 1.8 } : {}),
+                    },
                   ]}
                 >
                   {mode === "jewelry" ? "Bijoux" : mode === "shoes" ? "Chaussures" : mode === "clothing" ? "Vêtements" : mode === "accessories" ? "Accessoires" : "Tenue"}
