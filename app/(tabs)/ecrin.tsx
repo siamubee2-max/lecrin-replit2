@@ -10,6 +10,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { useColors } from "@/hooks/use-colors";
+import { ECRIN_EXAMPLES } from "@/constants/images";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -403,13 +404,7 @@ export default function EcrinScreen() {
                 Voici les types de bijoux que vous pouvez ajouter à votre écrin
               </Text>
               <View className="flex-row flex-wrap justify-between">
-                {[
-                  { id: "necklace", label: "Collier", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/necklace_example_ddb00585.png" } },
-                  { id: "earrings", label: "Boucles d'oreilles", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/earrings_example_bcf0dd76.png" } },
-                  { id: "ring", label: "Bague", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/ring_example_7651ac1d.png" } },
-                  { id: "bracelet", label: "Bracelet", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/bracelet_0cceb60d.png" } },
-                  { id: "anklet", label: "Chevillière", image: { uri: "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/anklet_25156a89.png" } },
-                ].map((item) => (
+                {ECRIN_EXAMPLES.map((item) => (
                   <View
                     key={item.id}
                     className="w-[48%] bg-surface rounded-xl overflow-hidden border border-border mb-4"

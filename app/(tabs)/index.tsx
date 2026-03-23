@@ -25,13 +25,7 @@ const HISTORY_KEY = "tryon_history";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Bijoux de démonstration CDN
-const CDN = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943";
-const FEATURED_ITEMS = [
-  { id: "1", uri: `${CDN}/AdlrDYXkOyPhDCRC.jpg`, label: "Boucles Étoile" },
-  { id: "2", uri: `${CDN}/pmqnnFKjXVuQOvRn.jpg`, label: "Collier Perle" },
-  { id: "3", uri: `${CDN}/stRulhTckXsGxDQi.jpg`, label: "Bracelet Or" },
-];
+import { FEATURED_ITEMS } from "@/constants/images";
 
 export default function HomeScreen() {
   const router = useRouter();

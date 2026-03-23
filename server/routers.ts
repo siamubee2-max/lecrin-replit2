@@ -6,8 +6,10 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
 import { storagePut } from "./storage";
+import { uploadToSupabase } from "./supabase-storage";
 import { generateImage } from "./_core/imageGeneration";
 import { generateLookSuggestions, generateStylingTips, analyzeColorHarmony } from "./ai-stylist";
+import { seedImages } from "./seed-images";
 
 export const appRouter = router({
   system: systemRouter,
@@ -515,7 +517,7 @@ export const appRouter = router({
         return { success };
       }),
 
-    // Upload wardrobe item image
+    // Upload wardrobe item image (Supabase Storage)
     uploadImage: protectedProcedure
       .input(z.object({
         base64Data: z.string(),
@@ -525,12 +527,17 @@ export const appRouter = router({
         const timestamp = Date.now();
         const ext = input.mimeType?.includes("png") ? "png" : "jpg";
         const key = `wardrobe/${ctx.user.id}/${timestamp}.${ext}`;
-        
-        // Decode base64 and upload
+
+        // Decode base64 and upload to Supabase Storage
         const buffer = Buffer.from(input.base64Data, "base64");
-        const result = await storagePut(key, buffer, input.mimeType || "image/jpeg");
-        
-        return { url: result.url };
+        try {
+          const result = await uploadToSupabase(key, buffer, input.mimeType || "image/jpeg");
+          return { url: result.url };
+        } catch {
+          // Fallback to Manus storage if Supabase fails
+          const result = await storagePut(key, buffer, input.mimeType || "image/jpeg");
+          return { url: result.url };
+        }
       }),
   }),
 
@@ -1324,6 +1331,20 @@ export const appRouter = router({
           .set({ status: input.status })
           .where(eq(partnerApplications.id, input.id));
         return { success: true };
+      }),
+  }),
+
+  // ============================================
+  // ADMIN – IMAGE SEED / MIGRATION
+  // ============================================
+  admin: router({
+    // Migrate all demo images from CDN to Supabase Storage
+    seedImages: publicProcedure
+      .input(z.object({
+        generateNew: z.boolean().optional().default(false),
+      }).optional())
+      .mutation(async ({ input }) => {
+        return seedImages({ generateNew: input?.generateNew ?? false });
       }),
   }),
 });

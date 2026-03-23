@@ -20,6 +20,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { useColors } from "@/hooks/use-colors";
+import { DRESSING_IMAGES } from "@/constants/images";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 
@@ -122,141 +123,21 @@ const SECTION_SUBCATEGORIES: Record<
 // ─── Demo items ───────────────────────────────────────────────────────────────
 const DEMO_ITEMS: WardrobeItem[] = [
   // Bijoux
-  {
-    id: -10,
-    name: "Boucles Fleur Dorée",
-    category: "accessories",
-    brand: "Moni'attitude",
-    color: "gold",
-    imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/foIbwvIEZnQRCkLk.jpeg",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -11,
-    name: "Boucles Résine Orange",
-    category: "accessories",
-    brand: "Moni'attitude",
-    color: "orange",
-    imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/rjfmUlamBZcBgUfF.jpeg",
-    isFavorite: false,
-    isDemo: true,
-  },
-  {
-    id: -12,
-    name: "Collier Chaîne Dorée",
-    category: "accessories",
-    brand: "Moni'attitude",
-    color: "gold",
-    imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/jGuXuEkhGyksTrjf.png",
-    isFavorite: false,
-    isDemo: true,
-  },
+  { id: -10, name: "Boucles Fleur Dorée", category: "accessories", brand: "Moni'attitude", color: "gold", imageUrl: DRESSING_IMAGES.bouclesFleurDoree, isFavorite: true, isDemo: true },
+  { id: -11, name: "Boucles Résine Orange", category: "accessories", brand: "Moni'attitude", color: "orange", imageUrl: DRESSING_IMAGES.bouclesResineOrange, isFavorite: false, isDemo: true },
+  { id: -12, name: "Collier Chaîne Dorée", category: "accessories", brand: "Moni'attitude", color: "gold", imageUrl: DRESSING_IMAGES.collierChaineDoree, isFavorite: false, isDemo: true },
   // Chaussures
-  {
-    id: -20,
-    name: "Escarpins Nude",
-    category: "shoes",
-    brand: "Jonak",
-    color: "beige",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_sandals_nude-A8rHiR6HNekahFBBff3Anu.png",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -21,
-    name: "Sneakers Blanches",
-    category: "shoes",
-    brand: "Nike",
-    color: "white",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_sneakers_white-TcUCe77Tti8vbH2Tg2aasU.png",
-    isFavorite: false,
-    isDemo: true,
-  },
-  {
-    id: -22,
-    name: "Bottines Noires",
-    category: "shoes",
-    brand: "Sandro",
-    color: "black",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/shoes_boots_black-h7zsKaSzi9qv5jNSQAHbHy.png",
-    isFavorite: true,
-    isDemo: true,
-  },
+  { id: -20, name: "Escarpins Nude", category: "shoes", brand: "Jonak", color: "beige", imageUrl: DRESSING_IMAGES.escarpinsNude, isFavorite: true, isDemo: true },
+  { id: -21, name: "Sneakers Blanches", category: "shoes", brand: "Nike", color: "white", imageUrl: DRESSING_IMAGES.sneakersBlanches, isFavorite: false, isDemo: true },
+  { id: -22, name: "Bottines Noires", category: "shoes", brand: "Sandro", color: "black", imageUrl: DRESSING_IMAGES.bottinesNoires, isFavorite: true, isDemo: true },
   // Vêtements
-  {
-    id: -30,
-    name: "Chemisier Soie Ivoire",
-    category: "tops",
-    brand: "Sandro",
-    color: "beige",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_blouse_ivory-FqFvVqikVUAH8cJaGp8y2Q.png",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -31,
-    name: "Pantalon Tailleur Marine",
-    category: "bottoms",
-    brand: "Maje",
-    color: "navy",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_pants_navy-mtvRm4h698yNo9YWgMgVkq.png",
-    isFavorite: false,
-    isDemo: true,
-  },
-  {
-    id: -32,
-    name: "Robe Cocktail Noire",
-    category: "dresses",
-    brand: "Ba&sh",
-    color: "black",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_dress_black-C4XiYtX54R2EZijznwBAsb.png",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -33,
-    name: "Blazer Camel",
-    category: "outerwear",
-    brand: "The Kooples",
-    color: "beige",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/clothing_blazer_camel-auFvdrjD8tJ3RwphvuczjX.png",
-    isFavorite: false,
-    isDemo: true,
-  },
+  { id: -30, name: "Chemisier Soie Ivoire", category: "tops", brand: "Sandro", color: "beige", imageUrl: DRESSING_IMAGES.chemisierIvoire, isFavorite: true, isDemo: true },
+  { id: -31, name: "Pantalon Tailleur Marine", category: "bottoms", brand: "Maje", color: "navy", imageUrl: DRESSING_IMAGES.pantalonMarine, isFavorite: false, isDemo: true },
+  { id: -32, name: "Robe Cocktail Noire", category: "dresses", brand: "Ba&sh", color: "black", imageUrl: DRESSING_IMAGES.robeNoire, isFavorite: true, isDemo: true },
+  { id: -33, name: "Blazer Camel", category: "outerwear", brand: "The Kooples", color: "beige", imageUrl: DRESSING_IMAGES.blazerCamel, isFavorite: false, isDemo: true },
   // Accessoires
-  {
-    id: -40,
-    name: "Sac Cuir Caramel",
-    category: "bags",
-    brand: "Polène",
-    color: "brown",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_bag_black-gMLsmwChKXggLLiGyaLkMb.png",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -41,
-    name: "Ceinture Dorée",
-    category: "other",
-    brand: "Zara",
-    color: "gold",
-    imageUrl:
-      "https://d2xsxph8kpxj0f.cloudfront.net/310519663144691943/CiR7qZ3C59qboMiNR9PxaK/accessory_belt_gold-Dk95mij6htDppq7nu96YMr.png",
-    isFavorite: false,
-    isDemo: true,
-  },
+  { id: -40, name: "Sac Cuir Caramel", category: "bags", brand: "Polène", color: "brown", imageUrl: DRESSING_IMAGES.sacNoir, isFavorite: true, isDemo: true },
+  { id: -41, name: "Ceinture Dorée", category: "other", brand: "Zara", color: "gold", imageUrl: DRESSING_IMAGES.ceintureDorée, isFavorite: false, isDemo: true },
 ];
 
 const COLORS = [
