@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { seedMoniattitude, seedBodyParts } from "../db";
+import { ensureBucket } from "../supabase-storage";
+import { seedImages } from "../seed-images";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -155,6 +157,16 @@ async function startServer() {
       await seedBodyParts();
     } catch (error) {
       console.warn("[Database] Seed failed (database may not be available):", error);
+    }
+
+    // Auto-migrate images to Supabase Storage (runs once, idempotent)
+    try {
+      await ensureBucket();
+      console.log("[Storage] Supabase images bucket ready");
+      const result = await seedImages({ generateNew: false });
+      console.log(`[Storage] Image migration: ${result.migrated}/${result.total} migrated, ${result.failed} failed`);
+    } catch (error) {
+      console.warn("[Storage] Supabase migration skipped:", error instanceof Error ? error.message : error);
     }
   });
 }

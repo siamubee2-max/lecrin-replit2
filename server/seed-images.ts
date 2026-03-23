@@ -5,8 +5,15 @@
  * Usage: Called via tRPC admin.seedImages endpoint.
  */
 
-import { ensureBucket, migrateImageToSupabase, uploadToSupabase } from "./supabase-storage";
+import { ensureBucket, migrateImageToSupabase, uploadToSupabase, getPublicUrl } from "./supabase-storage";
 import { generateImage } from "./_core/imageGeneration";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseCheck = createClient(
+  "https://amafgweelzayrjzemdtq.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYWZnd2VlbHpheXJqemVtZHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjI4MzgsImV4cCI6MjA4MTg5ODgzOH0.yg1jYRgrqDWMRCGHGEGR8C5jn7WmRTRC8U_1qtciDSk",
+);
 
 // ─── Old CDN URLs mapped to new Supabase Storage paths ───────────────────────
 
@@ -155,10 +162,38 @@ export async function seedImages(options?: { generateNew?: boolean }): Promise<S
   // Ensure bucket exists
   await ensureBucket();
 
-  // Migrate existing images (5 concurrent)
+  // Check which files already exist to skip re-uploads
+  const existingFiles = new Set<string>();
+  try {
+    const folders = ["jewelry", "mannequins", "shoes", "clothing", "accessories", "hats", "watches", "ecrin"];
+    for (const folder of folders) {
+      const { data } = await supabaseCheck.storage.from("images").list(folder, { limit: 500 });
+      if (data) {
+        for (const file of data) {
+          existingFiles.add(`${folder}/${file.name}`);
+        }
+      }
+    }
+  } catch {
+    // If listing fails, proceed with full migration
+  }
+
+  const toMigrate = MIGRATIONS.filter((entry) => !existingFiles.has(entry.target));
+  result.total = MIGRATIONS.length;
+
+  if (toMigrate.length === 0) {
+    result.migrated = MIGRATIONS.length;
+    console.log("[Storage] All images already migrated, skipping.");
+    return result;
+  }
+
+  console.log(`[Storage] Migrating ${toMigrate.length}/${MIGRATIONS.length} images...`);
+  result.migrated = MIGRATIONS.length - toMigrate.length; // already existing
+
+  // Migrate missing images (5 concurrent)
   const batchSize = 5;
-  for (let i = 0; i < MIGRATIONS.length; i += batchSize) {
-    const batch = MIGRATIONS.slice(i, i + batchSize);
+  for (let i = 0; i < toMigrate.length; i += batchSize) {
+    const batch = toMigrate.slice(i, i + batchSize);
     const results = await Promise.allSettled(
       batch.map((entry) => migrateImageToSupabase(entry.source, entry.target)),
     );
