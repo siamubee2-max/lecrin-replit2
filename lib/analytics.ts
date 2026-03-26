@@ -60,6 +60,13 @@ export function trackOnboardingCompleted(): void {
   _client?.capture("onboarding_completed");
 }
 
+export function trackDailyLookViewed(props?: {
+  source?: "home" | "occasion" | "direct";
+  occasion?: string;
+}): void {
+  _client?.capture("daily_look_viewed", props ?? {});
+}
+
 /** Essayage virtuel */
 export function trackTryOnStarted(props: {
   mode: "single" | "outfit";
@@ -74,8 +81,16 @@ export function trackTryOnCompleted(props: {
   jewelryType?: string;
   durationMs?: number;
   success: boolean;
+  isGuided?: boolean;
 }): void {
   _client?.capture("tryon_completed", props);
+}
+
+export function trackGuidedTryOnCompleted(props: {
+  mode: "single" | "outfit";
+  totalSteps: number;
+}): void {
+  _client?.capture("guided_tryon_completed", props);
 }
 
 export function trackTryOnShared(props: {
@@ -87,6 +102,15 @@ export function trackTryOnShared(props: {
 
 export function trackTryOnSaved(): void {
   _client?.capture("tryon_saved_to_gallery");
+}
+
+export function trackLookSaved(props: {
+  mode: "jewelry" | "shoes" | "clothing" | "accessories" | "outfit";
+  target: "ecrin" | "dressing";
+  isGuided: boolean;
+  aiCostUsd?: number;
+}): void {
+  _client?.capture("look_saved", props);
 }
 
 /** Boutique */
@@ -177,4 +201,92 @@ export function trackSnapshotApplied(props: {
 /** Navigation */
 export function trackScreenViewed(screenName: string, props?: Record<string, unknown>): void {
   _client?.capture("$screen", { $screen_name: screenName, ...props });
+}
+
+/** Observabilite try-on */
+export function trackTryOnGenerationObserved(props: {
+  type: "jewelry" | "shoes" | "clothing" | "accessories" | "outfit";
+  success: boolean;
+  durationMs: number;
+  errorMessage?: string;
+}): void {
+  _client?.capture("tryon_generation_observed", props);
+}
+
+/** A/B testing */
+export function trackAbAssignment(props: {
+  experiment: "homeCards" | "homeCta" | "dailyLookDetail";
+  variant: "A" | "B";
+}): void {
+  _client?.capture("ab_assignment", props);
+}
+
+export function trackAbConversion(props: {
+  experiment: "homeCards" | "homeCta" | "dailyLookDetail";
+  variant: "A" | "B";
+}): void {
+  _client?.capture("ab_conversion", props);
+}
+
+/** Qualite percue & usage meteo */
+export function trackTryOnQualityFeedback(props: {
+  mode: "jewelry" | "shoes" | "clothing" | "accessories" | "outfit";
+  vote: "positive" | "negative";
+  qualityScore?: number;
+  isGuided?: boolean;
+}): void {
+  _client?.capture("tryon_quality_feedback", props);
+}
+
+export function trackEmergencyLookUsed(props: {
+  reason: string;
+  source: "home" | "daily-look";
+}): void {
+  _client?.capture("emergency_look_used", props);
+}
+
+export function trackWardrobeRecommendationApplied(props: {
+  type: string;
+  source: "home" | "daily-look";
+}): void {
+  _client?.capture("wardrobe_recommendation_applied", props);
+}
+
+/** Launch offers */
+export function trackLaunchOfferCampaignSeen(props: {
+  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  remaining?: number;
+  source?: string;
+}): void {
+  _client?.capture("launch_offer_campaign_seen", props);
+}
+
+export function trackLaunchOfferClaimed(props: {
+  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  source?: string;
+}): void {
+  _client?.capture("launch_offer_claimed", props);
+}
+
+export function trackLaunchOfferExhausted(props?: {
+  source?: string;
+}): void {
+  _client?.capture("launch_offer_exhausted", props ?? {});
+}
+
+export function trackLaunchOfferPurchaseSuccess(props: {
+  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  storeId: string;
+  source?: string;
+}): void {
+  _client?.capture("launch_offer_purchase_success", props);
+}
+
+export function trackLaunchOfferPurchaseFailed(props: {
+  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  storeId?: string;
+  reason: "claim_unavailable" | "store_product_missing" | "purchase_failed" | "unexpected_error";
+  source?: string;
+}): void {
+  _client?.capture("launch_offer_purchase_failed", props);
 }

@@ -390,3 +390,21 @@ export const communityPostLikes = mysqlTable("communityPostLikes", {
 
 export type CommunityPostLike = typeof communityPostLikes.$inferSelect;
 export type InsertCommunityPostLike = typeof communityPostLikes.$inferInsert;
+
+/**
+ * Launch offer claims - limited promotional slots (100/100/100/200)
+ */
+export const launchOfferClaims = mysqlTable("launchOfferClaims", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: varchar("clientId", { length: 128 }).notNull(),
+  campaignKey: mysqlEnum("campaignKey", [
+    "yearly_50_first_100",
+    "yearly_25_next_100",
+    "yearly_10_next_100",
+    "monthly_10_next_200",
+  ]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LaunchOfferClaim = typeof launchOfferClaims.$inferSelect;
+export type InsertLaunchOfferClaim = typeof launchOfferClaims.$inferInsert;

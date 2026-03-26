@@ -5,9 +5,182 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
-import { storagePut } from "./storage";
+import { supabaseStoragePut } from "./_core/supabaseStorage";
 import { generateImage } from "./_core/imageGeneration";
+import { invokeLLM } from "./_core/llm";
 import { generateLookSuggestions, generateStylingTips, analyzeColorHarmony } from "./ai-stylist";
+
+// ─── Comptes privilégiés (accès Lifetime Premium gratuit en prod) ─────────────
+// Configuré via PRIVILEGED_EMAILS dans .env (jamais exposé au client)
+const PRIVILEGED_EMAILS: Set<string> = new Set(
+  (process.env.PRIVILEGED_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+const COMMUNITY_BLOCKED_TERMS = [
+  "suicide",
+  "kill yourself",
+  "hate speech",
+  "nazi",
+  "terrorist",
+];
+
+function normalizeCommunityText(value: string): string {
+  return value
+    .replace(/\s+/g, " ")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim();
+}
+
+function containsBlockedCommunityTerm(value: string): boolean {
+  const normalized = value.toLowerCase();
+  return COMMUNITY_BLOCKED_TERMS.some((term) => normalized.includes(term));
+}
+
+type QualityAssessment = {
+  overall: number;
+  pose: number;
+  placement: number;
+  proportion: number;
+  verdict: "pass" | "retry";
+  reason: string;
+};
+
+const DEFAULT_IMAGE_MODELS = [
+  "gemini-3.1-flash-image-preview",
+  "gemini-2.0-flash-preview-image-generation",
+];
+
+function parseModelCandidates(raw?: string): string[] {
+  const envModels = (process.env.GEMINI_IMAGE_MODELS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const list = raw
+    ? raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : envModels;
+  return list.length > 0 ? list : DEFAULT_IMAGE_MODELS;
+}
+
+function inferWardrobeTags(input: {
+  name: string;
+  category: string;
+  color?: string;
+  tags?: string;
+  season?: "spring" | "summer" | "fall" | "winter" | "all";
+  occasion?: "casual" | "work" | "formal" | "sport" | "party" | "all";
+}) {
+  if (input.tags && input.season && input.occasion) {
+    return input;
+  }
+  const text = input.name.toLowerCase();
+  const tags = new Set<string>(
+    (input.tags ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+  tags.add(input.category);
+  if (input.color) tags.add(input.color);
+  if (/blazer|tailleur|derby|robe|chemise/.test(text)) tags.add("elegant");
+  if (/sport|running|sneaker|basket/.test(text)) tags.add("sport");
+  if (/imper|deperlant|pluie|waterproof/.test(text)) tags.add("rain");
+  if (/laine|manteau|parka|hiver/.test(text)) tags.add("winter");
+  if (/lin|sandale|ete|leger/.test(text)) tags.add("summer");
+
+  const season =
+    input.season ??
+    (tags.has("winter") ? "winter" : tags.has("summer") ? "summer" : "all");
+  const occasion =
+    input.occasion ??
+    (tags.has("sport") ? "sport" : tags.has("elegant") ? "formal" : "casual");
+
+  return {
+    ...input,
+    tags: Array.from(tags).join(","),
+    season,
+    occasion,
+  };
+}
+
+async function assessTryOnQuality(params: {
+  modelImageUrl: string;
+  itemImageUrl: string;
+  resultImageUrl: string;
+  category: "jewelry" | "shoes" | "clothing" | "accessories" | "outfit";
+  pose: "front" | "side" | "walking" | "back";
+}): Promise<QualityAssessment> {
+  try {
+    const response = await invokeLLM({
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text:
+                "Evaluate virtual try-on quality. Input image A is original model, B is item reference, C is generated result. " +
+                `Category=${params.category}, requestedPose=${params.pose}. ` +
+                "Score 0-100 for pose fidelity, placement accuracy, and realistic proportions. " +
+                "Set verdict=retry if overall < 72 or if severe defects exist (wrong pose, oversized item, bad placement).",
+            },
+            { type: "image_url", image_url: { url: params.modelImageUrl } },
+            { type: "image_url", image_url: { url: params.itemImageUrl } },
+            { type: "image_url", image_url: { url: params.resultImageUrl } },
+          ],
+        },
+      ],
+      outputSchema: {
+        name: "quality_assessment",
+        strict: true,
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            overall: { type: "number" },
+            pose: { type: "number" },
+            placement: { type: "number" },
+            proportion: { type: "number" },
+            verdict: { type: "string", enum: ["pass", "retry"] },
+            reason: { type: "string" },
+          },
+          required: ["overall", "pose", "placement", "proportion", "verdict", "reason"],
+        },
+      },
+    });
+    const content = response.choices?.[0]?.message?.content;
+    const text =
+      typeof content === "string"
+        ? content
+        : Array.isArray(content)
+          ? content.map((c: any) => (c?.type === "text" ? c.text : "")).join(" ").trim()
+          : "";
+    const parsed = JSON.parse(text) as QualityAssessment;
+    return {
+      overall: Number(parsed.overall) || 0,
+      pose: Number(parsed.pose) || 0,
+      placement: Number(parsed.placement) || 0,
+      proportion: Number(parsed.proportion) || 0,
+      verdict: parsed.verdict === "pass" ? "pass" : "retry",
+      reason: parsed.reason || "Quality check fallback",
+    };
+  } catch (err) {
+    console.warn("[TryOn] quality assessment failed, using fallback score", err);
+    return {
+      overall: 70,
+      pose: 70,
+      placement: 70,
+      proportion: 70,
+      verdict: "retry",
+      reason: "Automatic quality evaluator unavailable",
+    };
+  }
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -17,6 +190,12 @@ export const appRouter = router({
   // ============================================
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+
+    // Vérifie si l'utilisateur connecté a un accès premium gratuit permanent
+    isPrivileged: protectedProcedure.query(({ ctx }) => {
+      const email = ctx.user.email?.toLowerCase() ?? "";
+      return { privileged: PRIVILEGED_EMAILS.has(email) };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -477,9 +656,20 @@ export const appRouter = router({
         notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const smart = inferWardrobeTags({
+          name: input.name,
+          category: input.category,
+          color: input.color,
+          tags: input.tags,
+          season: input.season,
+          occasion: input.occasion,
+        });
         return db.createWardrobeItem({
           userId: ctx.user.id,
           ...input,
+          tags: smart.tags,
+          season: smart.season,
+          occasion: smart.occasion,
         });
       }),
 
@@ -528,7 +718,7 @@ export const appRouter = router({
 
         // Decode base64 and upload
         const buffer = Buffer.from(input.base64Data, "base64");
-        const result = await storagePut(key, buffer, input.mimeType || "image/jpeg");
+        const result = await supabaseStoragePut(key, buffer, input.mimeType || "image/jpeg");
 
         return { url: result.url };
       }),
@@ -863,7 +1053,7 @@ export const appRouter = router({
   // VIRTUAL TRY-ON ROUTE
   // ============================================
   virtualTryOn: router({
-    // Generate a try-on image using AI image editing (Nano Banana 2)
+    // Generate a try-on image using AI image editing
     generate: publicProcedure
       .input(z.object({
         modelImageUrl: z.string().url(),
@@ -879,6 +1069,12 @@ export const appRouter = router({
         numSamples: z.number().int().min(1).max(4).default(1),
         // Pose du mannequin
         pose: z.enum(["front", "side", "walking", "back"]).default("front"),
+        // Mode qualité: strict = contraintes renforcées (pose/échelle/intégration)
+        qualityMode: z.enum(["standard", "strict"]).default("standard"),
+        // Mode résultat garanti: relance en arrière-plan jusqu'au seuil minimum
+        guaranteedResult: z.boolean().default(false),
+        qualityThreshold: z.number().min(50).max(95).default(72),
+        modelCandidates: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const itemName = input.jewelryName || input.jewelryType || input.accessoryType || input.category;
@@ -894,8 +1090,13 @@ export const appRouter = router({
 
         // Instruction d'adaptation lumière (commune à tous les prompts)
         const lightingRule = "LIGHTING: Analyze the light source, direction, intensity, and color temperature in Image 1. Apply the exact same lighting to the added item — matching shadows, highlights, and reflections so the item looks naturally lit by the same light as the person.";
+        const jewelryScaleRule = "JEWELRY SCALE: Keep true-to-life jewelry proportions. Never oversized. Earrings must fit earlobe anatomy (small to medium), rings must not exceed finger width, bracelets must hug wrist naturally (not chunky/oversized), necklaces must keep realistic chain thickness and pendant size. Match Image 2 proportions conservatively.";
 
         // ── Prompts courts par catégorie ────────────
+        const strictRule =
+          input.qualityMode === "strict"
+            ? "QUALITY CHECK: Strictly enforce requested pose and anatomical placement. Reject oversized items, wrong body placement, and distorted proportions. Keep rendering photorealistic and coherent."
+            : "";
         let prompt: string;
 
         if (input.category === "jewelry") {
@@ -908,13 +1109,13 @@ export const appRouter = router({
             set: "earrings on ears, necklace on neck, bracelet on wrist",
           };
           const where = placement[input.jewelryType || "earrings"] ?? placement.earrings;
-          prompt = `Virtual try-on. Image 1: person. Image 2: ${input.jewelryType ?? "jewelry"}. Place the jewelry ${where}. Keep face, skin tone, hair, and pose identical. Photorealistic luxury jewelry photography. ${lightingRule}`;
+          prompt = `Virtual try-on. Image 1: person. Image 2: ${input.jewelryType ?? "jewelry"}. Place the jewelry ${where}. Keep face, skin tone, hair, and pose identical. Photorealistic luxury jewelry photography. ${jewelryScaleRule} ${strictRule} ${lightingRule}`;
 
         } else if (input.category === "shoes") {
-          prompt = `Virtual try-on. Image 1: person. Image 2: shoes. Show full body head-to-toe (9:16 portrait), ${pose}. Place these exact shoes on both feet. Feet fully visible at bottom. Keep face, hair, skin, clothing unchanged. ${lightingRule}`;
+          prompt = `Virtual try-on. Image 1: person. Image 2: shoes. Show full body head-to-toe (9:16 portrait), ${pose}. Place these exact shoes on both feet. Feet fully visible at bottom. Keep face, hair, skin, clothing unchanged. ${strictRule} ${lightingRule}`;
 
         } else if (input.category === "clothing") {
-          prompt = `Virtual try-on. Image 1: person. Image 2: garment. Show full body head-to-toe (9:16 portrait), ${pose}. Dress the person in this exact garment. Full outfit visible, no cropping. Keep face, skin, hair unchanged. ${lightingRule}`;
+          prompt = `Virtual try-on. Image 1: person. Image 2: garment. Show full body head-to-toe (9:16 portrait), ${pose}. Dress the person in this exact garment. Full outfit visible, no cropping. Keep face, skin, hair unchanged. ${strictRule} ${lightingRule}`;
 
         } else {
           const accPlacement: Record<string, string> = {
@@ -927,41 +1128,108 @@ export const appRouter = router({
             other: "wearing or carrying the accessory naturally",
           };
           const where = accPlacement[input.accessoryType || "other"] ?? accPlacement.other;
-          prompt = `Virtual try-on. Image 1: person (${pose}). Image 2: ${input.accessoryType ?? "accessory"}. Show the person ${where}. Correct scale, realistic materials. Keep appearance identical. ${lightingRule}`;
+          prompt = `Virtual try-on. Image 1: person (${pose}). Image 2: ${input.accessoryType ?? "accessory"}. Show the person ${where}. Correct scale, realistic materials. Keep appearance identical. ${strictRule} ${lightingRule}`;
         }
 
         // Générer numSamples variantes avec retry automatique (3 tentatives par image)
         const numSamples = input.numSamples ?? 1;
-        const generateWithRetry = async (attempt = 0): Promise<string | null> => {
+        const modelCandidates = parseModelCandidates(input.modelCandidates);
+        let totalAiCostUsd = 0;
+        let totalAiApiCalls = 0;
+        const generateWithRetry = async (
+          attempt = 0,
+          strictBoost = false,
+        ): Promise<{ url: string; modelUsed?: string; aiCostUsd: number; aiApiCalls: number } | null> => {
           try {
             const result = await generateImage({
-              prompt,
+              prompt: strictBoost
+                ? `${prompt} STRICT RESULT: keep pose and placement exact, no distortions, no oversized item.`
+                : prompt,
+              modelCandidates,
               originalImages: [
                 { url: input.modelImageUrl, mimeType: "image/jpeg" },
                 { url: input.jewelryImageUrl, mimeType: "image/jpeg" },
               ],
             });
-            return result.url ?? null;
-          } catch (err) {
+            if (!result.url) return null;
+            const aiCostUsd = result.estimatedCostUsd ?? 0;
+            const aiApiCalls = result.apiCalls ?? 0;
+            totalAiCostUsd += aiCostUsd;
+            totalAiApiCalls += aiApiCalls;
+            return { url: result.url, modelUsed: result.modelUsed, aiCostUsd, aiApiCalls };
+          } catch (err: any) {
+            console.error(`[TryOn] Attempt ${attempt} failed:`, err.message || err);
             if (attempt < 2) {
               await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-              return generateWithRetry(attempt + 1);
+              return generateWithRetry(attempt + 1, strictBoost);
             }
             return null;
           }
         };
 
-        // Générer séquentiellement pour éviter la surcharge (max 2 en parallèle)
+        // Générer jusqu'à atteindre le nombre demandé (avec plafond d'essais)
+        // pour éviter de renvoyer 1 image quand l'utilisateur en demande 2/4.
         const urls: string[] = [];
-        const batchSize = Math.min(numSamples, 2);
-        for (let i = 0; i < numSamples; i += batchSize) {
-          const batch = Array.from({ length: Math.min(batchSize, numSamples - i) }, () => generateWithRetry());
+        const modelsUsed = new Set<string>();
+        const maxAttempts = Math.max(numSamples * 4, 8);
+        let attempts = 0;
+        while (urls.length < numSamples && attempts < maxAttempts) {
+          const remaining = numSamples - urls.length;
+          const batchSize = Math.min(remaining, 2);
+          const batch = Array.from({ length: batchSize }, () => generateWithRetry());
           const batchResults = await Promise.all(batch);
-          urls.push(...batchResults.filter((u): u is string => !!u));
+          for (const item of batchResults) {
+            if (!item?.url) continue;
+            urls.push(item.url);
+            if (item.modelUsed) modelsUsed.add(item.modelUsed);
+          }
+          attempts += batchSize;
+
+          if (urls.length < numSamples) {
+            await new Promise((r) => setTimeout(r, 700));
+          }
         }
 
         if (urls.length === 0) {
           throw new Error("Image generation failed after 3 attempts");
+        }
+        if (urls.length < numSamples) {
+          console.warn(`[TryOn] Partial result: ${urls.length}/${numSamples} images generated`);
+        }
+
+        let qualityAssessment: QualityAssessment | null = null;
+        const threshold = input.qualityThreshold ?? 72;
+        if (urls[0]) {
+          qualityAssessment = await assessTryOnQuality({
+            modelImageUrl: input.modelImageUrl,
+            itemImageUrl: input.jewelryImageUrl,
+            resultImageUrl: urls[0],
+            category: input.category,
+            pose: input.pose,
+          });
+        }
+
+        if (input.guaranteedResult && urls[0]) {
+          const maxGuaranteeRounds = 2;
+          let round = 0;
+          while (round < maxGuaranteeRounds && qualityAssessment && qualityAssessment.overall < threshold) {
+            round += 1;
+            const strictRetry = await generateWithRetry(0, true);
+            if (!strictRetry?.url) break;
+            if (strictRetry.modelUsed) modelsUsed.add(strictRetry.modelUsed);
+            const strictAssessment = await assessTryOnQuality({
+              modelImageUrl: input.modelImageUrl,
+              itemImageUrl: input.jewelryImageUrl,
+              resultImageUrl: strictRetry.url,
+              category: input.category,
+              pose: input.pose,
+            });
+            if (strictAssessment.overall >= (qualityAssessment?.overall ?? 0)) {
+              urls[0] = strictRetry.url;
+              qualityAssessment = strictAssessment;
+            }
+            if (strictAssessment.overall >= threshold) break;
+          }
         }
 
         return {
@@ -970,6 +1238,12 @@ export const appRouter = router({
           jewelryName: itemName,
           jewelryType: input.jewelryType || input.accessoryType || input.category,
           category: input.category,
+          qualityScore: qualityAssessment?.overall ?? null,
+          qualityDetails: qualityAssessment,
+          modelsUsed: Array.from(modelsUsed),
+          guaranteed: input.guaranteedResult,
+          aiCostUsd: Number(totalAiCostUsd.toFixed(6)),
+          aiApiCalls: totalAiApiCalls,
         };
       }),
 
@@ -1021,6 +1295,11 @@ export const appRouter = router({
         pose: z.enum(["front", "side", "walking", "back"]).default("front"),
         // Nombre de variantes
         numSamples: z.number().int().min(1).max(4).default(1),
+        // Mode qualité: strict = contraintes renforcées
+        qualityMode: z.enum(["standard", "strict"]).default("standard"),
+        guaranteedResult: z.boolean().default(false),
+        qualityThreshold: z.number().min(50).max(95).default(72),
+        modelCandidates: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const posePhrases: Record<string, string> = {
@@ -1031,6 +1310,15 @@ export const appRouter = router({
         };
         const pose = posePhrases[input.pose ?? "front"] ?? posePhrases.front;
         const lightingRule = "LIGHTING: Match the lighting, shadows, and color temperature of Image 1 exactly on all added items.";
+        const jewelryScaleRule = "JEWELRY SCALE: All jewelry must remain true-to-life and subtle, never oversized. Preserve realistic proportions to anatomy: earrings fitted to earlobes, rings within finger width, bracelets close to wrist circumference, necklaces with realistic chain/pendant dimensions. Favor slightly smaller scale if uncertain.";
+        const fullOutfitReplacementRule = "WARDROBE REPLACEMENT: Replace all visible original clothes from Image 1. Do not keep, blend, or partially preserve any original garment, pattern, logo, sleeve, collar, hem, or fabric from the source outfit. The final look must be a complete new outfit.";
+        const strictRule =
+          input.qualityMode === "strict"
+            ? "QUALITY CHECK: Strictly enforce requested pose and full outfit replacement. Reject outputs with leftover original garments, oversized jewelry, wrong body placement, or anatomy distortions."
+            : "";
+        const hasTopProvided = Boolean(input.tshirtImageUrl || input.jacketImageUrl);
+        const hasBottomProvided = Boolean(input.pantsImageUrl || input.skirtImageUrl);
+        const missingGarmentFallbackRule = `${hasTopProvided ? "" : "TOP FALLBACK: If no top reference is provided, generate a simple neutral top that matches the outfit style."} ${hasBottomProvided ? "" : "BOTTOM FALLBACK: If no bottom reference is provided, generate simple neutral pants or skirt that matches the outfit style."}`.trim();
 
         // Construire la liste des images de référence et les instructions
         const referenceImages: { url: string; mimeType: string }[] = [
@@ -1117,19 +1405,34 @@ export const appRouter = router({
           throw new Error("At least one item must be selected for outfit try-on");
         }
 
-        const prompt = `Full outfit virtual try-on. Image 1: person (${pose}). ${instructions.join(". ")}. Show full body head-to-toe (9:16 portrait). Keep face, skin tone, and hair identical. Photorealistic fashion photography. ${lightingRule}`;
+        const prompt = `Full outfit virtual try-on. Image 1: person (${pose}). ${instructions.join(". ")}. Show full body head-to-toe (9:16 portrait). Keep face, skin tone, and hair identical. Photorealistic fashion photography. ${fullOutfitReplacementRule} ${missingGarmentFallbackRule} ${jewelryScaleRule} ${strictRule} ${lightingRule}`;
 
-        const generateWithRetry = async (attempt = 0): Promise<string | null> => {
+        const modelCandidates = parseModelCandidates(input.modelCandidates);
+        let totalAiCostUsd = 0;
+        let totalAiApiCalls = 0;
+        const generateWithRetry = async (
+          attempt = 0,
+          strictBoost = false,
+        ): Promise<{ url: string; modelUsed?: string; aiCostUsd: number; aiApiCalls: number } | null> => {
           try {
             const result = await generateImage({
-              prompt,
+              prompt: strictBoost
+                ? `${prompt} STRICT RESULT: enforce complete wardrobe replacement and precise anatomical placement for every item.`
+                : prompt,
+              modelCandidates,
               originalImages: referenceImages,
             });
-            return result.url ?? null;
-          } catch (err) {
+            if (!result.url) return null;
+            const aiCostUsd = result.estimatedCostUsd ?? 0;
+            const aiApiCalls = result.apiCalls ?? 0;
+            totalAiCostUsd += aiCostUsd;
+            totalAiApiCalls += aiApiCalls;
+            return { url: result.url, modelUsed: result.modelUsed, aiCostUsd, aiApiCalls };
+          } catch (err: any) {
+            console.error(`[TryOn Outfit] Attempt ${attempt} failed:`, err.message || err);
             if (attempt < 2) {
               await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-              return generateWithRetry(attempt + 1);
+              return generateWithRetry(attempt + 1, strictBoost);
             }
             return null;
           }
@@ -1137,21 +1440,79 @@ export const appRouter = router({
 
         const numSamples = input.numSamples ?? 1;
         const urls: string[] = [];
-        const batchSize = Math.min(numSamples, 2);
-        for (let i = 0; i < numSamples; i += batchSize) {
-          const batch = Array.from({ length: Math.min(batchSize, numSamples - i) }, () => generateWithRetry());
+        const modelsUsed = new Set<string>();
+        const maxAttempts = Math.max(numSamples * 4, 8);
+        let attempts = 0;
+        while (urls.length < numSamples && attempts < maxAttempts) {
+          const remaining = numSamples - urls.length;
+          const batchSize = Math.min(remaining, 2);
+          const batch = Array.from({ length: batchSize }, () => generateWithRetry());
           const batchResults = await Promise.all(batch);
-          urls.push(...batchResults.filter((u): u is string => !!u));
+          for (const item of batchResults) {
+            if (!item?.url) continue;
+            urls.push(item.url);
+            if (item.modelUsed) modelsUsed.add(item.modelUsed);
+          }
+          attempts += batchSize;
+
+          if (urls.length < numSamples) {
+            await new Promise((r) => setTimeout(r, 700));
+          }
         }
 
         if (urls.length === 0) {
           throw new Error("Outfit generation failed after 3 attempts");
+        }
+        if (urls.length < numSamples) {
+          console.warn(`[TryOn Outfit] Partial result: ${urls.length}/${numSamples} images generated`);
+        }
+
+        let qualityAssessment: QualityAssessment | null = null;
+        const threshold = input.qualityThreshold ?? 72;
+        const firstReference = referenceImages[1]?.url ?? input.modelImageUrl;
+        if (urls[0]) {
+          qualityAssessment = await assessTryOnQuality({
+            modelImageUrl: input.modelImageUrl,
+            itemImageUrl: firstReference,
+            resultImageUrl: urls[0],
+            category: "outfit",
+            pose: input.pose,
+          });
+        }
+
+        if (input.guaranteedResult && urls[0]) {
+          const maxGuaranteeRounds = 2;
+          let round = 0;
+          while (round < maxGuaranteeRounds && qualityAssessment && qualityAssessment.overall < threshold) {
+            round += 1;
+            const strictRetry = await generateWithRetry(0, true);
+            if (!strictRetry?.url) break;
+            if (strictRetry.modelUsed) modelsUsed.add(strictRetry.modelUsed);
+            const strictAssessment = await assessTryOnQuality({
+              modelImageUrl: input.modelImageUrl,
+              itemImageUrl: firstReference,
+              resultImageUrl: strictRetry.url,
+              category: "outfit",
+              pose: input.pose,
+            });
+            if (strictAssessment.overall >= (qualityAssessment?.overall ?? 0)) {
+              urls[0] = strictRetry.url;
+              qualityAssessment = strictAssessment;
+            }
+            if (strictAssessment.overall >= threshold) break;
+          }
         }
 
         return {
           resultImageUrl: urls[0],
           resultImageUrls: urls,
           category: "outfit" as const,
+          qualityScore: qualityAssessment?.overall ?? null,
+          qualityDetails: qualityAssessment,
+          modelsUsed: Array.from(modelsUsed),
+          guaranteed: input.guaranteedResult,
+          aiCostUsd: Number(totalAiCostUsd.toFixed(6)),
+          aiApiCalls: totalAiApiCalls,
         };
       }),
   }),  // fin virtualTryOn
@@ -1187,14 +1548,22 @@ export const appRouter = router({
         jewelryType: z.string().max(64).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        const authorName = normalizeCommunityText(input.authorName);
+        const content = normalizeCommunityText(input.content);
+        if (!authorName || !content) {
+          throw new Error("Le texte de la publication est invalide.");
+        }
+        if (containsBlockedCommunityTerm(content)) {
+          throw new Error("Contenu non autorise. Merci de reformuler.");
+        }
         const dbInstance = await db.getDb();
         if (!dbInstance) throw new Error('DB not available');
         const { communityPosts } = await import('../drizzle/schema');
         const [result] = await dbInstance.insert(communityPosts).values({
           userId: ctx.user.id,
-          authorName: input.authorName,
+          authorName,
           authorAvatar: input.authorAvatar || null,
-          content: input.content,
+          content,
           imageUrl: input.imageUrl || null,
           jewelryType: input.jewelryType || null,
           likesCount: 0,
@@ -1371,6 +1740,53 @@ export const appRouter = router({
           .set({ status: input.status })
           .where(eq(partnerApplications.id, input.id));
         return { success: true };
+      }),
+  }),
+
+  // ============================================
+  // MONETIZATION / LAUNCH OFFERS
+  // ============================================
+  monetization: router({
+    getLaunchOfferStatus: publicProcedure
+      .input(z.object({ clientId: z.string().min(8).max(128).optional() }).optional())
+      .query(async ({ input }) => {
+        const counts = await db.getLaunchOfferCampaignCounts();
+        const order = db.getLaunchCampaignOrder();
+        const campaigns = order.map((campaignKey) => {
+          const used = counts[campaignKey] ?? 0;
+          const limit = db.getLaunchCampaignLimit(campaignKey);
+          return {
+            campaignKey,
+            used,
+            limit,
+            remaining: Math.max(0, limit - used),
+          };
+        });
+
+        const activeCampaignKey = await db.getCurrentLaunchCampaign(counts);
+        const existingClaim = input?.clientId
+          ? await db.getLaunchOfferClaimByClientId(input.clientId)
+          : null;
+
+        return {
+          campaigns,
+          activeCampaignKey,
+          existingClaimCampaignKey: existingClaim?.campaignKey ?? null,
+        };
+      }),
+
+    claimLaunchOffer: publicProcedure
+      .input(z.object({ clientId: z.string().min(8).max(128) }))
+      .mutation(async ({ input }) => {
+        const claim = await db.claimLaunchOfferForClient(input.clientId);
+        if (!claim) {
+          return { success: false as const, campaignKey: null };
+        }
+        return {
+          success: true as const,
+          campaignKey: claim.campaignKey,
+          createdAt: claim.createdAt,
+        };
       }),
   }),
 });

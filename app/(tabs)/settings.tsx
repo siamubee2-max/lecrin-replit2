@@ -576,6 +576,7 @@ export default function SettingsScreen() {
         onClose={() => setShowPaywall(false)}
         onPurchasePremium={subscription.purchasePremiumMonthly}
         onPurchasePremiumPlus={subscription.purchasePremiumYearly}
+        onPurchaseStoreProduct={subscription.purchaseStoreProduct}
         onPurchaseJewelry={subscription.purchaseJewelry}
         onPurchaseCredits={subscription.purchaseCredits}
         onRestore={subscription.restorePurchases}

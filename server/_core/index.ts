@@ -64,6 +64,11 @@ async function startServer() {
     next();
   });
 
+  app.use((req, res, next) => {
+    console.log(`[Express] ${req.method} ${req.url}`);
+    next();
+  });
+
   // RevenueCat webhook needs raw body for signature verification
   app.use("/api/webhooks/revenuecat", express.raw({ type: "application/json" }));
   app.use(express.json({ limit: "50mb" }));
@@ -117,7 +122,11 @@ async function startServer() {
         "ecrin.jewelry.monthly": { tier: "basic", monthlyLimit: 100 },  // Essentiel 14,99€
         "ecrin.essentiel.monthly": { tier: "basic", monthlyLimit: 100 },  // alias renommé
         "ecrin.premium.monthly": { tier: "premium", monthlyLimit: 150 }, // Premium 24,99€
+        "ecrin.premium.monthly.launch10": { tier: "premium", monthlyLimit: 150 },
         "ecrin.premium.yearly": { tier: "yearly", monthlyLimit: 1500 }, // Annuel 199,99€
+        "ecrin.premium.yearly.launch50": { tier: "yearly", monthlyLimit: 10000 }, // Offre fondateur
+        "ecrin.premium.yearly.launch25": { tier: "yearly", monthlyLimit: 1500 },
+        "ecrin.premium.yearly.launch10": { tier: "yearly", monthlyLimit: 1500 },
       };
 
       if (appUserId) {
@@ -176,6 +185,10 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError: ({ error, type, path, input, ctx, req }) => {
+        console.error(`[tRPC] Error on ${path}:`, error.message);
+        console.error(error.cause);
+      },
     }),
   );
 

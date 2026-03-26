@@ -13,14 +13,15 @@ import {
   Dimensions,
   Alert,
   Animated,
-} from "react-native";
+  Easing,
+  PanResponder,
+ Share } from "react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { Share } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
@@ -30,6 +31,12 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PaywallModal } from "@/components/paywall/PaywallModal";
+import { recordLookAction } from "@/services/look-learning-service";
+import { recordTryOnTelemetry, type TryOnType } from "@/services/tryon-observability-service";
+import { trackGuidedTryOnCompleted, trackLookSaved, trackTryOnQualityFeedback } from "@/lib/analytics";
+import Svg, { Circle } from "react-native-svg";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // Convertit une URI locale (file:// ou content://) en URL publique via upload
 async function ensurePublicUrl(
@@ -157,6 +164,14 @@ const JEWELRY_TYPES = [
 
 type JewelryTypeKey = typeof JEWELRY_TYPES[number]["key"];
 type GalleryItem = { id: string; uri: string; label: string };
+type TryOnQualityReport = {
+  score: number;
+  expectedCount: number;
+  generatedCount: number;
+  distinctCount: number;
+  poseCoverage: number;
+  autoRetried: boolean;
+};
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -171,6 +186,8 @@ export type TryOnHistoryEntry = {
   modelImageUrl: string;
   itemImageUrl: string;
 };
+
+const LOCAL_COLLECTION_KEY = "@ecrin_local_collection";
 
 // ─── Mannequins Chaussures ─────────────────────────────────────────────────────
 const SHOES_MANNEQUIN_SECTIONS = [
@@ -441,6 +458,9 @@ export default function TryOnScreen() {
     section?: string;
     itemId?: string;
     itemName?: string;
+    presetSubType?: string;
+    guideSteps?: string;
+    guideIndex?: string;
     // Params de relance depuis l'historique
     retryModelUrl?: string;
     retryItemUrl?: string;
@@ -454,6 +474,7 @@ export default function TryOnScreen() {
   }>();
 
   const initialMode: TryOnMode = useMemo(() => {
+    if (params.section === "outfit") return "outfit";
     if (params.section === "shoes") return "shoes";
     if (params.section === "clothing") return "clothing";
     if (params.section === "accessories") return "accessories";
@@ -466,6 +487,43 @@ export default function TryOnScreen() {
   const [numSamples, setNumSamples] = useState<1 | 2 | 4>(1);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [selectedJewelry, setSelectedJewelry] = useState<GalleryItem | null>(null);
+  const guideSteps = useMemo(() => {
+    if (!params.guideSteps) return [] as { section: string; itemId: string; itemName: string; presetSubType?: string }[];
+    try {
+      const parsed = JSON.parse(params.guideSteps as string);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [params.guideSteps]);
+  const guideIndex = useMemo(() => {
+    const n = Number(params.guideIndex ?? "0");
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }, [params.guideIndex]);
+  const isGuidedFlow = guideSteps.length > 0;
+  const currentGuideStep = isGuidedFlow ? guideSteps[Math.min(guideIndex, guideSteps.length - 1)] : null;
+  const hasNextGuideStep = isGuidedFlow && guideIndex < guideSteps.length - 1;
+  const guidedCompletionKeyRef = useRef<string | null>(null);
+
+  const findPresetItem = useCallback((itemId: string): GalleryItem | null => {
+    const fromJewelry = Object.entries(JEWELRY_BY_TYPE).find(([, list]) => list.some((item) => item.id === itemId));
+    if (fromJewelry) {
+      const [type, list] = fromJewelry;
+      setSelectedJewelryType(type as JewelryTypeKey);
+      return list.find((item) => item.id === itemId) ?? null;
+    }
+    const fromShoes = SHOES_DEMO.find((item) => item.id === itemId);
+    if (fromShoes) return fromShoes;
+    const fromClothing = CLOTHING_DEMO.find((item) => item.id === itemId);
+    if (fromClothing) return fromClothing;
+    const fromAccessories = Object.entries(ACCESSORIES_BY_TYPE).find(([, list]) => list.some((item) => item.id === itemId));
+    if (fromAccessories) {
+      const [type, list] = fromAccessories;
+      setSelectedAccessoryType(type as AccessoryTypeKey);
+      return list.find((item) => item.id === itemId) ?? null;
+    }
+    return null;
+  }, []);
 
   // Pré-remplissage depuis la boutique (bouton ESSAYER)
   const hasPartnerParams = !!(params.partnerJewelryId && params.partnerJewelryImage);
@@ -508,6 +566,34 @@ export default function TryOnScreen() {
       }
     }
   }, [hasRetryParams]);
+
+  // Pré-remplissage rapide depuis le look du jour
+  useEffect(() => {
+    if (!params.presetSubType) return;
+    if (params.section === "jewelry") {
+      const validJewelryTypes: JewelryTypeKey[] = ["earrings", "necklace", "bracelet", "ring", "anklet", "set"];
+      if (validJewelryTypes.includes(params.presetSubType as JewelryTypeKey)) {
+        setSelectedJewelryType(params.presetSubType as JewelryTypeKey);
+      }
+    }
+    if (params.section === "accessories") {
+      const validAccessoryTypes: AccessoryTypeKey[] = ["bag", "belt", "sunglasses", "scarf", "hat", "watch", "other"];
+      if (validAccessoryTypes.includes(params.presetSubType as AccessoryTypeKey)) {
+        setSelectedAccessoryType(params.presetSubType as AccessoryTypeKey);
+      }
+    }
+  }, [params.presetSubType, params.section]);
+
+  useEffect(() => {
+    if (!params.itemId) return;
+    const preset = findPresetItem(params.itemId);
+    if (preset) {
+      setSelectedJewelry(preset);
+      if (params.itemName) {
+        setSelectedJewelry((prev) => (prev ? { ...prev, label: params.itemName as string } : prev));
+      }
+    }
+  }, [findPresetItem, params.itemId, params.itemName]);
   const [showMannequinModal, setShowMannequinModal] = useState(false);
   const [showJewelryModal, setShowJewelryModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -517,14 +603,39 @@ export default function TryOnScreen() {
   const [resultImageUrls, setResultImageUrls] = useState<string[]>([]);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number | null>(null);
   const [progressStep, setProgressStep] = useState(0);
+  const [qualityReport, setQualityReport] = useState<TryOnQualityReport | null>(null);
+  const [isCompareMode, setIsCompareMode] = useState(false);
+  const [compareRatio, setCompareRatio] = useState(0.5);
+  const [compareLayoutWidth, setCompareLayoutWidth] = useState(0);
+  const [compareLayoutHeight, setCompareLayoutHeight] = useState(0);
+  const [compareScale, setCompareScale] = useState(1);
+  const [compareTranslateX, setCompareTranslateX] = useState(0);
+  const [compareTranslateY, setCompareTranslateY] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [qualityFeedbackVote, setQualityFeedbackVote] = useState<"positive" | "negative" | null>(null);
+  const [lastAiCostUsd, setLastAiCostUsd] = useState<number | null>(null);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [selectedPose, setSelectedPose] = useState<PoseKey>("front");
+  const [queuedRequests, setQueuedRequests] = useState(0);
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const resultRevealAnim = useRef(new Animated.Value(0)).current;
+  const autoAdvanceRingAnim = useRef(new Animated.Value(1)).current;
+  const autoAdvanceGlowAnim = useRef(new Animated.Value(0.35)).current;
+  const resultCarouselRef = useRef<FlatList<string>>(null);
+  const compareModeRef = useRef<"slider" | "pan">("slider");
+  const compareStartScaleRef = useRef(1);
+  const compareStartDistanceRef = useRef(0);
+  const compareStartCenterRef = useRef({ x: 0, y: 0 });
+  const compareStartTranslateRef = useRef({ x: 0, y: 0 });
+  const compareLastTapTimeRef = useRef(0);
+  const compareLastTapPosRef = useRef({ x: 0, y: 0 });
+  const tryOnQueueRef = useRef<Array<{ forceStrict?: boolean }>>([]);
 
   const { user } = useAuth();
   const addToCollectionMutation = trpc.collection.add.useMutation();
+  const createCommunityPostMutation = trpc.community.create.useMutation();
   const uploadImageMutation = trpc.ai.uploadImage.useMutation();
   const tryOnMutation = trpc.virtualTryOn.generate.useMutation();
 
@@ -558,8 +669,129 @@ export default function TryOnScreen() {
     return () => clearInterval(stepInterval);
   }, [isProcessing]);
 
+  useEffect(() => {
+    if (!showResultModal) {
+      resultRevealAnim.setValue(0);
+      return;
+    }
+    Animated.timing(resultRevealAnim, {
+      toValue: 1,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }, [showResultModal, resultRevealAnim]);
+
   const currentType = JEWELRY_TYPES.find(t => t.key === selectedJewelryType)!;
   const jewelryOptions = JEWELRY_BY_TYPE[selectedJewelryType] || [];
+  const comparePanResponder = useMemo(
+    () => {
+      const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+      const clampTranslate = (tx: number, ty: number, scale: number) => {
+        const maxX = ((compareLayoutWidth || SCREEN_WIDTH) * (scale - 1)) / 2;
+        const maxY = ((compareLayoutHeight || 1) * (scale - 1)) / 2;
+        return {
+          x: clamp(tx, -maxX, maxX),
+          y: clamp(ty, -maxY, maxY),
+        };
+      };
+
+      return PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (evt) => {
+          const touches = evt.nativeEvent.touches;
+          if (touches.length >= 2) {
+            const [a, b] = touches;
+            compareStartDistanceRef.current = Math.hypot(b.pageX - a.pageX, b.pageY - a.pageY);
+            compareStartScaleRef.current = compareScale;
+            compareStartCenterRef.current = {
+              x: (a.pageX + b.pageX) / 2,
+              y: (a.pageY + b.pageY) / 2,
+            };
+            compareStartTranslateRef.current = { x: compareTranslateX, y: compareTranslateY };
+            return;
+          }
+          const now = Date.now();
+          const tapX = evt.nativeEvent.locationX;
+          const tapY = evt.nativeEvent.locationY;
+          const msSinceLastTap = now - compareLastTapTimeRef.current;
+          const distSinceLastTap = Math.hypot(
+            tapX - compareLastTapPosRef.current.x,
+            tapY - compareLastTapPosRef.current.y,
+          );
+          const isDoubleTap = msSinceLastTap <= 280 && distSinceLastTap <= 24;
+          compareLastTapTimeRef.current = now;
+          compareLastTapPosRef.current = { x: tapX, y: tapY };
+
+          if (isDoubleTap) {
+            const w = compareLayoutWidth || SCREEN_WIDTH;
+            const h = compareLayoutHeight || 1;
+            if (compareScale > 1.2) {
+              setCompareScale(1);
+              setCompareTranslateX(0);
+              setCompareTranslateY(0);
+            } else {
+              const targetScale = 2.2;
+              const focalX = tapX - w / 2;
+              const focalY = tapY - h / 2;
+              const targetTx = -focalX * (targetScale - 1);
+              const targetTy = -focalY * (targetScale - 1);
+              const clamped = clampTranslate(targetTx, targetTy, targetScale);
+              setCompareScale(targetScale);
+              setCompareTranslateX(clamped.x);
+              setCompareTranslateY(clamped.y);
+            }
+            compareModeRef.current = "pan";
+            return;
+          }
+          compareModeRef.current = compareScale > 1.03 ? "pan" : "slider";
+          compareStartTranslateRef.current = { x: compareTranslateX, y: compareTranslateY };
+          if (compareLayoutWidth > 0 && compareModeRef.current === "slider") {
+            const ratio = clamp(evt.nativeEvent.locationX / compareLayoutWidth, 0.05, 0.95);
+            setCompareRatio(ratio);
+          }
+        },
+        onPanResponderMove: (evt, gestureState) => {
+          const touches = evt.nativeEvent.touches;
+          if (touches.length >= 2) {
+            const [a, b] = touches;
+            const distance = Math.hypot(b.pageX - a.pageX, b.pageY - a.pageY);
+            const startDistance = compareStartDistanceRef.current || distance;
+            const nextScale = clamp(compareStartScaleRef.current * (distance / Math.max(1, startDistance)), 1, 3.5);
+            setCompareScale(nextScale);
+            const center = {
+              x: (a.pageX + b.pageX) / 2,
+              y: (a.pageY + b.pageY) / 2,
+            };
+            const dx = center.x - compareStartCenterRef.current.x;
+            const dy = center.y - compareStartCenterRef.current.y;
+            const clamped = clampTranslate(
+              compareStartTranslateRef.current.x + dx,
+              compareStartTranslateRef.current.y + dy,
+              nextScale,
+            );
+            setCompareTranslateX(clamped.x);
+            setCompareTranslateY(clamped.y);
+            return;
+          }
+          if (compareModeRef.current === "pan" && compareScale > 1.03) {
+            const clamped = clampTranslate(
+              compareStartTranslateRef.current.x + gestureState.dx,
+              compareStartTranslateRef.current.y + gestureState.dy,
+              compareScale,
+            );
+            setCompareTranslateX(clamped.x);
+            setCompareTranslateY(clamped.y);
+            return;
+          }
+          if (compareLayoutWidth <= 0) return;
+          const ratio = clamp(evt.nativeEvent.locationX / compareLayoutWidth, 0.05, 0.95);
+          setCompareRatio(ratio);
+        },
+      });
+    },
+    [compareLayoutHeight, compareLayoutWidth, compareScale, compareTranslateX, compareTranslateY],
+  );
 
   const handlePickFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -595,18 +827,20 @@ export default function TryOnScreen() {
   };
 
   const handleSelectMannequin = useCallback((item: GalleryItem) => {
+    void Image.prefetch(item.uri).catch(() => undefined);
     setUserPhoto(item.uri);
     setShowMannequinModal(false);
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const handleSelectJewelry = useCallback((item: GalleryItem) => {
+    void Image.prefetch(item.uri).catch(() => undefined);
     setSelectedJewelry(item);
     setShowJewelryModal(false);
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const handleTryOn = async () => {
+  const handleTryOn = async (options?: { forceStrict?: boolean; fromQueue?: boolean }) => {
     // Vérification abonnement
     if (!subscription.canUseVirtualTryOn) {
       setShowPaywall(true);
@@ -620,35 +854,194 @@ export default function TryOnScreen() {
       Alert.alert("Bijou manquant", "Veuillez sélectionner un bijou à essayer.");
       return;
     }
+    if (isProcessing && !options?.fromQueue) {
+      tryOnQueueRef.current.push({ forceStrict: options?.forceStrict });
+      setQueuedRequests(tryOnQueueRef.current.length);
+      return;
+    }
+    const startedAt = Date.now();
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsProcessing(true);
     setResultImageUrl(null);
+    setQualityReport(null);
+    setLastAiCostUsd(null);
+    setIsSaved(false);
+    setIsCompareMode(false);
+    setCompareRatio(0.5);
+    setCompareScale(1);
+    setCompareTranslateX(0);
+    setCompareTranslateY(0);
     try {
+      let backendQualityScore: number | null = null;
+      let accumulatedAiCostUsd = 0;
+      await Promise.allSettled([
+        Image.prefetch(userPhoto),
+        Image.prefetch(selectedJewelry.uri),
+      ]);
       // Convertir les URIs locales en URLs publiques si nécessaire
       const [publicModelUrl, publicJewelryUrl] = await Promise.all([
         ensurePublicUrl(userPhoto, uploadImageMutation),
         ensurePublicUrl(selectedJewelry.uri, uploadImageMutation),
       ]);
-      const result = await tryOnMutation.mutateAsync({
+      const requestPayload = {
         modelImageUrl: publicModelUrl,
         jewelryImageUrl: publicJewelryUrl,
         category: tryOnMode as "jewelry" | "shoes" | "clothing" | "accessories",
         ...(tryOnMode === "jewelry" ? { jewelryType: selectedJewelryType } : {}),
         ...(tryOnMode === "accessories" ? { accessoryType: selectedAccessoryType } : {}),
         jewelryName: selectedJewelry.label,
-        numSamples,
-        pose: selectedPose,
-      });
+      };
+
+      const scoreGenerationQuality = (
+        urls: string[],
+        expectedCount: number,
+        poseCoverage: number,
+        autoRetried: boolean,
+      ): TryOnQualityReport => {
+        const distinctCount = new Set(urls).size;
+        const generatedCount = urls.length;
+        const countScore = Math.round(40 * Math.min(1, generatedCount / Math.max(1, expectedCount)));
+        const distinctScore = generatedCount === 0 ? 0 : Math.round(30 * Math.min(1, distinctCount / generatedCount));
+        const poseScore = Math.round(30 * Math.min(1, poseCoverage));
+        const score = Math.min(100, countScore + distinctScore + poseScore);
+        return {
+          score,
+          expectedCount,
+          generatedCount,
+          distinctCount,
+          poseCoverage,
+          autoRetried,
+        };
+      };
+
+      const requestDistinctPoseImage = async (
+        pose: PoseKey,
+        used: Set<string>,
+        qualityPlan: ("standard" | "strict")[],
+        fallbackPose?: PoseKey,
+      ): Promise<string | null> => {
+        const poseToUse = fallbackPose ?? pose;
+        for (const qualityMode of qualityPlan) {
+          const result = await tryOnMutation.mutateAsync({
+            ...requestPayload,
+            pose: poseToUse,
+            numSamples: 1,
+            qualityMode,
+            guaranteedResult: qualityMode === "strict",
+            qualityThreshold: 72,
+            modelCandidates: "gemini-3.1-flash-image-preview,gemini-2.0-flash-preview-image-generation",
+          });
+          if (typeof (result as any).qualityScore === "number") {
+            backendQualityScore = Math.max(backendQualityScore ?? 0, (result as any).qualityScore);
+          }
+          if (typeof (result as any).aiCostUsd === "number") {
+            accumulatedAiCostUsd += (result as any).aiCostUsd;
+          }
+          const urls = result.resultImageUrls ?? (result.resultImageUrl ? [result.resultImageUrl] : []);
+          const candidate = urls.find(Boolean) ?? null;
+          if (!candidate) continue;
+          if (!used.has(candidate)) return candidate;
+        }
+        return null;
+      };
+
+      // Multi-poses automatiques :
+      // - 1 image  -> pose sélectionnée
+      // - 2 images -> face + profil
+      // - 4 images -> face + profil + marche + dos
+      const posePlan: PoseKey[] =
+        numSamples >= 4
+          ? ["front", "side", "walking", "back"]
+          : numSamples >= 2
+            ? ["front", "side"]
+            : [selectedPose];
+
+      const targetPoses = posePlan.slice(0, numSamples);
+      const generateWithPlan = async (qualityPlan: ("standard" | "strict")[]) => {
+        const urlByPose = new Map<PoseKey, string>();
+        const usedUrls = new Set<string>();
+        const maxPosePasses = 2;
+
+        for (let pass = 0; pass < maxPosePasses && urlByPose.size < targetPoses.length; pass += 1) {
+          for (const pose of targetPoses) {
+            if (urlByPose.has(pose)) continue;
+            const firstValid = await requestDistinctPoseImage(pose, usedUrls, qualityPlan);
+            if (firstValid && !usedUrls.has(firstValid)) {
+              urlByPose.set(pose, firstValid);
+              usedUrls.add(firstValid);
+            }
+          }
+        }
+
+        if (urlByPose.size < targetPoses.length) {
+          for (const pose of targetPoses) {
+            if (urlByPose.has(pose)) continue;
+            const firstFallback = await requestDistinctPoseImage(pose, usedUrls, qualityPlan, selectedPose);
+            if (firstFallback && !usedUrls.has(firstFallback)) {
+              urlByPose.set(pose, firstFallback);
+              usedUrls.add(firstFallback);
+            }
+          }
+        }
+
+        let urls = targetPoses
+          .map((pose) => urlByPose.get(pose))
+          .filter((u): u is string => Boolean(u))
+          .slice(0, numSamples);
+
+        if (urls.length > 0 && urls.length < numSamples) {
+          const expanded = [...urls];
+          while (expanded.length < numSamples) expanded.push(urls[expanded.length % urls.length]);
+          urls = expanded;
+        }
+        return { urls, poseCoverage: targetPoses.length === 0 ? 0 : urlByPose.size / targetPoses.length };
+      };
+
+      const firstPlan: ("standard" | "strict")[] = options?.forceStrict ? ["strict", "strict", "strict"] : ["standard", "strict", "strict"];
+      let autoRetried = false;
+      let generation = await generateWithPlan(firstPlan);
+      let quality = scoreGenerationQuality(generation.urls, numSamples, generation.poseCoverage, autoRetried);
+      if (typeof backendQualityScore === "number") {
+        quality.score = Math.round((quality.score + backendQualityScore) / 2);
+      }
+
+      if (!options?.forceStrict && quality.score < 72) {
+        autoRetried = true;
+        const retried = await generateWithPlan(["strict", "strict", "strict"]);
+        const retriedQuality = scoreGenerationQuality(retried.urls, numSamples, retried.poseCoverage, autoRetried);
+        if (retriedQuality.score >= quality.score) {
+          generation = retried;
+          quality = retriedQuality;
+        }
+      }
       // Complete progress bar to 100%
       Animated.timing(progressAnim, {
         toValue: 1,
         duration: 400,
         useNativeDriver: false,
       }).start();
-      const urls = result.resultImageUrls ?? (result.resultImageUrl ? [result.resultImageUrl] : []);
+      const urls = generation.urls;
+      if (urls.length > 0 && urls.length < numSamples) {
+        Alert.alert(
+          "Variantes partielles",
+          `Seulement ${urls.length} image(s) ont pu être générées sur ${numSamples} demandées.`,
+        );
+      }
+      if (new Set(urls).size === 1 && urls.length > 1) {
+        Alert.alert(
+          "Qualité limitée",
+          "Les variantes sont trop similaires. Réessayez une nouvelle génération pour améliorer les différences de pose.",
+        );
+      }
+      if (urls.length > 1) {
+        await Promise.allSettled(urls.slice(1).map((url) => Image.prefetch(url)));
+      }
+      setQualityReport(quality);
       setResultImageUrls(urls);
       setResultImageUrl(urls[0] ?? null);
       setSelectedVariantIndex(0);
+      setQualityFeedbackVote(null);
+      setLastAiCostUsd(Number(accumulatedAiCostUsd.toFixed(6)));
       setShowResultModal(true);
       subscription.incrementTryOnUsage();
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -674,15 +1067,137 @@ export default function TryOnScreen() {
         await AsyncStorage.setItem(historyKey, JSON.stringify(history.slice(0, 50)));
       } catch {}
       // Fin sauvegarde historique
+      await recordTryOnTelemetry({
+        at: new Date().toISOString(),
+        type: (tryOnMode === "outfit" ? "outfit" : tryOnMode) as TryOnType,
+        success: true,
+        durationMs: Date.now() - startedAt,
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Une erreur est survenue";
+      await recordTryOnTelemetry({
+        at: new Date().toISOString(),
+        type: (tryOnMode === "outfit" ? "outfit" : tryOnMode) as TryOnType,
+        success: false,
+        durationMs: Date.now() - startedAt,
+        errorMessage: message,
+      });
       Alert.alert("Erreur", `L'essayage a échoué : ${message}`);
     } finally {
       setIsProcessing(false);
+      const next = tryOnQueueRef.current.shift();
+      setQueuedRequests(tryOnQueueRef.current.length);
+      if (next) {
+        setTimeout(() => {
+          void handleTryOn({ ...next, fromQueue: true });
+        }, 250);
+      }
     }
   };
 
-  const canTryOn = !!userPhoto && !!selectedJewelry && !isProcessing;
+  const canTryOn = !!userPhoto && !!selectedJewelry;
+  const isCurrentGuideStepCompleted = Boolean(resultImageUrl);
+
+  useEffect(() => {
+    if (!isGuidedFlow || !hasNextGuideStep || !isCurrentGuideStepCompleted) {
+      setAutoAdvanceCountdown(null);
+      return;
+    }
+    setAutoAdvanceCountdown((prev) => (prev === null ? 2 : prev));
+  }, [isGuidedFlow, hasNextGuideStep, isCurrentGuideStepCompleted]);
+
+  useEffect(() => {
+    if (!isGuidedFlow || hasNextGuideStep || !isCurrentGuideStepCompleted) return;
+    const completionKey = `${guideSteps.length}:${guideIndex}`;
+    if (guidedCompletionKeyRef.current === completionKey) return;
+    guidedCompletionKeyRef.current = completionKey;
+    trackGuidedTryOnCompleted({
+      mode: tryOnMode === "outfit" ? "outfit" : "single",
+      totalSteps: guideSteps.length,
+    });
+  }, [isGuidedFlow, hasNextGuideStep, isCurrentGuideStepCompleted, guideSteps.length, guideIndex, tryOnMode]);
+
+  useEffect(() => {
+    if (autoAdvanceCountdown === null) return;
+    if (autoAdvanceCountdown <= 0) {
+      const nextIndex = guideIndex + 1;
+      const nextStep = guideSteps[nextIndex];
+      if (!nextStep) {
+        setAutoAdvanceCountdown(null);
+        return;
+      }
+      if (Platform.OS !== "web") {
+        void Haptics.selectionAsync().catch(() => {});
+      }
+      router.replace({
+        pathname: "/(tabs)/tryon",
+        params: {
+          section: nextStep.section,
+          itemId: nextStep.itemId,
+          itemName: nextStep.itemName,
+          ...(nextStep.presetSubType ? { presetSubType: nextStep.presetSubType } : {}),
+          guideSteps: params.guideSteps as string,
+          guideIndex: String(nextIndex),
+        },
+      });
+      setAutoAdvanceCountdown(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAutoAdvanceCountdown((prev) => (prev === null ? null : prev - 1));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [autoAdvanceCountdown, guideIndex, guideSteps, params.guideSteps]);
+
+  useEffect(() => {
+    const shouldAnimate =
+      autoAdvanceCountdown === 2 && isGuidedFlow && hasNextGuideStep && isCurrentGuideStepCompleted;
+    if (!shouldAnimate) {
+      if (autoAdvanceCountdown === null) autoAdvanceRingAnim.setValue(1);
+      return;
+    }
+    autoAdvanceRingAnim.setValue(1);
+    const ringAnim = Animated.timing(autoAdvanceRingAnim, {
+      toValue: 0,
+      duration: 2000,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+    ringAnim.start();
+    return () => {
+      ringAnim.stop();
+    };
+  }, [autoAdvanceCountdown, isGuidedFlow, hasNextGuideStep, isCurrentGuideStepCompleted, autoAdvanceRingAnim]);
+
+  useEffect(() => {
+    const shouldGlow =
+      autoAdvanceCountdown !== null && isGuidedFlow && hasNextGuideStep && isCurrentGuideStepCompleted;
+    if (!shouldGlow) {
+      autoAdvanceGlowAnim.setValue(0.35);
+      return;
+    }
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(autoAdvanceGlowAnim, {
+          toValue: 0.85,
+          duration: 460,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(autoAdvanceGlowAnim, {
+          toValue: 0.35,
+          duration: 560,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    glowLoop.start();
+    return () => {
+      glowLoop.stop();
+      autoAdvanceGlowAnim.setValue(0.35);
+    };
+  }, [autoAdvanceCountdown, isGuidedFlow, hasNextGuideStep, isCurrentGuideStepCompleted, autoAdvanceGlowAnim]);
 
   return (
     <ScreenContainer containerClassName="bg-background">
@@ -738,6 +1253,45 @@ export default function TryOnScreen() {
             </Text>
           </View>
         )}
+        {isGuidedFlow && currentGuideStep && (
+          <View
+            style={[
+              {
+                marginHorizontal: 20,
+                marginBottom: 8,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                backgroundColor: colors.surface,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <IconSymbol name="list.bullet" size={14} color={colors.primary} />
+              <Text style={{ flex: 1, fontSize: 11, color: colors.muted, letterSpacing: 0.3 }}>
+                Guide look complet: étape {guideIndex + 1}/{guideSteps.length} — {currentGuideStep.itemName}
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
+              {guideSteps.map((_, idx) => {
+                const isDone = idx < guideIndex || (idx === guideIndex && isCurrentGuideStepCompleted);
+                const isActive = idx === guideIndex;
+                return (
+                  <View
+                    key={`guide-step-${idx}`}
+                    style={{
+                      flex: 1,
+                      height: 6,
+                      borderRadius: 4,
+                      backgroundColor: isDone ? colors.primary : isActive ? colors.primary + "55" : colors.border,
+                    }}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Sélecteur de mode (Bijoux / Chaussures / Vêtements / Accessoires) */}
         <ScrollView
@@ -745,8 +1299,9 @@ export default function TryOnScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
         >
-          {(["jewelry", "shoes", "clothing", "accessories", "outfit"] as TryOnMode[]).map((mode) => {
+          {(["jewelry", "shoes", "outfit", "clothing", "accessories"] as TryOnMode[]).map((mode) => {
             const isActive = tryOnMode === mode;
+            const isOutfit = mode === "outfit";
             return (
               <TouchableOpacity
                 key={mode}
@@ -761,14 +1316,21 @@ export default function TryOnScreen() {
                   {
                     backgroundColor: isActive ? colors.foreground : "transparent",
                     borderColor: isActive ? colors.primary : colors.border,
+                    paddingHorizontal: isOutfit ? 18 : 12,
+                    paddingVertical: isOutfit ? 10 : 8,
+                    minHeight: isOutfit ? 44 : undefined,
                   },
                 ]}
               >
-                <Text style={{ fontSize: 14, marginRight: 4 }}>{MODE_CONFIG[mode].emoji}</Text>
+                <Text style={{ fontSize: isOutfit ? 16 : 14, marginRight: 4 }}>{MODE_CONFIG[mode].emoji}</Text>
                 <Text
                   style={[
                     styles.typeChipText,
-                    { color: isActive ? colors.background : colors.muted },
+                    {
+                      color: isActive ? colors.background : colors.muted,
+                      fontSize: isOutfit ? 12 : 11,
+                      letterSpacing: isOutfit ? 1 : 0.8,
+                    },
                   ]}
                 >
                   {mode === "jewelry" ? "Bijoux" : mode === "shoes" ? "Chaussures" : mode === "clothing" ? "Vêtements" : mode === "accessories" ? "Accessoires" : "Tenue"}
@@ -934,6 +1496,13 @@ export default function TryOnScreen() {
               );
             })}
           </View>
+          {numSamples > 1 && (
+            <Text style={[styles.hintText, { color: colors.muted, marginTop: 8 }]}>
+              {numSamples === 2
+                ? "2 images: Face + Profil (automatique)"
+                : "4 images: Face + Profil + Marche + Dos (automatique)"}
+            </Text>
+          )}
         </View>
 
         {/* Zone principale : Photo + Bijou côte à côte */}
@@ -1062,7 +1631,9 @@ export default function TryOnScreen() {
         {/* Bouton Essayer */}
         <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
           <TouchableOpacity
-            onPress={handleTryOn}
+            onPress={() => {
+              void handleTryOn();
+            }}
             disabled={!canTryOn}
             style={[
               styles.tryOnBtn,
@@ -1133,6 +1704,12 @@ export default function TryOnScreen() {
             </View>
           )}
 
+          {queuedRequests > 0 && (
+            <Text style={[styles.hintText, { color: colors.primary, marginTop: 8 }]}>
+              {queuedRequests} génération{queuedRequests > 1 ? "s" : ""} en file d'attente (non bloquant)
+            </Text>
+          )}
+
           {!canTryOn && !isProcessing && (
             <Text style={[styles.hintText, { color: colors.muted }]}>
               {!userPhoto
@@ -1142,6 +1719,145 @@ export default function TryOnScreen() {
                 : tryOnMode === "clothing" ? "Sélectionnez ensuite un vêtement à essayer"
                 : "Sélectionnez ensuite un accessoire à essayer"}
             </Text>
+          )}
+          {isGuidedFlow && (
+            <View style={{ marginTop: 10, gap: 8 }}>
+              {isCurrentGuideStepCompleted && hasNextGuideStep && autoAdvanceCountdown !== null && (
+                <View style={{ gap: 6 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    {(() => {
+                      const ringSize = 22;
+                      const stroke = 2;
+                      const radius = (ringSize - stroke) / 2;
+                      const circumference = 2 * Math.PI * radius;
+                      return (
+                        <View style={{ width: ringSize, height: ringSize, alignItems: "center", justifyContent: "center" }}>
+                          <Animated.View
+                            pointerEvents="none"
+                            style={{
+                              position: "absolute",
+                              width: ringSize + 10,
+                              height: ringSize + 10,
+                              borderRadius: 999,
+                              backgroundColor: colors.primary,
+                              opacity: autoAdvanceGlowAnim,
+                              transform: [
+                                {
+                                  scale: autoAdvanceGlowAnim.interpolate({
+                                    inputRange: [0.35, 0.85],
+                                    outputRange: [0.92, 1.14],
+                                  }),
+                                },
+                              ],
+                            }}
+                          />
+                          <Svg width={ringSize} height={ringSize} style={{ position: "absolute" }}>
+                            <Circle
+                              cx={ringSize / 2}
+                              cy={ringSize / 2}
+                              r={radius}
+                              stroke={colors.border}
+                              strokeWidth={stroke}
+                              fill="none"
+                            />
+                            <AnimatedCircle
+                              cx={ringSize / 2}
+                              cy={ringSize / 2}
+                              r={radius}
+                              stroke={colors.primary}
+                              strokeWidth={stroke}
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeDasharray={`${circumference}, ${circumference}`}
+                              strokeDashoffset={autoAdvanceRingAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [circumference, 0],
+                              })}
+                              rotation={-90}
+                              originX={ringSize / 2}
+                              originY={ringSize / 2}
+                            />
+                          </Svg>
+                          <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "700" }}>
+                            {autoAdvanceCountdown}
+                          </Text>
+                        </View>
+                      );
+                    })()}
+                    <Text style={[styles.hintText, { color: colors.primary, marginTop: 0 }]}>
+                      Étape suivante automatique
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setAutoAdvanceCountdown(null)}
+                    style={[styles.fullBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+                    activeOpacity={0.85}
+                  >
+                    <IconSymbol name="xmark" size={14} color={colors.foreground} />
+                    <Text style={[styles.fullBtnText, { color: colors.foreground }]}>Annuler l'auto-passage</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {hasNextGuideStep ? (
+                <TouchableOpacity
+                  disabled={!isCurrentGuideStepCompleted}
+                  onPress={() => {
+                    setAutoAdvanceCountdown(null);
+                    const nextIndex = guideIndex + 1;
+                    const nextStep = guideSteps[nextIndex];
+                    router.replace({
+                      pathname: "/(tabs)/tryon",
+                      params: {
+                        section: nextStep.section,
+                        itemId: nextStep.itemId,
+                        itemName: nextStep.itemName,
+                        ...(nextStep.presetSubType ? { presetSubType: nextStep.presetSubType } : {}),
+                        guideSteps: params.guideSteps as string,
+                        guideIndex: String(nextIndex),
+                      },
+                    });
+                  }}
+                  style={[
+                    styles.fullBtn,
+                    {
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: isCurrentGuideStepCompleted ? colors.border : colors.primary,
+                      opacity: isCurrentGuideStepCompleted ? 1 : 0.7,
+                    },
+                  ]}
+                  activeOpacity={0.85}
+                >
+                  <IconSymbol name="chevron.right" size={14} color={colors.foreground} />
+                  <Text style={[styles.fullBtnText, { color: colors.foreground }]}>
+                    {isCurrentGuideStepCompleted ? "Étape suivante du look" : "Lancez un essayage pour débloquer"}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  disabled={!isCurrentGuideStepCompleted}
+                  onPress={() => {
+                    setAutoAdvanceCountdown(null);
+                    router.replace("/(tabs)");
+                  }}
+                  style={[
+                    styles.fullBtn,
+                    {
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: isCurrentGuideStepCompleted ? colors.border : colors.primary,
+                      opacity: isCurrentGuideStepCompleted ? 1 : 0.7,
+                    },
+                  ]}
+                  activeOpacity={0.85}
+                >
+                  <IconSymbol name="checkmark" size={14} color={colors.foreground} />
+                  <Text style={[styles.fullBtnText, { color: colors.foreground }]}>
+                    {isCurrentGuideStepCompleted ? "Guide terminé" : "Terminez l'essayage de cette étape"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
         </>)}
@@ -1205,7 +1921,20 @@ export default function TryOnScreen() {
 
           {/* Layout fixe : carousel en haut, actions en bas */}
           {resultImageUrl ? (
-            <View style={{ flex: 1 }}>
+            <Animated.View
+              style={{
+                flex: 1,
+                opacity: resultRevealAnim,
+                transform: [
+                  {
+                    translateY: resultRevealAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [18, 0],
+                    }),
+                  },
+                ],
+              }}
+            >
               {/* Carousel horizontal plein-écran */}
               {(() => {
                 const imgW = SCREEN_WIDTH;
@@ -1215,44 +1944,230 @@ export default function TryOnScreen() {
                 const urls = resultImageUrls.length > 0 ? resultImageUrls : (resultImageUrl ? [resultImageUrl] : []);
                 return (
                   <View style={{ width: SCREEN_WIDTH, height: imgH, position: "relative" }}>
-                    <FlatList
-                      data={urls}
-                      horizontal
-                      pagingEnabled
-                      showsHorizontalScrollIndicator={false}
-                      keyExtractor={(_, i) => String(i)}
-                      onMomentumScrollEnd={(e) => {
-                        const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-                        setSelectedVariantIndex(idx);
-                        setResultImageUrl(urls[idx] ?? urls[0]);
-                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }}
-                      renderItem={({ item: url }) => (
-                        <View style={{ width: SCREEN_WIDTH, height: imgH, overflow: "hidden" }}>
-                          <ZoomableImage
-                            uri={url}
-                            width={imgW}
-                            height={imgH}
-                            showHint={urls.length === 1}
-                            onZoomChange={setIsImageZoomed}
-                          />
+                    {isCompareMode && userPhoto ? (
+                      <View
+                        style={{ width: SCREEN_WIDTH, height: imgH, overflow: "hidden" }}
+                        onLayout={(e) => {
+                          setCompareLayoutWidth(e.nativeEvent.layout.width);
+                          setCompareLayoutHeight(e.nativeEvent.layout.height);
+                        }}
+                        {...comparePanResponder.panHandlers}
+                      >
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: imgW,
+                            height: imgH,
+                            transform: [
+                              { translateX: compareTranslateX },
+                              { translateY: compareTranslateY },
+                              { scale: compareScale },
+                            ],
+                          }}
+                        >
+                          <Image source={{ uri: userPhoto }} style={{ width: imgW, height: imgH }} contentFit="contain" />
+                          <View style={{ position: "absolute", top: 0, left: 0, width: Math.max(1, imgW * compareRatio), height: imgH, overflow: "hidden" }}>
+                            <Image source={{ uri: urls[selectedVariantIndex] ?? urls[0] }} style={{ width: imgW, height: imgH }} contentFit="contain" />
+                          </View>
                         </View>
-                      )}
-                    />
+                        <View
+                          pointerEvents="none"
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: Math.max(0, Math.min(imgW - 2, imgW * compareRatio)),
+                            width: 2,
+                            height: imgH,
+                            backgroundColor: colors.primary,
+                          }}
+                        />
+                        <View pointerEvents="none" style={{ position: "absolute", top: 12, left: 12, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+                          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>AVANT</Text>
+                        </View>
+                        <View pointerEvents="none" style={{ position: "absolute", top: 12, right: 12, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+                          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>APRÈS</Text>
+                        </View>
+                        <View pointerEvents="none" style={{ position: "absolute", bottom: 12, left: 12, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+                          <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
+                            {compareScale > 1.02 ? "1 doigt: déplacer · 2 doigts: zoomer" : "1 doigt: slider · 2 doigts: zoomer"}
+                          </Text>
+                        </View>
+                        <View style={{ position: "absolute", bottom: 12, right: 12, flexDirection: "row", gap: 6 }}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              const next = Math.max(1, Number((compareScale - 0.25).toFixed(2)));
+                              setCompareScale(next);
+                              if (next <= 1.01) {
+                                setCompareTranslateX(0);
+                                setCompareTranslateY(0);
+                              }
+                            }}
+                            style={{ backgroundColor: "rgba(0,0,0,0.6)", width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" }}
+                            activeOpacity={0.85}
+                          >
+                            <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>−</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setCompareScale(1);
+                              setCompareTranslateX(0);
+                              setCompareTranslateY(0);
+                            }}
+                            style={{ backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" }}
+                            activeOpacity={0.85}
+                          >
+                            <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>RESET</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => setCompareScale((prev) => Math.min(3.5, Number((prev + 0.25).toFixed(2))))}
+                            style={{ backgroundColor: "rgba(0,0,0,0.6)", width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" }}
+                            activeOpacity={0.85}
+                          >
+                            <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <FlatList
+                        ref={resultCarouselRef}
+                        data={urls}
+                        horizontal
+                        pagingEnabled
+                        getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
+                        initialNumToRender={1}
+                        maxToRenderPerBatch={2}
+                        windowSize={3}
+                        scrollEnabled={urls.length > 1}
+                        bounces={false}
+                        decelerationRate="fast"
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(_, i) => String(i)}
+                        onMomentumScrollEnd={(e) => {
+                          const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                          setSelectedVariantIndex(idx);
+                          setResultImageUrl(urls[idx] ?? urls[0]);
+                          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }}
+                        renderItem={({ item: url }) => (
+                          <View style={{ width: SCREEN_WIDTH, height: imgH, overflow: "hidden" }}>
+                            {urls.length > 1 ? (
+                              <Image
+                                source={{ uri: url }}
+                                style={{ width: imgW, height: imgH }}
+                                contentFit="contain"
+                              />
+                            ) : (
+                              <ZoomableImage
+                                uri={url}
+                                width={imgW}
+                                height={imgH}
+                                showHint
+                                onZoomChange={setIsImageZoomed}
+                              />
+                            )}
+                          </View>
+                        )}
+                      />
+                    )}
                     {/* Badge luxe */}
-                    <View style={[resultStyles.badge, { backgroundColor: colors.primary, top: 12, left: 12 }]}>
+                    <View pointerEvents="none" style={[resultStyles.badge, { backgroundColor: colors.primary, top: 12, left: 12 }]}>
                       <Text style={[resultStyles.badgeText, { color: colors.background }]}>❆ ESSAYAGE IA</Text>
                     </View>
+                    {userPhoto && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          setIsCompareMode((prev) => {
+                            const next = !prev;
+                            if (next) {
+                              setCompareScale(1);
+                              setCompareTranslateX(0);
+                              setCompareTranslateY(0);
+                              setCompareRatio(0.5);
+                            }
+                            return next;
+                          })
+                        }
+                        style={{
+                          position: "absolute",
+                          top: 12,
+                          right: 12,
+                          backgroundColor: "rgba(0,0,0,0.6)",
+                          borderWidth: 1,
+                          borderColor: "rgba(255,255,255,0.4)",
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 999,
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
+                          {isCompareMode ? "Mode Carousel" : "Avant / Après"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {/* Contrôles précédent / suivant (fallback si swipe capricieux) */}
+                    {!isCompareMode && urls.length > 1 && (
+                      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center" }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8 }}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              const next = Math.max(0, selectedVariantIndex - 1);
+                              resultCarouselRef.current?.scrollToIndex({ index: next, animated: true });
+                              setSelectedVariantIndex(next);
+                              setResultImageUrl(urls[next] ?? urls[0]);
+                            }}
+                            style={{ backgroundColor: "rgba(0,0,0,0.45)", width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={{ color: "#fff", fontSize: 16 }}>‹</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => {
+                              const next = Math.min(urls.length - 1, selectedVariantIndex + 1);
+                              resultCarouselRef.current?.scrollToIndex({ index: next, animated: true });
+                              setSelectedVariantIndex(next);
+                              setResultImageUrl(urls[next] ?? urls[0]);
+                            }}
+                            style={{ backgroundColor: "rgba(0,0,0,0.45)", width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={{ color: "#fff", fontSize: 16 }}>›</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
                     {/* Indicateur variante + hint swipe */}
-                    {urls.length > 1 && (
-                      <View style={{ position: "absolute", bottom: 12, right: 12, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    {!isCompareMode && urls.length > 1 && (
+                      <View pointerEvents="none" style={{ position: "absolute", bottom: 12, right: 12, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, flexDirection: "row", alignItems: "center", gap: 6 }}>
                         <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600", letterSpacing: 1 }}>
                           {selectedVariantIndex + 1} / {urls.length}
                         </Text>
                         <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 9 }}>← glisser →</Text>
                       </View>
                     )}
-                    {urls.length === 1 && (
+                    {!isCompareMode && urls.length > 1 && (
+                      <View style={{ position: "absolute", bottom: 14, left: 12, flexDirection: "row", gap: 6 }}>
+                        {urls.map((_, idx) => (
+                          <TouchableOpacity
+                            key={`dot-${idx}`}
+                            onPress={() => {
+                              resultCarouselRef.current?.scrollToIndex({ index: idx, animated: true });
+                              setSelectedVariantIndex(idx);
+                              setResultImageUrl(urls[idx] ?? urls[0]);
+                            }}
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: 4,
+                              backgroundColor: idx === selectedVariantIndex ? "#fff" : "rgba(255,255,255,0.45)",
+                            }}
+                          />
+                        ))}
+                      </View>
+                    )}
+                    {!isCompareMode && urls.length === 1 && (
                       <View style={{ position: "absolute", bottom: 12, left: "50%", transform: [{ translateX: -60 }], backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
                         <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 9, letterSpacing: 0.5 }}>PINCEZ · DOUBLE-TAP</Text>
                       </View>
@@ -1272,6 +2187,100 @@ export default function TryOnScreen() {
                   <Text style={[resultStyles.infoName, { color: colors.foreground }]}>{selectedJewelry?.label}</Text>
                   <Text style={[resultStyles.infoBrand, { color: colors.primary }]}>MONI'ATTITUDE</Text>
                 </View>
+                {qualityReport && (
+                  <View style={[resultStyles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 10 }]}>
+                    <Text style={[resultStyles.infoLabel, { color: colors.muted }]}>QUALITÉ IA</Text>
+                    <Text style={[resultStyles.infoName, { color: colors.foreground }]}>
+                      Score {qualityReport.score}/100
+                    </Text>
+                    <Text style={[resultStyles.infoBrand, { color: qualityReport.score >= 80 ? colors.success : qualityReport.score >= 65 ? colors.primary : colors.error }]}>
+                      {qualityReport.score >= 80 ? "Excellent" : qualityReport.score >= 65 ? "Correct" : "À améliorer"}
+                    </Text>
+                    <Text style={[styles.hintText, { color: colors.muted, marginTop: 2 }]}>
+                      Variantes: {qualityReport.distinctCount}/{qualityReport.generatedCount} distinctes • Couverture poses:{" "}
+                      {Math.round(qualityReport.poseCoverage * 100)}%
+                    </Text>
+                    {qualityReport.autoRetried && (
+                      <Text style={[styles.hintText, { color: colors.primary, marginTop: 6 }]}>
+                        Ajustement auto appliqué: la génération a été relancée en mode strict.
+                      </Text>
+                    )}
+                    {qualityReport.score < 75 && (
+                      <TouchableOpacity
+                        onPress={async () => {
+                          setShowResultModal(false);
+                          await handleTryOn({ forceStrict: true });
+                        }}
+                        style={[styles.fullBtn, { marginTop: 10, backgroundColor: colors.foreground }]}
+                        activeOpacity={0.85}
+                      >
+                        <IconSymbol name="arrow.clockwise" size={14} color={colors.background} />
+                        <Text style={[styles.fullBtnText, { color: colors.background }]}>Régénérer en qualité maximale</Text>
+                      </TouchableOpacity>
+                    )}
+                    {typeof lastAiCostUsd === "number" && (
+                      <Text style={[styles.hintText, { color: colors.muted, marginTop: 6 }]}>
+                        Coût IA estimé: ${lastAiCostUsd.toFixed(4)}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                <View style={[resultStyles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 10 }]}>
+                  <Text style={[resultStyles.infoLabel, { color: colors.muted }]}>QUALITÉ PERÇUE</Text>
+                  <Text style={[styles.hintText, { color: colors.foreground, marginTop: 2 }]}>
+                    Le rendu est-il fidèle à ce que vous attendiez ?
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setQualityFeedbackVote("positive");
+                        trackTryOnQualityFeedback({
+                          mode: tryOnMode,
+                          vote: "positive",
+                          qualityScore: qualityReport?.score,
+                          isGuided: isGuidedFlow,
+                        });
+                      }}
+                      style={[
+                        resultStyles.actionBtn,
+                        {
+                          flex: 1,
+                          backgroundColor:
+                            qualityFeedbackVote === "positive" ? colors.success : colors.background,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[resultStyles.actionBtnText, { color: colors.foreground }]}>👍 Fidèle</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setQualityFeedbackVote("negative");
+                        trackTryOnQualityFeedback({
+                          mode: tryOnMode,
+                          vote: "negative",
+                          qualityScore: qualityReport?.score,
+                          isGuided: isGuidedFlow,
+                        });
+                      }}
+                      style={[
+                        resultStyles.actionBtn,
+                        {
+                          flex: 1,
+                          backgroundColor:
+                            qualityFeedbackVote === "negative" ? colors.error + "22" : colors.background,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[resultStyles.actionBtnText, { color: colors.foreground }]}>👎 À corriger</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
                 {/* Actions */}
                 <View style={resultStyles.actionsGrid}>
@@ -1279,27 +2288,61 @@ export default function TryOnScreen() {
                   <TouchableOpacity
                     onPress={async () => {
                       if (isSaved) return;
-                      if (!user) {
-                        Alert.alert(
-                          "Connexion requise",
-                          "Connectez-vous pour sauvegarder des bijoux dans Mon Écrin.",
-                          [
-                            { text: "Annuler", style: "cancel" },
-                            { text: "Se connecter", onPress: () => router.push("/login") },
-                          ]
-                        );
-                        return;
-                      }
+                      const localItem = {
+                        id: Date.now(),
+                        name: selectedJewelry?.label ?? "Bijou essayé",
+                        type: selectedJewelryType,
+                        metal: "Gold",
+                        brand: "L'Écrin",
+                        imageUri: resultImageUrl ?? undefined,
+                        isFavorite: false,
+                        collection: null,
+                        tags: null,
+                        createdAt: new Date().toISOString(),
+                      };
+
                       try {
-                        await addToCollectionMutation.mutateAsync({
-                          name: selectedJewelry?.label ?? "Bijou essayé",
-                          type: selectedJewelryType,
-                          imageUri: resultImageUrl ?? undefined,
-                        });
+                        const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+                        const raw = await AsyncStorage.getItem(LOCAL_COLLECTION_KEY);
+                        const parsed = raw ? JSON.parse(raw) : [];
+                        const existing = Array.isArray(parsed) ? parsed : [];
+                        existing.unshift(localItem);
+                        await AsyncStorage.setItem(
+                          LOCAL_COLLECTION_KEY,
+                          JSON.stringify(existing.slice(0, 200)),
+                        );
+
+                        // Si l'utilisateur est authentifié côté backend, on sync en plus.
                         setIsSaved(true);
+                        void recordLookAction("save").catch(() => undefined);
+                        trackLookSaved({
+                          mode: tryOnMode,
+                          target: "ecrin",
+                          isGuided: isGuidedFlow,
+                          aiCostUsd: typeof lastAiCostUsd === "number" ? lastAiCostUsd : undefined,
+                        });
                         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                      } catch {
-                        Alert.alert("Erreur", "Impossible de sauvegarder dans Mon Écrin.");
+                        if (!user) {
+                          Alert.alert(
+                            "Sauvegardé localement",
+                            "Ce look est enregistré sur cet appareil. Connectez-vous plus tard pour la synchronisation cloud.",
+                          );
+                        }
+                        // Sync cloud en tâche secondaire pour ne pas casser l'UX locale
+                        if (user) {
+                          addToCollectionMutation
+                            .mutateAsync({
+                              name: selectedJewelry?.label ?? "Bijou essayé",
+                              type: selectedJewelryType,
+                              imageUri: resultImageUrl ?? undefined,
+                            })
+                            .catch((e) => {
+                              console.warn("[TryOn] Cloud sync failed, local save kept:", e);
+                            });
+                        }
+                      } catch (e) {
+                        console.warn("[TryOn] Local save failed:", e);
+                        Alert.alert("Erreur", "Impossible de sauvegarder le look.");
                       }
                     }}
                     style={[resultStyles.actionBtn, { backgroundColor: isSaved ? colors.success : colors.foreground }]}
@@ -1337,6 +2380,7 @@ export default function TryOnScreen() {
                             url: resultImageUrl ?? undefined,
                           });
                         }
+                        void recordLookAction("share").catch(() => undefined);
                       } catch {}
                     }}
                     style={[resultStyles.actionBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
@@ -1366,6 +2410,12 @@ export default function TryOnScreen() {
                           imageUri: resultImageUrl ?? undefined,
                         });
                         setIsSaved(true);
+                        trackLookSaved({
+                          mode: tryOnMode,
+                          target: "dressing",
+                          isGuided: isGuidedFlow,
+                          aiCostUsd: typeof lastAiCostUsd === "number" ? lastAiCostUsd : undefined,
+                        });
                         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         Alert.alert("✨ Sauvegardé !", `${selectedJewelry?.label} a été ajouté à votre Dressing.`);
                       } catch {
@@ -1407,6 +2457,7 @@ export default function TryOnScreen() {
                           dialogTitle: "Partager en Story Instagram",
                           UTI: "public.jpeg",
                         });
+                        void recordLookAction("share").catch(() => undefined);
                       }
                     } catch {}
                   }}
@@ -1420,21 +2471,40 @@ export default function TryOnScreen() {
                 {/* Publier dans la Communauté */}
                 <TouchableOpacity
                   onPress={() => {
-                    setShowResultModal(false);
-                    Alert.alert(
-                      "Publier dans la Communauté",
-                      "Voulez-vous partager cet essayage avec la communauté L'Écrin Virtuel ?",
-                      [
-                        { text: "Annuler", style: "cancel" },
-                        {
-                          text: "Publier",
-                          onPress: () => {
+                    if (!resultImageUrl) return;
+                    if (!user) {
+                      Alert.alert(
+                        "Connexion requise",
+                        "Connectez-vous pour publier dans la communauté.",
+                        [
+                          { text: "Plus tard", style: "cancel" },
+                          { text: "Se connecter", onPress: () => router.push("/login") },
+                        ],
+                      );
+                      return;
+                    }
+                    Alert.alert("Publier dans la Communauté", "Partager cet essayage maintenant ?", [
+                      { text: "Annuler", style: "cancel" },
+                      {
+                        text: "Publier",
+                        onPress: async () => {
+                          try {
+                            await createCommunityPostMutation.mutateAsync({
+                              authorName: user.name || user.email?.split("@")[0] || "Membre",
+                              content: `Mon essayage du jour: ${selectedJewelry?.label ?? "Look IA"} ✨`,
+                              imageUrl: resultImageUrl,
+                              jewelryType: tryOnMode,
+                            });
                             if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                            Alert.alert("Publié !", "Votre essayage a été partagé dans la Communauté.");
-                          },
+                            setShowResultModal(false);
+                            Alert.alert("Publié !", "Votre essayage a été partagé dans la communauté.");
+                          } catch (e) {
+                            const message = e instanceof Error ? e.message : "Impossible de publier.";
+                            Alert.alert("Erreur", message);
+                          }
                         },
-                      ]
-                    );
+                      },
+                    ]);
                   }}
                   style={[resultStyles.communityBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.primary }]}
                   activeOpacity={0.85}
@@ -1443,12 +2513,52 @@ export default function TryOnScreen() {
                   <Text style={[resultStyles.communityBtnText, { color: colors.primary }]}>Publier dans la Communauté</Text>
                 </TouchableOpacity>
 
+                {/* Export HD */}
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      if (!resultImageUrl) return;
+                      const localUri = FileSystem.cacheDirectory + `ecrin_hd_${Date.now()}.jpg`;
+                      await FileSystem.downloadAsync(resultImageUrl, localUri);
+                      const canShare = await Sharing.isAvailableAsync();
+                      if (canShare) {
+                        await Sharing.shareAsync(localUri, {
+                          mimeType: "image/jpeg",
+                          dialogTitle: "Exporter HD",
+                          UTI: "public.jpeg",
+                        });
+                      } else {
+                        await Share.share({ url: resultImageUrl });
+                      }
+                    } catch {}
+                  }}
+                  style={[resultStyles.communityBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginTop: 8 }]}
+                  activeOpacity={0.85}
+                >
+                  <IconSymbol name="arrow.down.to.line" size={16} color={colors.foreground} />
+                  <Text style={[resultStyles.communityBtnText, { color: colors.foreground }]}>Exporter HD</Text>
+                </TouchableOpacity>
+
+                {/* Rejet (apprentissage) */}
+                <TouchableOpacity
+                  onPress={async () => {
+                    void recordLookAction("reject").catch(() => undefined);
+                    Alert.alert("Merci", "Feedback enregistré. Les prochains looks seront ajustés.");
+                  }}
+                  style={[resultStyles.communityBtn, { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.border, marginTop: 8 }]}
+                  activeOpacity={0.85}
+                >
+                  <IconSymbol name="hand.thumbsdown" size={16} color={colors.muted} />
+                  <Text style={[resultStyles.communityBtnText, { color: colors.muted }]}>Pas pour moi</Text>
+                </TouchableOpacity>
+
                 {/* Nouvel essayage */}
                 <TouchableOpacity
                   onPress={() => {
                     setShowResultModal(false);
                     setResultImageUrl(null);
                     setIsSaved(false);
+                    setLastAiCostUsd(null);
                   }}
                   style={[resultStyles.newTryBtn, { borderColor: colors.border }]}
                   activeOpacity={0.85}
@@ -1456,7 +2566,7 @@ export default function TryOnScreen() {
                   <Text style={[resultStyles.newTryBtnText, { color: colors.muted }]}>Nouvel essayage</Text>
                 </TouchableOpacity>
               </ScrollView>
-            </View>
+            </Animated.View>
           ) : (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
               <ActivityIndicator size="large" color={colors.primary} />
@@ -1473,6 +2583,7 @@ export default function TryOnScreen() {
         onClose={() => setShowPaywall(false)}
         onPurchasePremium={subscription.purchasePremiumMonthly}
         onPurchasePremiumPlus={subscription.purchasePremiumYearly}
+        onPurchaseStoreProduct={subscription.purchaseStoreProduct}
         onRestore={subscription.restorePurchases}
         featureName={tryOnMode === "outfit" ? "Mode Tenue Complète" : "Essayage IA"}
         freeTriesLeft={subscription.canUseUnlimitedTryOns ? undefined : Math.max(0, subscription.monthlyTryOnsLimit - subscription.monthlyTryOnsUsed)}

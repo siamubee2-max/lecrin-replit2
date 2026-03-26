@@ -24,11 +24,39 @@ import {
   partnerJewelry,
   InsertPartnerJewelry,
   partnerJewelryFavorites,
-  InsertPartnerJewelryFavorite
+  InsertPartnerJewelryFavorite,
+  launchOfferClaims,
+  InsertLaunchOfferClaim,
+  type LaunchOfferClaim,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+const _inMemoryLaunchClaims: LaunchOfferClaim[] = [];
+
+export type LaunchOfferCampaignKey =
+  | "yearly_50_first_100"
+  | "yearly_25_next_100"
+  | "yearly_10_next_100"
+  | "monthly_10_next_200";
+
+const LAUNCH_CAMPAIGN_ORDER: LaunchOfferCampaignKey[] = [
+  "yearly_50_first_100",
+  "yearly_25_next_100",
+  "yearly_10_next_100",
+  "monthly_10_next_200",
+];
+
+const LAUNCH_CAMPAIGN_LIMITS: Record<LaunchOfferCampaignKey, number> = {
+  yearly_50_first_100: 100,
+  yearly_25_next_100: 100,
+  yearly_10_next_100: 100,
+  monthly_10_next_200: 200,
+};
+
+export function __resetLaunchOfferClaimsForTests(): void {
+  _inMemoryLaunchClaims.length = 0;
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -600,6 +628,16 @@ export async function searchWardrobeItems(
   }
 
   try {
+    const normalize = (value: string) =>
+      value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const synonyms: Record<string, string[]> = {
+      elegante: ["formal", "elegant", "work", "blazer", "tailleur"],
+      pluie: ["rain", "imper", "deperlant", "waterproof"],
+      bureau: ["work", "formal", "chemise", "blazer"],
+      soiree: ["formal", "party", "robe"],
+      hiver: ["winter", "manteau", "laine", "parka"],
+      ete: ["summer", "lin", "sandale", "leger"],
+    };
     // Get all items for user first, then filter in memory
     // (More complex SQL filtering can be added later)
     const items = await db
@@ -615,11 +653,17 @@ export async function searchWardrobeItems(
       if (filters.minPrice && (item.price || 0) < filters.minPrice) return false;
       if (filters.maxPrice && (item.price || 0) > filters.maxPrice) return false;
       if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const nameMatch = item.name.toLowerCase().includes(searchLower);
-        const brandMatch = item.brand?.toLowerCase().includes(searchLower);
-        const tagsMatch = item.tags?.toLowerCase().includes(searchLower);
-        if (!nameMatch && !brandMatch && !tagsMatch) return false;
+        const searchLower = normalize(filters.search);
+        const searchable = normalize(
+          `${item.name} ${item.brand ?? ""} ${item.tags ?? ""} ${item.color ?? ""} ${item.category ?? ""} ${item.season ?? ""} ${item.occasion ?? ""}`,
+        );
+        const tokens = searchLower.split(/\s+/).filter(Boolean);
+        const allMatch = tokens.every((token) => {
+          if (searchable.includes(token)) return true;
+          const expanded = synonyms[token] ?? [];
+          return expanded.some((term) => searchable.includes(term));
+        });
+        if (!allMatch) return false;
       }
       return true;
     });
@@ -1034,5 +1078,116 @@ export async function isPartnerJewelryFavorited(userId: number, jewelryId: numbe
   } catch (error) {
     console.error("[Database] Failed to check partner jewelry favorite:", error);
     return false;
+  }
+}
+
+// ============================================
+// LAUNCH OFFERS FUNCTIONS
+// ============================================
+
+export function getLaunchCampaignLimit(campaignKey: LaunchOfferCampaignKey): number {
+  return LAUNCH_CAMPAIGN_LIMITS[campaignKey];
+}
+
+export function getLaunchCampaignOrder(): LaunchOfferCampaignKey[] {
+  return [...LAUNCH_CAMPAIGN_ORDER];
+}
+
+export async function getLaunchOfferClaimByClientId(clientId: string): Promise<LaunchOfferClaim | null> {
+  const db = await getDb();
+  if (!db) {
+    return _inMemoryLaunchClaims.find((claim) => claim.clientId === clientId) ?? null;
+  }
+
+  try {
+    const rows = await db.select().from(launchOfferClaims).where(eq(launchOfferClaims.clientId, clientId)).limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    console.warn("[Database] Failed to get launch offer claim by clientId:", error);
+    return _inMemoryLaunchClaims.find((claim) => claim.clientId === clientId) ?? null;
+  }
+}
+
+export async function getLaunchOfferCampaignCounts(): Promise<Record<LaunchOfferCampaignKey, number>> {
+  const counts: Record<LaunchOfferCampaignKey, number> = {
+    yearly_50_first_100: 0,
+    yearly_25_next_100: 0,
+    yearly_10_next_100: 0,
+    monthly_10_next_200: 0,
+  };
+
+  const db = await getDb();
+  if (!db) {
+    for (const claim of _inMemoryLaunchClaims) {
+      counts[claim.campaignKey as LaunchOfferCampaignKey] += 1;
+    }
+    return counts;
+  }
+
+  try {
+    const rows = await db.select().from(launchOfferClaims);
+    for (const row of rows) {
+      counts[row.campaignKey as LaunchOfferCampaignKey] += 1;
+    }
+    return counts;
+  } catch (error) {
+    console.warn("[Database] Failed to compute launch offer counts:", error);
+    for (const claim of _inMemoryLaunchClaims) {
+      counts[claim.campaignKey as LaunchOfferCampaignKey] += 1;
+    }
+    return counts;
+  }
+}
+
+export async function getCurrentLaunchCampaign(counts?: Record<LaunchOfferCampaignKey, number>) {
+  const campaignCounts = counts ?? await getLaunchOfferCampaignCounts();
+
+  for (const campaignKey of LAUNCH_CAMPAIGN_ORDER) {
+    const used = campaignCounts[campaignKey] ?? 0;
+    const limit = LAUNCH_CAMPAIGN_LIMITS[campaignKey];
+    if (used < limit) {
+      return campaignKey;
+    }
+  }
+
+  return null;
+}
+
+export async function claimLaunchOfferForClient(clientId: string): Promise<LaunchOfferClaim | null> {
+  const existing = await getLaunchOfferClaimByClientId(clientId);
+  if (existing) return existing;
+
+  const counts = await getLaunchOfferCampaignCounts();
+  const campaignKey = await getCurrentLaunchCampaign(counts);
+  if (!campaignKey) return null;
+
+  const db = await getDb();
+  if (!db) {
+    const claim: LaunchOfferClaim = {
+      id: _inMemoryLaunchClaims.length + 1,
+      clientId,
+      campaignKey,
+      createdAt: new Date(),
+    };
+    _inMemoryLaunchClaims.push(claim);
+    return claim;
+  }
+
+  try {
+    const payload: InsertLaunchOfferClaim = {
+      clientId,
+      campaignKey,
+    };
+    const result = await db.insert(launchOfferClaims).values(payload);
+    const insertedId = Number(result[0]?.insertId ?? 0);
+
+    const inserted = await db.select().from(launchOfferClaims).where(eq(launchOfferClaims.id, insertedId)).limit(1);
+    return inserted[0] ?? null;
+  } catch (error) {
+    // Unique conflict means another request likely claimed already for this client.
+    const fallback = await getLaunchOfferClaimByClientId(clientId);
+    if (fallback) return fallback;
+    console.warn("[Database] Failed to claim launch offer:", error);
+    return null;
   }
 }

@@ -6,11 +6,21 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-} from "react-native";
+ Platform } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { useLaunchOffer, type LaunchOfferCampaignKey } from "@/hooks/use-launch-offer";
+import {
+  trackLaunchOfferPurchaseFailed,
+  trackLaunchOfferPurchaseSuccess,
+} from "@/lib/analytics";
+import {
+  PRODUCT_PREMIUM_MONTHLY_10,
+  PRODUCT_PREMIUM_YEARLY_10,
+  PRODUCT_PREMIUM_YEARLY_25,
+  PRODUCT_PREMIUM_YEARLY_50,
+} from "@/hooks/use-subscription";
 
 // ─── Plans disponibles (alignés sur RevenueCat) ───────────────────────────────
 type Plan = "jewelry" | "premium_monthly" | "premium_yearly";
@@ -20,6 +30,7 @@ type Props = {
   onClose: () => void;
   onPurchasePremium: () => Promise<boolean>;       // premium mensuel
   onPurchasePremiumPlus: () => Promise<boolean>;   // premium annuel
+  onPurchaseStoreProduct?: (storeId: string) => Promise<boolean>;
   onPurchaseJewelry?: () => Promise<boolean>;      // jewelry mensuel
   onPurchaseCredits?: (pack: "50" | "100" | "250" | "500") => Promise<boolean>;
   onRestore: () => Promise<void>;
@@ -60,6 +71,7 @@ export function PaywallModal({
   onClose,
   onPurchasePremium,
   onPurchasePremiumPlus,
+  onPurchaseStoreProduct,
   onPurchaseJewelry,
   onPurchaseCredits,
   onRestore,
@@ -73,25 +85,146 @@ export function PaywallModal({
   const [isBuyingCredits, setIsBuyingCredits] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [activeTab, setActiveTab] = useState<"plans" | "credits">(showCredits ? "credits" : "plans");
+  const launchOffer = useLaunchOffer(visible, "paywall");
 
   const isLoading = isPurchasing || isBuyingCredits;
+
+  const campaignLabels: Record<LaunchOfferCampaignKey, string> = {
+    yearly_50_first_100: "Offre fondateur: -50% annuel (100 places)",
+    yearly_25_next_100: "Lancement: -25% annuel (100 places)",
+    yearly_10_next_100: "Lancement: -10% annuel (100 places)",
+    monthly_10_next_200: "Lancement: -10% mensuel (200 places)",
+  };
+
+  const campaignProducts: Partial<Record<LaunchOfferCampaignKey, string>> = {
+    yearly_50_first_100: PRODUCT_PREMIUM_YEARLY_50,
+    yearly_25_next_100: PRODUCT_PREMIUM_YEARLY_25,
+    yearly_10_next_100: PRODUCT_PREMIUM_YEARLY_10,
+    monthly_10_next_200: PRODUCT_PREMIUM_MONTHLY_10,
+  };
+
+  const currentCampaign = launchOffer.activeCampaign;
+  const currentCampaignLabel = currentCampaign ? campaignLabels[currentCampaign] : null;
+  const launchCampaignForCurrentPlan: LaunchOfferCampaignKey | null =
+    selectedPlan === "premium_yearly" && currentCampaign?.startsWith("yearly_")
+      ? currentCampaign
+      : selectedPlan === "premium_monthly" && currentCampaign === "monthly_10_next_200"
+        ? currentCampaign
+        : null;
 
   const handlePurchase = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsPurchasing(true);
+    let attemptedLaunchCampaign: LaunchOfferCampaignKey | null = null;
+    let attemptedLaunchStoreId: string | null = null;
     try {
       let success = false;
+      let purchasedLaunchCampaign: LaunchOfferCampaignKey | null = null;
+      let purchasedStoreId: string | null = null;
       if (selectedPlan === "jewelry" && onPurchaseJewelry) {
         success = await onPurchaseJewelry();
       } else if (selectedPlan === "premium_monthly") {
-        success = await onPurchasePremium();
+        if (launchCampaignForCurrentPlan && onPurchaseStoreProduct) {
+          const claimed = await launchOffer.claimCurrentOffer();
+          if (!claimed) {
+            trackLaunchOfferPurchaseFailed({
+              campaignKey: launchCampaignForCurrentPlan,
+              reason: "claim_unavailable",
+              source: "paywall",
+            });
+            success = await onPurchasePremium();
+          } else {
+            const campaignToUse = claimed;
+            const storeId = campaignProducts[campaignToUse];
+            if (storeId) {
+              attemptedLaunchCampaign = campaignToUse;
+              attemptedLaunchStoreId = storeId;
+              success = await onPurchaseStoreProduct(storeId);
+              if (success) {
+                purchasedLaunchCampaign = campaignToUse;
+                purchasedStoreId = storeId;
+              } else {
+                trackLaunchOfferPurchaseFailed({
+                  campaignKey: campaignToUse,
+                  storeId,
+                  reason: "purchase_failed",
+                  source: "paywall",
+                });
+              }
+            } else {
+              trackLaunchOfferPurchaseFailed({
+                campaignKey: campaignToUse,
+                reason: "store_product_missing",
+                source: "paywall",
+              });
+              success = await onPurchasePremium();
+            }
+          }
+        } else {
+          success = await onPurchasePremium();
+        }
       } else if (selectedPlan === "premium_yearly") {
-        success = await onPurchasePremiumPlus();
+        if (launchCampaignForCurrentPlan && onPurchaseStoreProduct) {
+          const claimed = await launchOffer.claimCurrentOffer();
+          if (!claimed) {
+            trackLaunchOfferPurchaseFailed({
+              campaignKey: launchCampaignForCurrentPlan,
+              reason: "claim_unavailable",
+              source: "paywall",
+            });
+            success = await onPurchasePremiumPlus();
+          } else {
+            const campaignToUse = claimed;
+            const storeId = campaignProducts[campaignToUse];
+            if (storeId) {
+              attemptedLaunchCampaign = campaignToUse;
+              attemptedLaunchStoreId = storeId;
+              success = await onPurchaseStoreProduct(storeId);
+              if (success) {
+                purchasedLaunchCampaign = campaignToUse;
+                purchasedStoreId = storeId;
+              } else {
+                trackLaunchOfferPurchaseFailed({
+                  campaignKey: campaignToUse,
+                  storeId,
+                  reason: "purchase_failed",
+                  source: "paywall",
+                });
+              }
+            } else {
+              trackLaunchOfferPurchaseFailed({
+                campaignKey: campaignToUse,
+                reason: "store_product_missing",
+                source: "paywall",
+              });
+              success = await onPurchasePremiumPlus();
+            }
+          }
+        } else {
+          success = await onPurchasePremiumPlus();
+        }
       }
       if (success) {
+        if (purchasedLaunchCampaign && purchasedStoreId) {
+          trackLaunchOfferPurchaseSuccess({
+            campaignKey: purchasedLaunchCampaign,
+            storeId: purchasedStoreId,
+            source: "paywall",
+          });
+        }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onClose();
       }
+    } catch (error) {
+      if (attemptedLaunchCampaign) {
+        trackLaunchOfferPurchaseFailed({
+          campaignKey: attemptedLaunchCampaign,
+          storeId: attemptedLaunchStoreId ?? undefined,
+          reason: "unexpected_error",
+          source: "paywall",
+        });
+      }
+      console.warn("[Paywall] Purchase error:", error);
     } finally {
       setIsPurchasing(false);
     }
@@ -119,8 +252,18 @@ export function PaywallModal({
 
   const planLabel = {
     jewelry: "ESSENTIEL — 14,99 €/mois",
-    premium_monthly: "PREMIUM — 24,99 €/mois",
-    premium_yearly: "PREMIUM ANNUEL — 199,99 €/an",
+    premium_monthly:
+      launchCampaignForCurrentPlan === "monthly_10_next_200"
+        ? "PREMIUM — 22,49 €/mois (offre lancement)"
+        : "PREMIUM — 24,99 €/mois",
+    premium_yearly:
+      launchCampaignForCurrentPlan === "yearly_50_first_100"
+        ? "PREMIUM ANNUEL — 99,99 €/an (fondateur)"
+        : launchCampaignForCurrentPlan === "yearly_25_next_100"
+          ? "PREMIUM ANNUEL — 149,99 €/an (lancement)"
+          : launchCampaignForCurrentPlan === "yearly_10_next_100"
+            ? "PREMIUM ANNUEL — 179,99 €/an (lancement)"
+            : "PREMIUM ANNUEL — 199,99 €/an",
   }[selectedPlan];
 
   return (
@@ -153,6 +296,16 @@ export function PaywallModal({
                     : `"${featureName}" nécessite un abonnement`}
                 </Text>
               </View>
+            )}
+            {currentCampaignLabel && (
+              <View style={[styles.launchPill, { borderColor: "#C9A96E66", backgroundColor: "#C9A96E1A" }]}>
+                <Text style={styles.launchPillText}>{currentCampaignLabel}</Text>
+              </View>
+            )}
+            {currentCampaign === "yearly_50_first_100" && (
+              <Text style={[styles.founderNote, { color: colors.muted }]}>
+                Inclut 10 000 essayages/an et prix garanti tant que l'abonnement reste actif.
+              </Text>
             )}
           </View>
 
@@ -198,6 +351,9 @@ export function PaywallModal({
                   </View>
                   <Text style={[styles.planName, { color: colors.foreground, marginTop: 10 }]}>✦ Premium</Text>
                   <Text style={[styles.planPrice, { color: "#C9A96E" }]}>24,99 €</Text>
+                  {currentCampaign === "monthly_10_next_200" && (
+                    <Text style={[styles.planPeriod, { color: "#22C55E", fontWeight: "700" }]}>22,49 € offre active</Text>
+                  )}
                   <Text style={[styles.planPeriod, { color: colors.muted }]}>/ mois</Text>
                   <Text style={[styles.planDesc, { color: colors.muted }]}>Tout inclus</Text>
                 </TouchableOpacity>
@@ -209,10 +365,26 @@ export function PaywallModal({
                   activeOpacity={0.85}
                 >
                   <View style={[styles.saveBadge, { backgroundColor: "#22C55E22" }]}>
-                    <Text style={[styles.saveBadgeText, { color: "#22C55E" }]}>−33%</Text>
+                    <Text style={[styles.saveBadgeText, { color: "#22C55E" }]}>
+                      {currentCampaign?.startsWith("yearly_")
+                        ? currentCampaign === "yearly_50_first_100"
+                          ? "−50%"
+                          : currentCampaign === "yearly_25_next_100"
+                            ? "−25%"
+                            : "−10%"
+                        : "−33%"}
+                    </Text>
                   </View>
                   <Text style={[styles.planName, { color: colors.foreground, marginTop: 10 }]}>✦ Annuel</Text>
-                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>199,99 €</Text>
+                  <Text style={[styles.planPrice, { color: "#C9A96E" }]}>
+                    {currentCampaign === "yearly_50_first_100"
+                      ? "99,99 €"
+                      : currentCampaign === "yearly_25_next_100"
+                        ? "149,99 €"
+                        : currentCampaign === "yearly_10_next_100"
+                          ? "179,99 €"
+                          : "199,99 €"}
+                  </Text>
                   <Text style={[styles.planPeriod, { color: colors.muted }]}>/ an</Text>
                   <Text style={[styles.planDesc, { color: "#22C55E" }]}>16,67 €/mois</Text>
                 </TouchableOpacity>
@@ -313,6 +485,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 6,
   },
   featurePillText: { fontSize: 12, textAlign: "center" },
+  launchPill: {
+    marginTop: 8,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  launchPillText: { fontSize: 11, color: "#C9A96E", fontWeight: "700" },
+  founderNote: {
+    marginTop: 6,
+    fontSize: 11,
+    textAlign: "center",
+    paddingHorizontal: 20,
+    lineHeight: 16,
+  },
   tabRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
