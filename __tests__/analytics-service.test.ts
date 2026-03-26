@@ -4,6 +4,16 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import après les mocks
+import {
+  analytics,
+  AnalyticsEvents,
+  ProductEventProperties,
+  TryOnEventProperties,
+  ShareEventProperties,
+  SearchEventProperties,
+} from '../services/analytics-service';
+
 // Mock des dépendances natives
 vi.mock('mixpanel-react-native', () => ({
   Mixpanel: vi.fn().mockImplementation(() => ({
@@ -29,16 +39,6 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
     setItem: vi.fn().mockResolvedValue(undefined),
   },
 }));
-
-// Import après les mocks
-import {
-  analytics,
-  AnalyticsEvents,
-  ProductEventProperties,
-  TryOnEventProperties,
-  ShareEventProperties,
-  SearchEventProperties,
-} from '../services/analytics-service';
 
 describe('Analytics Service', () => {
   beforeEach(() => {
@@ -133,7 +133,7 @@ describe('Analytics Service', () => {
     });
 
     it('should accept all photo sources', () => {
-      const sources: Array<'camera' | 'gallery' | 'sample'> = ['camera', 'gallery', 'sample'];
+      const sources: ('camera' | 'gallery' | 'sample')[] = ['camera', 'gallery', 'sample'];
       
       sources.forEach(source => {
         const properties: TryOnEventProperties = {
@@ -160,7 +160,7 @@ describe('Analytics Service', () => {
     });
 
     it('should accept all social platforms', () => {
-      const platforms: Array<'instagram' | 'facebook' | 'twitter' | 'whatsapp' | 'other'> = 
+      const platforms: ('instagram' | 'facebook' | 'twitter' | 'whatsapp' | 'other')[] = 
         ['instagram', 'facebook', 'twitter', 'whatsapp', 'other'];
       
       platforms.forEach(platform => {

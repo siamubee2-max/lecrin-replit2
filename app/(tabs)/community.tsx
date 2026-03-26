@@ -51,6 +51,14 @@ type Post = {
   shares?: number;
 };
 
+const COMMUNITY_TABS = [
+  { key: "feed", label: "FIL", icon: "✨" },
+  { key: "trending", label: "TENDANCES", icon: "🔥" },
+  { key: "leaderboard", label: "CLASSEMENT", icon: "🏆" },
+  { key: "mychallenges", label: "MES DÉFIS", icon: "🎯" },
+  { key: "following", label: "ABONNEMENTS", icon: "👥" },
+] as const;
+
 // Merge DB post into local Post format
 function dbPostToPost(p: any): Post {
   return {
@@ -132,6 +140,24 @@ export default function CommunityScreen() {
     ? trendingPosts.filter(p => !p.timeAgo.includes("j") || parseInt(p.timeAgo) <= 7)
     : trendingPosts;
   const posts: Post[] = activeTab === "trending" ? filteredTrending : allPosts;
+  const trendingRankById = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredTrending.forEach((post, idx) => map.set(post.id, idx + 1));
+    return map;
+  }, [filteredTrending]);
+  const dailyChallenge = useMemo(() => {
+    const challenges = [
+      "Monochrome chic",
+      "Doré discret",
+      "Street luxe",
+      "Business glow",
+      "Boheme moderne",
+      "Minimal iconique",
+      "Soiree statement",
+    ];
+    const dayIndex = new Date().getDay();
+    return challenges[dayIndex % challenges.length];
+  }, []);
 
   // Calcul du classement depuis les posts
   const leaderboardMembers: LeaderboardMember[] = useMemo(() => {
@@ -259,7 +285,7 @@ export default function CommunityScreen() {
       overlayFont={item.overlayFont}
       overlayColor={item.overlayColor}
       onShare={(shares) => triggerShareMilestone(item.id, shares)}
-      rank={activeTab === "trending" ? (posts.indexOf(item) + 1) : undefined}
+      rank={activeTab === "trending" ? trendingRankById.get(item.id) : undefined}
       onAvatarPress={() => openProfile(item)}
     />
   );
@@ -285,25 +311,23 @@ export default function CommunityScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 10 }}
       >
-        {(["feed", "trending", "leaderboard", "mychallenges", "following"] as const).map((tab) => (
+        {COMMUNITY_TABS.map((tab) => (
           <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(tab)}
+            key={tab.key}
+            onPress={() => setActiveTab(tab.key)}
             style={[
               commStyles.tabChip,
-              { borderColor: activeTab === tab ? colors.primary : colors.border },
-              activeTab === tab && { backgroundColor: colors.foreground },
+              {
+                borderColor: activeTab === tab.key ? colors.primary : colors.border,
+                backgroundColor: activeTab === tab.key ? colors.primary + "20" : colors.surface,
+              },
             ]}
           >
-            <Text
-              style={[
-                commStyles.tabChipText,
-                { color: activeTab === tab ? colors.background : colors.muted },
-              ]}
-            >
-              {tab === "feed" ? "FIL" : tab === "trending" ? "TENDANCES" : tab === "leaderboard" ? "CLASSEMENT" : tab === "mychallenges" ? "MES DÉFIS" : "ABONNEMENTS"}
+            <Text style={commStyles.tabChipIcon}>{tab.icon}</Text>
+            <Text style={[commStyles.tabChipText, { color: activeTab === tab.key ? colors.foreground : colors.muted }]}>
+              {tab.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -320,7 +344,7 @@ export default function CommunityScreen() {
                 commStyles.periodChip,
                 {
                   borderColor: trendingPeriod === p ? colors.primary : colors.border,
-                  backgroundColor: trendingPeriod === p ? colors.primary + "22" : "transparent",
+                  backgroundColor: trendingPeriod === p ? colors.primary + "1F" : colors.surface,
                 },
               ]}
             >
@@ -331,6 +355,45 @@ export default function CommunityScreen() {
           ))}
         </View>
       )}
+
+      {/* Défi du jour */}
+      <View
+        style={{
+          marginHorizontal: 20,
+          marginBottom: 10,
+          borderWidth: 1,
+          borderColor: colors.primary,
+          backgroundColor: colors.primary + "14",
+          borderRadius: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700", letterSpacing: 1.2 }}>
+            DÉFI DU JOUR
+          </Text>
+          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginTop: 2 }}>
+            {dailyChallenge}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => setActiveTab("mychallenges")}
+          style={{
+            borderWidth: 1,
+            borderColor: colors.primary,
+            borderRadius: 999,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700", letterSpacing: 0.8 }}>REJOINDRE</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Profil utilisateur */}
       <UserProfileModal
@@ -375,6 +438,10 @@ export default function CommunityScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderPost}
           contentContainerStyle={{ paddingBottom: 100 }}
+          initialNumToRender={6}
+          maxToRenderPerBatch={8}
+          windowSize={9}
+          removeClippedSubviews
           ListHeaderComponent={activeTab === "feed" ? <ChallengesBanner onJoinChallenge={handleChallengeJoin} /> : undefined}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
@@ -833,14 +900,26 @@ const commStyles = StyleSheet.create({
     marginBottom: 4,
   },
   tabChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1.2,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  tabChipIcon: {
+    fontSize: 12,
   },
   tabChipText: {
-    fontSize: 9,
-    fontWeight: "500",
-    letterSpacing: 2,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.2,
   },
   postCard: {
     marginBottom: 16,
@@ -954,10 +1033,15 @@ const commStyles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   periodChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 1.2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   periodChipText: {
     fontSize: 10,

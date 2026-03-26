@@ -5,16 +5,6 @@
 
 import { describe, it, expect, vi } from "vitest";
 
-// Mock AsyncStorage
-vi.mock("@react-native-async-storage/async-storage", () => ({
-  default: {
-    getItem: vi.fn(),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  },
-}));
-
 // Import types only (to avoid AsyncStorage import issues)
 import type {
   StylePreferences,
@@ -26,6 +16,16 @@ import type {
   OccasionType,
   BudgetRange,
 } from "@/services/style-preferences-service";
+
+// Mock AsyncStorage
+vi.mock("@react-native-async-storage/async-storage", () => ({
+  default: {
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
+  },
+}));
 
 describe("Style Preferences", () => {
   describe("StylePreferences structure", () => {

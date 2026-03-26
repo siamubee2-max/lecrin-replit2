@@ -9,10 +9,9 @@ import {
   Alert,
   StyleSheet,
   RefreshControl,
-} from "react-native";
+ Platform } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";

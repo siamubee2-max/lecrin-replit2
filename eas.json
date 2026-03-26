@@ -28,7 +28,8 @@
     "production": {
       "ios": {
         "appleId": "chrweber@skynet.be",
-        "appleTeamId": "SPLML3CN76"
+        "appleTeamId": "SPLML3CN76",
+        "ascAppId": "6758549821"
       }
     }
   }

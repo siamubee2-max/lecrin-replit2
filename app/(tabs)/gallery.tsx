@@ -1,7 +1,6 @@
-import { Text, View, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import { Text, View, TouchableOpacity, FlatList, StyleSheet , Platform } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";

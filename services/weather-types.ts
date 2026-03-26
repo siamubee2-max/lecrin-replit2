@@ -17,9 +17,13 @@ export type WeatherCondition =
 
 export type WeatherData = {
   temperature: number; // Celsius
+  apparentTemperature?: number; // Celsius (feels like)
   condition: WeatherCondition;
   humidity: number; // Percentage
   windSpeed: number; // km/h
+  windGusts?: number; // km/h
+  precipitation?: number; // mm
+  uvIndex?: number;
   description: string;
   icon: string; // Emoji icon
   isDay: boolean;

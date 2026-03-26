@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
+import { getCurrentWeather, getUserLocation } from "@/services/weather-service";
+import { buildDailyGenderLook, type DailyGenderLook } from "@/services/daily-gender-look-service";
+import { getStyleProfile } from "@/services/style-profile-service";
 
 // Types
 type Occasion = "casual" | "work" | "formal" | "sport" | "party" | "all";
@@ -62,6 +65,8 @@ export default function AIStylistScreen() {
   const [suggestions, setSuggestions] = useState<LookSuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedLook, setSelectedLook] = useState<LookSuggestion | null>(null);
+  const [dailyLook, setDailyLook] = useState<DailyGenderLook | null>(null);
+  const [isLoadingDailyLook, setIsLoadingDailyLook] = useState(false);
 
   // API queries
   const { data: wardrobeItems = [] } = trpc.wardrobe.list.useQuery(
@@ -76,6 +81,25 @@ export default function AIStylistScreen() {
 
   const generateLooksMutation = trpc.stylist.generateLooks.useMutation();
   const saveLookMutation = trpc.looks.create.useMutation();
+
+  const loadDailyLook = useCallback(async () => {
+    setIsLoadingDailyLook(true);
+    try {
+      const location = await getUserLocation();
+      const weather = await getCurrentWeather(location);
+      const profile = await getStyleProfile();
+      setDailyLook(buildDailyGenderLook(weather, location, profile));
+    } catch (error) {
+      console.error("Failed to load daily weather look:", error);
+      setDailyLook(null);
+    } finally {
+      setIsLoadingDailyLook(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDailyLook();
+  }, [loadDailyLook]);
 
   // Handlers
   const handleHaptic = useCallback(() => {
@@ -321,6 +345,62 @@ export default function AIStylistScreen() {
             <Text className="text-2xl font-bold text-foreground">{favorites.length}</Text>
             <Text className="text-xs text-muted">Bijoux favoris</Text>
           </View>
+        </View>
+
+        {/* Look du jour meteo (femme + homme) */}
+        <View className="bg-surface rounded-2xl p-4 border border-border mb-4">
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="text-base font-semibold text-foreground">Look du jour meteo</Text>
+            <TouchableOpacity
+              onPress={loadDailyLook}
+              className="px-3 py-1 rounded-full border border-border"
+              disabled={isLoadingDailyLook}
+            >
+              <Text className="text-xs text-foreground">{isLoadingDailyLook ? "..." : "Actualiser"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {isLoadingDailyLook ? (
+            <View className="py-4 items-center">
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text className="text-muted text-xs mt-2">Analyse meteo en cours...</Text>
+            </View>
+          ) : dailyLook ? (
+            <>
+              <Text className="text-xs text-muted mb-2">
+                {dailyLook.locationLabel} - {dailyLook.weatherLabel}
+              </Text>
+              {dailyLook.alerts.length > 0 && (
+                <Text className="text-xs text-primary mb-3">
+                  Alertes: {dailyLook.alerts.join(" • ")}
+                </Text>
+              )}
+
+              <View className="bg-background rounded-xl p-3 border border-border mb-2">
+                <Text className="text-sm font-semibold text-foreground mb-1">{dailyLook.femme.title}</Text>
+                <Text className="text-xs text-foreground">Pieces: {dailyLook.femme.pieces.join(" + ")}</Text>
+                {dailyLook.femme.outerwear ? (
+                  <Text className="text-xs text-foreground mt-1">Couche: {dailyLook.femme.outerwear}</Text>
+                ) : null}
+                <Text className="text-xs text-foreground mt-1">Chaussures: {dailyLook.femme.shoes}</Text>
+                <Text className="text-xs text-muted mt-1">Accessoires: {dailyLook.femme.accessories.join(", ")}</Text>
+              </View>
+
+              <View className="bg-background rounded-xl p-3 border border-border">
+                <Text className="text-sm font-semibold text-foreground mb-1">{dailyLook.homme.title}</Text>
+                <Text className="text-xs text-foreground">Pieces: {dailyLook.homme.pieces.join(" + ")}</Text>
+                {dailyLook.homme.outerwear ? (
+                  <Text className="text-xs text-foreground mt-1">Couche: {dailyLook.homme.outerwear}</Text>
+                ) : null}
+                <Text className="text-xs text-foreground mt-1">Chaussures: {dailyLook.homme.shoes}</Text>
+                <Text className="text-xs text-muted mt-1">Accessoires: {dailyLook.homme.accessories.join(", ")}</Text>
+              </View>
+            </>
+          ) : (
+            <Text className="text-xs text-muted">
+              Impossible de charger le look du jour pour le moment.
+            </Text>
+          )}
         </View>
 
         {/* Filters */}

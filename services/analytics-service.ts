@@ -99,7 +99,7 @@ class AnalyticsService {
   private mixpanel: Mixpanel | null = null;
   private isInitialized = false;
   private anonymousId: string | null = null;
-  private pendingEvents: Array<{ name: string; properties?: Record<string, unknown> }> = [];
+  private pendingEvents: { name: string; properties?: Record<string, unknown> }[] = [];
 
   /**
    * Initialise Mixpanel avec le token du projet

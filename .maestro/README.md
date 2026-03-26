@@ -17,6 +17,7 @@ curl -Ls "https://get.maestro.mobile.dev" | bash
 | `02_purchase_flow.yaml` | Paywall et abonnement RevenueCat | `achat`, `revenuecat`, `critique` |
 | `03_community_post_flow.yaml` | Création de publication avec Snapshot | `communaute`, `snapshot` |
 | `04_boutique_tryon_flow.yaml` | Boutique partenaire → Essayage pré-rempli | `boutique`, `partenaire` |
+| `05_onboarding_dailylook_guided_save_smoke.yaml` | Smoke test parcours onboarding → daily look → try-on guidé → sauvegarde | `smoke`, `critique` |
 
 ## Exécution
 

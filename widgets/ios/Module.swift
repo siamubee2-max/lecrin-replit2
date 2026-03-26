@@ -1,6 +1,7 @@
 import ExpoModulesCore
+import WidgetKit
 
-public class EcrinWidgetModule: Module {
+public class ExpoWidgetsModule: Module {
     public func definition() -> ModuleDefinition {
         Name("EcrinWidget")
         

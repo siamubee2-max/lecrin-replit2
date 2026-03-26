@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const JEWELRY_TYPES = ["Tous", "earrings", "necklace", "ring", "bracelet", "anklet", "brooch"];
 const JEWELRY_TYPE_LABELS: Record<string, string> = {
@@ -52,6 +53,8 @@ type JewelryItem = {
   tags: string[] | null;
 };
 
+const LOCAL_COLLECTION_KEY = "@ecrin_local_collection";
+
 export default function EcrinScreen() {
   const colors = useColors();
   const { user } = useAuth();
@@ -68,6 +71,50 @@ export default function EcrinScreen() {
   const addToCollectionMutation = trpc.collection.add.useMutation();
   const removeFromCollectionMutation = trpc.collection.remove.useMutation();
   const updateCollectionMutation = trpc.collection.update.useMutation();
+
+  const loadLocalCollection = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(LOCAL_COLLECTION_KEY);
+      if (!raw) return;
+      const localItems = JSON.parse(raw) as Array<any>;
+      const mapped: JewelryItem[] = localItems.map((item) => ({
+        id: `local_${item.id}`,
+        name: item.name ?? "Bijou",
+        type: item.type ?? "earrings",
+        brand: item.brand ?? "L'Écrin",
+        image: item.imageUri ? { uri: item.imageUri } : null,
+        isFavorite: item.isFavorite ?? false,
+        metal: item.metal ?? null,
+        isDemo: false,
+        collection: item.collection ?? null,
+        tags: item.tags ?? null,
+      }));
+      setJewelry((prev) => {
+        const demos = prev.filter((j) => j.isDemo);
+        const cloud = prev.filter((j) => !j.isDemo);
+        const merged = [...mapped, ...cloud];
+        const seen = new Set<string>();
+        const deduped = merged.filter((j) => {
+          if (seen.has(j.id)) return false;
+          seen.add(j.id);
+          return true;
+        });
+        return [...demos, ...deduped];
+      });
+    } catch {}
+  }, []);
+
+  // Charger au montage
+  useEffect(() => {
+    loadLocalCollection();
+  }, [loadLocalCollection]);
+
+  // Recharger à chaque retour sur l'onglet (après sauvegarde depuis "Essayer")
+  useFocusEffect(
+    useCallback(() => {
+      loadLocalCollection();
+    }, [loadLocalCollection]),
+  );
 
   // Merge collection items when loaded
   useEffect(() => {
@@ -222,6 +269,25 @@ export default function EcrinScreen() {
     setNewJewelryBrand("");
     setNewJewelryImage(null);
     setShowAddModal(false);
+
+    // Persister localement (toujours)
+    try {
+      const raw = await AsyncStorage.getItem(LOCAL_COLLECTION_KEY);
+      const existing = raw ? JSON.parse(raw) : [];
+      existing.unshift({
+        id: Date.now(),
+        name: newItem.name,
+        type: newItem.type,
+        brand: newItem.brand,
+        imageUri: newItem.image?.uri,
+        metal: newItem.metal,
+        isFavorite: false,
+        collection: null,
+        tags: null,
+        createdAt: new Date().toISOString(),
+      });
+      await AsyncStorage.setItem(LOCAL_COLLECTION_KEY, JSON.stringify(existing.slice(0, 200)));
+    } catch {}
 
     // Persist to server if authenticated
     if (user) {

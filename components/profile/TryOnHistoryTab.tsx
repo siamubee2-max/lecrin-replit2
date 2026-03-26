@@ -14,12 +14,11 @@ import {
   ActivityIndicator,
   StyleSheet,
   Share,
-} from "react-native";
+ Platform } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 

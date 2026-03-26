@@ -4,9 +4,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator , Platform } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 import { useColors } from "@/hooks/use-colors";
 import { useI18n } from "@/lib/i18n-context";
@@ -31,6 +30,7 @@ import {
   BUDGET_NAMES,
   SKIN_TONE_NAMES,
 } from "@/services/style-preferences-service";
+import { getStyleProfile, setStyleProfile, type StyleProfile } from "@/services/style-profile-service";
 
 interface StylePreferencesTabProps {
   onPreferencesChange?: (preferences: StylePreferences) => void;
@@ -43,6 +43,7 @@ export function StylePreferencesTab({ onPreferencesChange }: StylePreferencesTab
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [dailyStyleProfile, setDailyStyleProfile] = useState<StyleProfile>("elegant");
 
   useEffect(() => {
     loadPreferences();
@@ -53,6 +54,8 @@ export function StylePreferencesTab({ onPreferencesChange }: StylePreferencesTab
     try {
       const loaded = await loadStylePreferences();
       setPreferences(loaded);
+      const profile = await getStyleProfile();
+      setDailyStyleProfile(profile);
     } catch (error) {
       console.error("Error loading preferences:", error);
     } finally {
@@ -156,6 +159,14 @@ export function StylePreferencesTab({ onPreferencesChange }: StylePreferencesTab
     
     setPreferences((prev) => ({ ...prev, skinTone: tone }));
     setHasChanges(true);
+  };
+
+  const setDailyProfile = async (profile: StyleProfile) => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setDailyStyleProfile(profile);
+    await setStyleProfile(profile);
   };
 
   if (isLoading) {
@@ -419,6 +430,44 @@ export function StylePreferencesTab({ onPreferencesChange }: StylePreferencesTab
                 }}
               >
                 {SKIN_TONE_NAMES[tone]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Save Button */}
+      <View className="mb-6">
+        <Text className="text-lg font-semibold text-foreground mb-3">
+          Style quotidien météo
+        </Text>
+        <Text className="text-sm text-muted mb-4">
+          Utilisé pour personnaliser les looks femme/homme du jour sur l'accueil.
+        </Text>
+        <View className="flex-row flex-wrap gap-2">
+          {([
+            { id: "elegant", label: "Elegant" },
+            { id: "minimal", label: "Minimal" },
+            { id: "street", label: "Street" },
+            { id: "business", label: "Business" },
+          ] as const).map((option) => (
+            <TouchableOpacity
+              key={option.id}
+              onPress={() => setDailyProfile(option.id)}
+              className="px-4 py-2 rounded-full"
+              style={{
+                backgroundColor: dailyStyleProfile === option.id ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: dailyStyleProfile === option.id ? colors.primary : colors.border,
+              }}
+            >
+              <Text
+                className="font-medium"
+                style={{
+                  color: dailyStyleProfile === option.id ? "#0A1A3B" : colors.foreground,
+                }}
+              >
+                {option.label}
               </Text>
             </TouchableOpacity>
           ))}

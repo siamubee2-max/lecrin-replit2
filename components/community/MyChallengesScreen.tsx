@@ -6,10 +6,9 @@ import {
   Modal,
   TextInput,
   StyleSheet,
-} from "react-native";
+ Platform } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import { WEEKLY_CHALLENGES, type Challenge } from "./ChallengesBanner";
 
 type Colors = {

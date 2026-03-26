@@ -28,13 +28,14 @@ const env = {
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
+  owner: "tiwounti",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
-  
+
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
@@ -47,10 +48,14 @@ const config: ExpoConfig = {
       NSCameraUsageDescription: "Écrin Virtuel utilise la caméra pour l'essayage virtuel de bijoux en réalité augmentée.",
       NSPhotoLibraryUsageDescription: "Écrin Virtuel accède à vos photos pour sauvegarder vos essayages virtuels.",
       NSPhotoLibraryAddUsageDescription: "Écrin Virtuel sauvegarde vos essayages virtuels dans votre galerie.",
+      NSLocationWhenInUseUsageDescription:
+        "Écrin Virtuel utilise votre position pour proposer des looks adaptés à la météo locale.",
       // App Transport Security for deep link redirects
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: false,
         NSAllowsArbitraryLoadsInWebContent: true,
+        // Dev : appels http:// vers la machine (API sur :3000) depuis l’iPhone sur le même Wi‑Fi
+        NSAllowsLocalNetworking: true,
       },
     },
     // App Store configuration
@@ -58,7 +63,7 @@ const config: ExpoConfig = {
       usesNonExemptEncryption: false,
     },
   },
-  
+
   android: {
     adaptiveIcon: {
       backgroundColor: "#0A1A3B",
@@ -69,7 +74,14 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS", "CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
+    permissions: [
+      "POST_NOTIFICATIONS",
+      "CAMERA",
+      "READ_EXTERNAL_STORAGE",
+      "WRITE_EXTERNAL_STORAGE",
+      "ACCESS_COARSE_LOCATION",
+      "ACCESS_FINE_LOCATION",
+    ],
     intentFilters: [
       // Custom URL scheme (ecrinvirtuel://...)
       {
@@ -98,13 +110,13 @@ const config: ExpoConfig = {
       },
     ],
   },
-  
+
   web: {
     bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
-  
+
   plugins: [
     "expo-router",
     [
@@ -140,13 +152,13 @@ const config: ExpoConfig = {
         },
       },
     ],
-    // Widget configuration for iOS and Android
+    // iOS: patch pnpm `patches/@bittingz__expo-widgets@3.0.2.patch` (withPodfile no-op pour Expo 54).
     [
       "@bittingz/expo-widgets",
       {
         ios: {
           src: "./widgets/ios",
-          devTeamId: "TEAM_ID", // Replace with your Apple Developer Team ID
+          devTeamId: "SPLML3CN76",
           mode: "production",
           moduleDependencies: [],
           useLiveActivities: false,
@@ -167,12 +179,12 @@ const config: ExpoConfig = {
       },
     ],
   ],
-  
+
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
   },
-  
+
   // Extra configuration for runtime access
   extra: {
     // Deep link base URL for sharing
@@ -180,6 +192,10 @@ const config: ExpoConfig = {
     // App Store URLs (to be updated after app submission)
     appStoreUrl: "https://apps.apple.com/app/ecrin-virtuel/id000000000",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.ecrin.jewelry",
+    // EAS Project ID (required for eas build with dynamic config)
+    eas: {
+      projectId: "52023f23-2329-4fab-b9c9-a518b17f94f3",
+    },
   },
 };
 

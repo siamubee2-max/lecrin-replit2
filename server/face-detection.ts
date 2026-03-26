@@ -6,7 +6,7 @@
  */
 
 import { invokeLLM } from "./_core/llm";
-import { storagePut } from "./storage";
+import { supabaseStoragePut } from "./_core/supabaseStorage";
 
 // Types for face detection results
 export interface FaceLandmarks {
@@ -77,7 +77,7 @@ export async function uploadImageForAnalysis(
   const extension = mimeType.split("/")[1] || "jpg";
   const filename = `face-analysis/${timestamp}.${extension}`;
   
-  const result = await storagePut(filename, buffer, mimeType);
+  const result = await supabaseStoragePut(filename, buffer, mimeType);
   return result.url;
 }
 

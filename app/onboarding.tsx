@@ -14,6 +14,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
+import { setStyleProfile, type StyleProfile } from "@/services/style-profile-service";
+import { trackOnboardingCompleted } from "@/lib/analytics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -51,6 +53,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedStyleProfile, setSelectedStyleProfile] = useState<StyleProfile>("elegant");
   const scrollX = useRef(new Animated.Value(0)).current;
 
   const handleNext = async () => {
@@ -69,11 +72,14 @@ export default function OnboardingScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     await AsyncStorage.setItem("onboarding_completed", "true");
+    await setStyleProfile(selectedStyleProfile);
+    trackOnboardingCompleted();
     router.replace("/(tabs)");
   };
 
   const handleSkip = async () => {
     await AsyncStorage.setItem("onboarding_completed", "true");
+    trackOnboardingCompleted();
     router.replace("/(tabs)");
   };
 
@@ -133,6 +139,39 @@ export default function OnboardingScreen() {
 
       {/* Bottom controls */}
       <View style={styles.bottomContainer}>
+        {isLast && (
+          <View style={styles.stylePicker}>
+            {([
+              { id: "elegant", label: "Elegant" },
+              { id: "minimal", label: "Minimal" },
+              { id: "street", label: "Street" },
+              { id: "business", label: "Business" },
+            ] as const).map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={() => setSelectedStyleProfile(item.id)}
+                style={[
+                  styles.styleChip,
+                  {
+                    borderColor: selectedStyleProfile === item.id ? "#C9A96E" : "#3a3a3a",
+                    backgroundColor: selectedStyleProfile === item.id ? "#C9A96E22" : "transparent",
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: selectedStyleProfile === item.id ? "#F5F0E8" : "#9A9A9A",
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    fontWeight: "700",
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
         {/* Dots */}
         <View style={styles.dotsContainer}>
           {SLIDES.map((_, i) => {
@@ -263,6 +302,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 24,
     paddingHorizontal: 32,
+  },
+  stylePicker: {
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+  },
+  styleChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   dotsContainer: {
     flexDirection: "row",

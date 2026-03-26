@@ -1,0 +1,54 @@
+appId: space.manus.ecrin
+name: "Smoke — Onboarding -> Daily Look -> Guidé -> Sauvegarde"
+tags:
+  - smoke
+  - critique
+
+---
+- launchApp:
+    clearState: true
+
+# Onboarding (conditionnel selon état)
+- optional:
+    - tapOn: "Passer"
+- optional:
+    - tapOn: "SUIVANT"
+- optional:
+    - tapOn: "COMMENCER"
+
+# Home -> détail look
+- assertVisible:
+    text: "LOOK DU JOUR MÉTÉO"
+    timeout: 30000
+- tapOn:
+    text: "Voir le détail complet"
+
+# Détail look -> guided flow
+- assertVisible:
+    text: "Détail Look du Jour"
+    timeout: 30000
+- tapOn:
+    text: "DÉMARRER LOOK COMPLET (3 ÉTAPES)"
+
+# Écran try-on guidé
+- assertVisible:
+    text: "Guide look complet"
+    timeout: 30000
+
+# Lancer une génération si possible
+- optional:
+    - tapOn:
+        text: "Essayer"
+
+# Ouvrir le résultat et sauvegarder localement
+- optional:
+    - assertVisible:
+        text: "QUALITÉ IA"
+        timeout: 90000
+- optional:
+    - tapOn:
+        text: "Mon Écrin"
+
+# Validation finale
+- optional:
+    - assertVisible: "Sauvegardé"

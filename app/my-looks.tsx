@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,8 +13,9 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import ViewShot from "react-native-view-shot";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -67,6 +68,7 @@ const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: "name", label: "Nom A-Z" },
   { id: "favorites", label: "Favoris d'abord" },
 ];
+const LOCAL_LOOKS_KEY = "@ecrin_local_looks";
 
 export default function MyLooksScreen() {
   const colors = useColors();
@@ -85,6 +87,7 @@ export default function MyLooksScreen() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareImageUri, setShareImageUri] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [localLooks, setLocalLooks] = useState<SavedLook[]>([]);
 
   // API queries
   const { data: looks = [], isLoading, refetch } = trpc.looks.list.useQuery(
@@ -110,6 +113,32 @@ export default function MyLooksScreen() {
     onSuccess: () => refetch(),
   });
 
+  const loadLocalLooks = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(LOCAL_LOOKS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const normalized: SavedLook[] = Array.isArray(parsed)
+        ? parsed.map((item) => ({
+            ...item,
+            createdAt: new Date(item.createdAt),
+          }))
+        : [];
+      setLocalLooks(normalized);
+    } catch (e) {
+      console.warn("[MyLooks] Failed to load local looks:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLocalLooks();
+  }, [loadLocalLooks]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadLocalLooks();
+    }, [loadLocalLooks]),
+  );
+
   // Handlers
   const handleHaptic = useCallback(() => {
     if (Platform.OS !== "web") {
@@ -119,6 +148,12 @@ export default function MyLooksScreen() {
 
   const handleToggleFavorite = useCallback(async (look: SavedLook) => {
     handleHaptic();
+    if (look.id < 0) {
+      const updated = localLooks.map((l) => (l.id === look.id ? { ...l, isFavorite: !l.isFavorite } : l));
+      setLocalLooks(updated);
+      await AsyncStorage.setItem(LOCAL_LOOKS_KEY, JSON.stringify(updated));
+      return;
+    }
     try {
       await updateLookMutation.mutateAsync({
         id: look.id,
@@ -130,7 +165,7 @@ export default function MyLooksScreen() {
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
     }
-  }, [handleHaptic, updateLookMutation]);
+  }, [handleHaptic, updateLookMutation, localLooks]);
 
   const handleDeleteLook = useCallback((look: SavedLook) => {
     handleHaptic();
@@ -144,7 +179,13 @@ export default function MyLooksScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteLookMutation.mutateAsync({ id: look.id });
+              if (look.id < 0) {
+                const updated = localLooks.filter((l) => l.id !== look.id);
+                setLocalLooks(updated);
+                await AsyncStorage.setItem(LOCAL_LOOKS_KEY, JSON.stringify(updated));
+              } else {
+                await deleteLookMutation.mutateAsync({ id: look.id });
+              }
               setSelectedLook(null);
               if (Platform.OS !== "web") {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -156,7 +197,7 @@ export default function MyLooksScreen() {
         },
       ]
     );
-  }, [handleHaptic, deleteLookMutation]);
+  }, [handleHaptic, deleteLookMutation, localLooks]);
 
   // Handle share look
   const handleShareLook = useCallback(async (look: SavedLook) => {
@@ -231,9 +272,15 @@ export default function MyLooksScreen() {
     }
   }, [shareImageUri]);
 
+  const mergedLooks = useMemo(() => {
+    const cloudIds = new Set(looks.map((l) => l.id));
+    const filteredLocal = localLooks.filter((l) => !cloudIds.has(l.id));
+    return [...filteredLocal, ...looks];
+  }, [localLooks, looks]);
+
   // Filter and sort looks
   const filteredLooks = useMemo(() => {
-    let result = [...looks];
+    let result = [...mergedLooks];
 
     // Filter by occasion
     if (selectedOccasion !== "all") {
@@ -264,7 +311,7 @@ export default function MyLooksScreen() {
     }
 
     return result;
-  }, [looks, selectedOccasion, selectedSeason, sortBy]);
+  }, [mergedLooks, selectedOccasion, selectedSeason, sortBy]);
 
   // Get items for a look
   const getLookItems = useCallback((look: SavedLook) => {

@@ -3,19 +3,19 @@
  * Supports French (default), English, Spanish, German, Italian, and Portuguese
  */
 
-export { fr, type TranslationKeys } from "./fr";
-export { en } from "./en";
-export { es } from "./es";
-export { de } from "./de";
-export { it } from "./it";
-export { pt } from "./pt";
-
 import { fr } from "./fr";
 import { en } from "./en";
 import { es } from "./es";
 import { de } from "./de";
 import { it } from "./it";
 import { pt } from "./pt";
+
+export { fr, type TranslationKeys } from "./fr";
+export { en } from "./en";
+export { es } from "./es";
+export { de } from "./de";
+export { it } from "./it";
+export { pt } from "./pt";
 
 export type Language = "fr" | "en" | "es" | "de" | "it" | "pt";
 

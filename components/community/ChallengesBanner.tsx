@@ -1,8 +1,7 @@
-import { View, Text, TouchableOpacity, ScrollView, Modal, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Modal, StyleSheet , Platform } from "react-native";
 import { useState } from "react";
 import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 export type Challenge = {
   id: string;

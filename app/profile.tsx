@@ -1,8 +1,7 @@
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator, TextInput, Modal } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator, TextInput, Modal , Platform } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";

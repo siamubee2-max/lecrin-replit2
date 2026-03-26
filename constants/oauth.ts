@@ -28,6 +28,9 @@ export const API_BASE_URL = env.apiBaseUrl;
  * Get the API base URL, deriving from current hostname if not set.
  * Metro runs on 8081, API server runs on 3000.
  * URL pattern: https://PORT-sandboxid.region.domain
+ *
+ * Sur iPhone / Android en dev : définir EXPO_PUBLIC_API_BASE_URL=http://IP_DE_TON_MAC:PORT
+ * (ex. http://192.168.1.12:3000). L’IP s’affiche au lancement du serveur ou dans Réglages → Wi‑Fi sur le Mac.
  */
 export function getApiBaseUrl(): string {
   // If API_BASE_URL is set, use it

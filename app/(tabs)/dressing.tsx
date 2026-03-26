@@ -44,6 +44,9 @@ interface WardrobeItem {
   imageUrl?: string | null;
   isFavorite?: boolean | null;
   isDemo?: boolean;
+  season?: "spring" | "summer" | "fall" | "winter" | "all" | null;
+  occasion?: "casual" | "work" | "formal" | "sport" | "party" | "all" | null;
+  tags?: string | null;
 }
 
 // ─── Sections config ──────────────────────────────────────────────────────────
@@ -149,7 +152,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "accessories",
     brand: "Moni'attitude",
     color: "gold",
-    imageUrl: null,
+    imageUrl:
+      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/enfnjOfHaPReDorw.jpeg",
     isFavorite: false,
     isDemo: true,
   },
@@ -160,7 +164,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "shoes",
     brand: "Jonak",
     color: "beige",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=400&fit=crop",
     isFavorite: true,
     isDemo: true,
   },
@@ -170,7 +175,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "shoes",
     brand: "Nike",
     color: "white",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
     isFavorite: false,
     isDemo: true,
   },
@@ -180,7 +186,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "shoes",
     brand: "Sandro",
     color: "black",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1605812860427-4024433a70fd?w=400&h=400&fit=crop",
     isFavorite: true,
     isDemo: true,
   },
@@ -191,7 +198,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "tops",
     brand: "Sandro",
     color: "beige",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=400&h=400&fit=crop",
     isFavorite: true,
     isDemo: true,
   },
@@ -201,7 +209,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "bottoms",
     brand: "Maje",
     color: "navy",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=400&fit=crop",
     isFavorite: false,
     isDemo: true,
   },
@@ -211,7 +220,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "dresses",
     brand: "Ba&sh",
     color: "black",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop",
     isFavorite: true,
     isDemo: true,
   },
@@ -221,7 +231,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "outerwear",
     brand: "The Kooples",
     color: "beige",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=400&fit=crop",
     isFavorite: false,
     isDemo: true,
   },
@@ -232,7 +243,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "bags",
     brand: "Polène",
     color: "brown",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop",
     isFavorite: true,
     isDemo: true,
   },
@@ -242,7 +254,8 @@ const DEMO_ITEMS: WardrobeItem[] = [
     category: "other",
     brand: "Zara",
     color: "gold",
-    imageUrl: null,
+    imageUrl:
+      "https://images.unsplash.com/photo-1624891283882-dfe05d1f2c71?w=400&h=400&fit=crop",
     isFavorite: false,
     isDemo: true,
   },
@@ -264,6 +277,78 @@ const COLORS = [
   { id: "gold", label: "Doré", hex: "#D4AF37" },
   { id: "silver", label: "Argenté", hex: "#C0C0C0" },
 ];
+
+function normalizeTerm(value: string): string {
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function inferSmartMetadata(input: {
+  name: string;
+  category: WardrobeCategory;
+  color?: string;
+}): {
+  tags: string;
+  season: "spring" | "summer" | "fall" | "winter" | "all";
+  occasion: "casual" | "work" | "formal" | "sport" | "party" | "all";
+  color?: string;
+} {
+  const text = normalizeTerm(input.name);
+  const tags = new Set<string>([input.category]);
+  if (input.color) tags.add(input.color);
+  if (/elegant|tailleur|blazer|robe|chemise|derby|montre/.test(text)) tags.add("elegant");
+  if (/sport|running|sneaker|basket/.test(text)) tags.add("sport");
+  if (/pluie|imper|waterproof|deperlant/.test(text)) tags.add("rain");
+  if (/hiver|laine|manteau|parka/.test(text)) tags.add("winter");
+  if (/ete|lin|leger|sandale/.test(text)) tags.add("summer");
+
+  const season = tags.has("winter")
+    ? "winter"
+    : tags.has("summer")
+      ? "summer"
+      : "all";
+  const occasion = tags.has("sport")
+    ? "sport"
+    : tags.has("elegant")
+      ? "formal"
+      : "casual";
+
+  return {
+    tags: Array.from(tags).join(","),
+    season,
+    occasion,
+    color: input.color,
+  };
+}
+
+function matchesNaturalSearch(item: WardrobeItem, query: string): boolean {
+  const q = normalizeTerm(query);
+  if (!q) return true;
+  const chunks = q.split(/\s+/).filter(Boolean);
+  const searchable = normalizeTerm(
+    [
+      item.name,
+      item.brand ?? "",
+      item.color ?? "",
+      item.tags ?? "",
+      item.season ?? "",
+      item.occasion ?? "",
+      item.category ?? "",
+    ].join(" "),
+  );
+  const synonyms: Record<string, string[]> = {
+    elegante: ["formal", "elegant", "work", "blazer", "derby", "robe"],
+    pluie: ["rain", "imper", "deperlant", "waterproof"],
+    bureau: ["work", "formal", "tailleur", "chemise", "blazer"],
+    soiree: ["formal", "party", "robe", "bijou"],
+    hiver: ["winter", "laine", "manteau", "parka"],
+    ete: ["summer", "lin", "sandale", "leger"],
+  };
+  return chunks.every((token) => {
+    if (searchable.includes(token)) return true;
+    const expanded = synonyms[token] ?? [];
+    return expanded.some((term) => searchable.includes(term));
+  });
+}
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function DressingScreen() {
@@ -301,11 +386,7 @@ export default function DressingScreen() {
         if (!isFav) return false;
       }
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          item.name.toLowerCase().includes(q) ||
-          (item.brand?.toLowerCase().includes(q) ?? false)
-        );
+        return matchesNaturalSearch(item, searchQuery);
       }
       return true;
     });
@@ -715,13 +796,21 @@ function AddItemModal({
         uploadedUrl = uploaded.url;
         setIsUploading(false);
       }
+      const inferred = inferSmartMetadata({
+        name: name.trim(),
+        category,
+        color: selectedColor || undefined,
+      });
       await addMutation.mutateAsync({
         name: name.trim(),
         category,
         brand: brand.trim() || undefined,
-        color: selectedColor || undefined,
+        color: inferred.color,
         price: price ? parseFloat(price) * 100 : undefined,
         imageUrl: uploadedUrl,
+        season: inferred.season,
+        occasion: inferred.occasion,
+        tags: inferred.tags,
       });
       setName("");
       setBrand("");

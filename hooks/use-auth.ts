@@ -1,8 +1,25 @@
-import * as Api from "@/lib/_core/api";
-import * as Auth from "@/lib/_core/auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform } from "react-native";
+import { supabase } from "@/lib/supabase";
 import { setSentryUser, clearSentryUser } from "@/lib/sentry";
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
+
+export type AuthUser = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  loginMethod: string | null;
+  lastSignedIn: Date;
+};
+
+function mapSupabaseUser(u: SupabaseUser): AuthUser {
+  return {
+    id: u.id,
+    email: u.email ?? null,
+    name: u.user_metadata?.name ?? u.user_metadata?.full_name ?? null,
+    loginMethod: u.app_metadata?.provider ?? null,
+    lastSignedIn: new Date(u.last_sign_in_at ?? u.created_at),
+  };
+}
 
 type UseAuthOptions = {
   autoFetch?: boolean;
@@ -10,91 +27,71 @@ type UseAuthOptions = {
 
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
-  const [user, setUser] = useState<Auth.User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const handleSession = useCallback((session: Session | null) => {
+    if (session?.user) {
+      const mapped = mapSupabaseUser(session.user);
+      setUser(mapped);
+      setSentryUser(mapped.id, mapped.email ?? undefined);
+    } else {
+      setUser(null);
+      clearSentryUser();
+    }
+  }, []);
+
   const fetchUser = useCallback(async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-
-      if (Platform.OS === "web") {
-        const apiUser = await Api.getMe();
-
-        if (apiUser) {
-          const userInfo: Auth.User = {
-            id: apiUser.id,
-            openId: apiUser.openId,
-            name: apiUser.name,
-            email: apiUser.email,
-            loginMethod: apiUser.loginMethod,
-            lastSignedIn: new Date(apiUser.lastSignedIn),
-          };
-          setUser(userInfo);
-          await Auth.setUserInfo(userInfo);
-          setSentryUser(String(apiUser.id), apiUser.email ?? undefined);
-        } else {
-          setUser(null);
-          await Auth.clearUserInfo();
-          clearSentryUser();
-        }
-        return;
-      }
-
-      // Native platform: use token-based auth
-      const sessionToken = await Auth.getSessionToken();
-      if (!sessionToken) {
-        setUser(null);
-        return;
-      }
-
-      const cachedUser = await Auth.getUserInfo();
-      setUser(cachedUser ?? null);
+      const { data: { session } } = await supabase.auth.getSession();
+      handleSession(session);
     } catch (err) {
-      const fetchError = err instanceof Error ? err : new Error("Failed to fetch user");
-      setError(fetchError);
+      setError(err instanceof Error ? err : new Error("Failed to fetch user"));
       setUser(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleSession]);
+
+  useEffect(() => {
+    if (!autoFetch || !supabase) {
+      setLoading(false);
+      return;
+    }
+
+    fetchUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        handleSession(session);
+        setLoading(false);
+      },
+    );
+
+    return () => subscription.unsubscribe();
+  }, [autoFetch, fetchUser, handleSession]);
 
   const logout = useCallback(async () => {
+    if (!supabase) return;
     try {
-      await Api.logout();
+      await supabase.auth.signOut();
     } catch {
-      // Continue with logout even if API call fails
+      // continue
     } finally {
-      await Auth.removeSessionToken();
-      await Auth.clearUserInfo();
-      clearSentryUser();
       setUser(null);
       setError(null);
+      clearSentryUser();
     }
   }, []);
 
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
-
-  useEffect(() => {
-    if (autoFetch) {
-      if (Platform.OS === "web") {
-        fetchUser();
-      } else {
-        // Native: check for cached user info first for faster initial load
-        Auth.getUserInfo().then((cachedUser) => {
-          if (cachedUser) {
-            setUser(cachedUser);
-            setLoading(false);
-          } else {
-            fetchUser();
-          }
-        });
-      }
-    } else {
-      setLoading(false);
-    }
-  }, [autoFetch, fetchUser]);
 
   return {
     user,

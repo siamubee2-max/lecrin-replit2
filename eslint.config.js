@@ -7,4 +7,10 @@ export default defineConfig([
   {
     ignores: ["dist/*"],
   },
+  {
+    rules: {
+      // Textes FR avec apostrophes (l'utilisateur, d'accord, etc.) — évite des centaines d'échappements JSX
+      "react/no-unescaped-entities": "off",
+    },
+  },
 ]);

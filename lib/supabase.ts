@@ -1,7 +1,8 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
-// Supabase credentials from environment variables
 const SUPABASE_URL = Constants.expoConfig?.extra?.supabaseUrl
   || process.env.EXPO_PUBLIC_SUPABASE_URL
   || "";
@@ -13,11 +14,16 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn("[Supabase] Missing credentials - configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env");
 }
 
-// Only create a real client when credentials are available; otherwise null.
-// All consumers must handle the null case gracefully.
 export const supabase: SupabaseClient | null =
   SUPABASE_URL && SUPABASE_ANON_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          storage: Platform.OS === "web" ? undefined : AsyncStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: Platform.OS === "web",
+        },
+      })
     : null;
 
 // Types matching Supabase schema

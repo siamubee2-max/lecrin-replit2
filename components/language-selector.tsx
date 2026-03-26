@@ -11,13 +11,12 @@ import {
   Modal,
   FlatList,
   StyleSheet,
-} from "react-native";
+ Platform } from "react-native";
 import { useI18n } from "@/lib/i18n-context";
 import { Language } from "@/lib/i18n";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 interface LanguageSelectorProps {
   /** Style variant */

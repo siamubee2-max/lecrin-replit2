@@ -22,9 +22,13 @@ export type WeatherCondition =
 
 export type WeatherData = {
   temperature: number; // Celsius
+  apparentTemperature?: number; // Celsius (feels like)
   condition: WeatherCondition;
   humidity: number; // Percentage
   windSpeed: number; // km/h
+  windGusts?: number; // km/h
+  precipitation?: number; // mm
+  uvIndex?: number;
   description: string;
   icon: string; // Emoji icon
   isDay: boolean;
@@ -134,7 +138,12 @@ export async function getUserLocation(): Promise<UserLocation> {
   }
 
   // Check permission first
-  const hasPermission = await checkLocationPermission();
+  let hasPermission = await checkLocationPermission();
+  if (!hasPermission) {
+    // Always try requesting permission once when unavailable.
+    // This handles first run and cases where status changed externally.
+    hasPermission = await requestLocationPermission();
+  }
   
   if (!hasPermission) {
     console.log("[WeatherService] Location permission not granted, using default location");
@@ -173,10 +182,22 @@ export async function getUserLocation(): Promise<UserLocation> {
       });
     }
 
-    // Native location
-    const position = await ExpoLocation.getCurrentPositionAsync({
-      accuracy: ExpoLocation.Accuracy.Balanced,
-    });
+    // Native location:
+    // 1) Use last known position quickly when available
+    // 2) Then refine with current GPS position
+    const lastKnown = await ExpoLocation.getLastKnownPositionAsync();
+    let position = lastKnown;
+    try {
+      position = await ExpoLocation.getCurrentPositionAsync({
+        accuracy: ExpoLocation.Accuracy.Balanced,
+      });
+    } catch (gpsError) {
+      if (!position) throw gpsError;
+      console.warn("[WeatherService] Current GPS unavailable, using last known position");
+    }
+    if (!position) {
+      throw new Error("No position available");
+    }
 
     const location: UserLocation = {
       latitude: position.coords.latitude,
@@ -264,7 +285,7 @@ export async function getCurrentWeather(location?: UserLocation): Promise<Weathe
     const { latitude, longitude } = loc;
     
     // Build API URL with all needed parameters
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index,is_day&timezone=auto`;
     
     console.log(`[WeatherService] Fetching weather for ${loc.city || 'unknown location'} (${latitude}, ${longitude})`);
     
@@ -281,7 +302,11 @@ export async function getCurrentWeather(location?: UserLocation): Promise<Weathe
     const weatherInfo = WEATHER_CODE_MAP[weatherCode] || WEATHER_CODE_MAP[0];
     
     const temperature = current.temperature_2m;
+    const apparentTemperature = current.apparent_temperature;
     const windSpeed = current.wind_speed_10m;
+    const windGusts = current.wind_gusts_10m;
+    const precipitation = current.precipitation;
+    const uvIndex = current.uv_index;
     const isDay = current.is_day === 1;
     
     // Determine condition based on weather code, temperature, and wind
@@ -307,9 +332,13 @@ export async function getCurrentWeather(location?: UserLocation): Promise<Weathe
     
     return {
       temperature: Math.round(temperature),
+      apparentTemperature: Math.round(apparentTemperature),
       condition,
       humidity: current.relative_humidity_2m,
       windSpeed: Math.round(windSpeed),
+      windGusts: Math.round(windGusts),
+      precipitation: typeof precipitation === "number" ? Math.round(precipitation * 10) / 10 : 0,
+      uvIndex: typeof uvIndex === "number" ? Math.round(uvIndex) : undefined,
       description: weatherInfo.description,
       icon,
       isDay,
@@ -321,9 +350,13 @@ export async function getCurrentWeather(location?: UserLocation): Promise<Weathe
     // Return default mild weather on error
     return {
       temperature: 20,
+      apparentTemperature: 20,
       condition: "mild",
       humidity: 50,
       windSpeed: 10,
+      windGusts: 12,
+      precipitation: 0,
+      uvIndex: 3,
       description: "Conditions inconnues",
       icon: "🌤️",
       isDay: true,
@@ -337,14 +370,14 @@ export async function getCurrentWeather(location?: UserLocation): Promise<Weathe
  * Get weather forecast for the next few days
  */
 export async function getWeatherForecast(location?: UserLocation, days: number = 7): Promise<{
-  daily: Array<{
+  daily: {
     date: Date;
     temperatureMax: number;
     temperatureMin: number;
     condition: WeatherCondition;
     description: string;
     icon: string;
-  }>;
+  }[];
 }> {
   const loc = location || await getUserLocation();
   
@@ -498,12 +531,12 @@ export function getLocationPermissionStatus(): "granted" | "denied" | "undetermi
 /**
  * Search for a city by name using Open-Meteo Geocoding API
  */
-export async function searchCity(query: string): Promise<Array<{
+export async function searchCity(query: string): Promise<{
   name: string;
   country: string;
   latitude: number;
   longitude: number;
-}>> {
+}[]> {
   try {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=fr&format=json`;
     

@@ -34,9 +34,11 @@ import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ZoomableImage } from "@/components/ui/ZoomableImage";
 import { useRouter } from "expo-router";
+import { recordTryOnTelemetry } from "@/services/tryon-observability-service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type GalleryItem = { id: string; uri: string; label: string };
+const LOCAL_LOOKS_KEY = "@ecrin_local_looks";
 
 type OutfitSlotKey =
   | "tshirt" | "jacket" | "pants" | "skirt"
@@ -237,6 +239,7 @@ const POSE_OPTIONS = [
   { key: "walking" as const, label: "Marche" },
   { key: "back" as const, label: "Dos" },
 ];
+type PoseKey = typeof POSE_OPTIONS[number]["key"];
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 export function OutfitBuilder() {
@@ -264,6 +267,7 @@ export function OutfitBuilder() {
   const [showResult, setShowResult] = useState(false);
   const [currentVariant, setCurrentVariant] = useState(0);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const resultCarouselRef = useRef<FlatList<string>>(null);
   // Modal mannequin
   const [showMannequinModal, setShowMannequinModal] = useState(false);
 
@@ -294,10 +298,6 @@ export function OutfitBuilder() {
   ];
 
   const handleSaveLook = async () => {
-    if (!user) {
-      Alert.alert("Connexion requise", "Connectez-vous pour sauvegarder vos looks.");
-      return;
-    }
     if (isSaving) return;
     setIsSaving(true);
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -310,15 +310,41 @@ export function OutfitBuilder() {
         .filter(Boolean)
         .join(", ");
       const name = lookName.trim() || `Tenue du ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
-      const result = await createLookMutation.mutateAsync({
+      const localId = -Date.now();
+      const localLook = {
+        id: localId,
         name,
-        description: slotLabels || undefined,
+        description: slotLabels || null,
         occasion: lookOccasion,
         season: lookSeason,
-        previewImageUrl: resultUrls[currentVariant] || resultUrls[0],
+        wardrobeItemIds: null,
+        jewelryItemIds: null,
+        previewImageUrl: resultUrls[currentVariant] || resultUrls[0] || null,
+        stylingTips: null,
         isAiGenerated: true,
-      });
-      setSavedLookId(result?.id ?? null);
+        isFavorite: false,
+        createdAt: new Date().toISOString(),
+      };
+      const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+      const raw = await AsyncStorage.getItem(LOCAL_LOOKS_KEY);
+      const existing = raw ? JSON.parse(raw) : [];
+      existing.unshift(localLook);
+      await AsyncStorage.setItem(LOCAL_LOOKS_KEY, JSON.stringify(existing.slice(0, 200)));
+      setSavedLookId(localId);
+
+      // Sync cloud en arrière-plan si connecté (ne bloque jamais la sauvegarde locale)
+      if (user) {
+        createLookMutation.mutateAsync({
+          name,
+          description: slotLabels || undefined,
+          occasion: lookOccasion,
+          season: lookSeason,
+          previewImageUrl: resultUrls[currentVariant] || resultUrls[0],
+          isAiGenerated: true,
+        }).catch((e) => {
+          console.warn("[Outfit] Cloud save failed, local save kept:", e);
+        });
+      }
       setShowSaveSheet(false);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e) {
@@ -337,7 +363,10 @@ export function OutfitBuilder() {
   ];
 
   const selectedCount = Object.keys(slots).length;
-  const canGenerate = !!modelPhoto && selectedCount > 0 && !isProcessing;
+  const selectedClothingCount = OUTFIT_SLOTS
+    .filter((slot) => slot.category === "clothing")
+    .reduce((count, slot) => (slots[slot.key] ? count + 1 : count), 0);
+  const canGenerate = !!modelPhoto && selectedCount > 0 && selectedClothingCount > 0 && !isProcessing;
 
   const ensurePublicUrl = async (uri: string): Promise<string> => {
     if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
@@ -398,6 +427,7 @@ export function OutfitBuilder() {
   const handleGenerate = async () => {
     if (!modelPhoto || selectedCount === 0) return;
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const startedAt = Date.now();
     setIsProcessing(true);
     setProgressStep(0);
     progressAnim.setValue(0);
@@ -419,7 +449,7 @@ export function OutfitBuilder() {
         }
       }
 
-      const result = await outfitMutation.mutateAsync({
+      const payload = {
         modelImageUrl: publicModelUrl,
         tshirtImageUrl: slotUrls.tshirt,
         jacketImageUrl: slotUrls.jacket,
@@ -454,16 +484,75 @@ export function OutfitBuilder() {
           ? (slots.sunglasses?.label ?? slots.legwear?.label ?? slots.hat?.label ?? slots.skirt?.label)
           : undefined,
         shoesName: slots.shoes?.label,
-        pose: selectedPose,
-        numSamples,
-      });
+      } as const;
+
+      const targetPoses: PoseKey[] =
+        numSamples === 4
+          ? ["front", "side", "walking", "back"]
+          : numSamples === 2
+          ? ["front", "side"]
+          : [selectedPose];
+
+      const urlsByPose = new Map<PoseKey, string>();
+      const usedUrls = new Set<string>();
+      const requestDistinctPoseImage = async (
+        pose: PoseKey,
+        used: Set<string>,
+        fallbackPose?: PoseKey,
+      ): Promise<string | null> => {
+        const poseToUse = fallbackPose ?? pose;
+        const qualityPlan: ("standard" | "strict")[] = ["standard", "strict", "strict"];
+        for (const qualityMode of qualityPlan) {
+          const result = await outfitMutation.mutateAsync({
+            ...payload,
+            pose: poseToUse,
+            numSamples: 1,
+            qualityMode,
+          });
+          const url = result.resultImageUrl ?? result.resultImageUrls?.[0] ?? null;
+          if (!url) continue;
+          if (!used.has(url)) return url;
+        }
+        return null;
+      };
+      for (const pose of targetPoses) {
+        // 2/4 images = une génération dédiée par pose pour imposer le cadrage
+        const firstUrl = await requestDistinctPoseImage(pose, usedUrls);
+        if (firstUrl && !usedUrls.has(firstUrl)) {
+          urlsByPose.set(pose, firstUrl);
+          usedUrls.add(firstUrl);
+          continue;
+        }
+        const secondUrl = await requestDistinctPoseImage(pose, usedUrls, selectedPose);
+        if (secondUrl && !usedUrls.has(secondUrl)) {
+          urlsByPose.set(pose, secondUrl);
+          usedUrls.add(secondUrl);
+        }
+      }
 
       clearInterval(stepInterval);
       Animated.timing(progressAnim, { toValue: 1, duration: 400, useNativeDriver: false }).start();
 
-      const urls = result.resultImageUrls ?? (result.resultImageUrl ? [result.resultImageUrl] : []);
+      let urls = targetPoses
+        .map((pose) => urlsByPose.get(pose))
+        .filter((u): u is string => Boolean(u))
+        .slice(0, numSamples);
+      if (urls.length > 0 && urls.length < numSamples) {
+        const expanded = [...urls];
+        while (expanded.length < numSamples) {
+          expanded.push(urls[expanded.length % urls.length]);
+        }
+        urls = expanded;
+      }
+      if (new Set(urls).size === 1 && urls.length > 1) {
+        Alert.alert(
+          "Qualité limitée",
+          "Les variantes sont trop similaires. Lancez une régénération pour obtenir des poses plus distinctes.",
+        );
+      }
       setResultUrls(urls);
       setCurrentVariant(0);
+      setIsImageZoomed(false);
       setShowResult(true);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -485,9 +574,22 @@ export function OutfitBuilder() {
         });
         await AsyncStorage.setItem(historyKey, JSON.stringify(history.slice(0, 50)));
       } catch {}
+      await recordTryOnTelemetry({
+        at: new Date().toISOString(),
+        type: "outfit",
+        success: true,
+        durationMs: Date.now() - startedAt,
+      });
     } catch (err: unknown) {
       clearInterval(stepInterval);
       const message = err instanceof Error ? err.message : "Une erreur est survenue";
+      await recordTryOnTelemetry({
+        at: new Date().toISOString(),
+        type: "outfit",
+        success: false,
+        durationMs: Date.now() - startedAt,
+        errorMessage: message,
+      });
       Alert.alert("Erreur", `La génération a échoué : ${message}`);
     } finally {
       setIsProcessing(false);
@@ -644,6 +746,13 @@ export function OutfitBuilder() {
               );
             })}
           </View>
+          {numSamples > 1 && (
+            <Text style={{ marginTop: 8, color: colors.muted, fontSize: 11 }}>
+              {numSamples === 2
+                ? "2 images: Face + Profil (automatique)"
+                : "4 images: Face + Profil + Marche + Dos (automatique)"}
+            </Text>
+          )}
         </View>
 
         {/* Sélecteur de variantes */}
@@ -683,6 +792,11 @@ export function OutfitBuilder() {
             <Text style={[styles.summaryItems, { color: colors.muted }]}>
               {Object.entries(slots).map(([, item]) => item?.label).filter(Boolean).join(" · ")}
             </Text>
+            {selectedClothingCount === 0 && (
+              <Text style={[styles.summaryItems, { color: colors.muted, marginTop: 6 }]}>
+                Ajoutez au moins un vêtement (top, veste, pantalon ou jupe) pour une tenue complète.
+              </Text>
+            )}
           </View>
         )}
 
@@ -729,7 +843,7 @@ export function OutfitBuilder() {
               />
             </View>
             <Text style={{ color: colors.muted, fontSize: 11, textAlign: "center", marginTop: 6, letterSpacing: 0.5 }}>
-              Nano Banana 2 compose votre tenue…
+              L'IA compose votre tenue…
             </Text>
           </View>
         )}
@@ -880,33 +994,93 @@ export function OutfitBuilder() {
           {/* Image principale avec carousel */}
           <View style={{ flex: 1 }}>
             <FlatList
+              ref={resultCarouselRef}
               data={resultUrls}
               keyExtractor={(_, i) => i.toString()}
               horizontal
               pagingEnabled
+              getItemLayout={(_, index) => ({ length: Dimensions.get("window").width, offset: Dimensions.get("window").width * index, index })}
+              initialNumToRender={1}
+              maxToRenderPerBatch={2}
+              windowSize={3}
               showsHorizontalScrollIndicator={false}
-              scrollEnabled={!isImageZoomed}
+              scrollEnabled={resultUrls.length > 1}
               onMomentumScrollEnd={e => {
                 const idx = Math.round(e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width);
                 setCurrentVariant(idx);
               }}
               renderItem={({ item }) => (
                 <View style={{ width: Dimensions.get("window").width, flex: 1 }}>
-                  <ZoomableImage
-                    uri={item}
-                    width={Dimensions.get("window").width}
-                    height={Dimensions.get("window").height * 0.7}
-                    onZoomChange={setIsImageZoomed}
-                  />
+                  {resultUrls.length > 1 ? (
+                    <Image
+                      source={{ uri: item }}
+                      style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.7 }}
+                      contentFit="contain"
+                    />
+                  ) : (
+                    <ZoomableImage
+                      uri={item}
+                      width={Dimensions.get("window").width}
+                      height={Dimensions.get("window").height * 0.7}
+                      onZoomChange={setIsImageZoomed}
+                    />
+                  )}
                 </View>
               )}
             />
+            {resultUrls.length > 1 && (
+              <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center" }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const next = Math.max(0, currentVariant - 1);
+                      resultCarouselRef.current?.scrollToIndex({ index: next, animated: true });
+                      setCurrentVariant(next);
+                    }}
+                    style={{ backgroundColor: "rgba(0,0,0,0.45)", width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 16 }}>‹</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const next = Math.min(resultUrls.length - 1, currentVariant + 1);
+                      resultCarouselRef.current?.scrollToIndex({ index: next, animated: true });
+                      setCurrentVariant(next);
+                    }}
+                    style={{ backgroundColor: "rgba(0,0,0,0.45)", width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 16 }}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
             {/* Indicateur de variante */}
             {resultUrls.length > 1 && (
               <View style={[styles.variantIndicator, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
                 <Text style={{ color: "#fff", fontSize: 12 }}>
                   {currentVariant + 1}/{resultUrls.length} {!isImageZoomed ? "← glisser →" : ""}
                 </Text>
+              </View>
+            )}
+            {resultUrls.length > 1 && (
+              <View style={{ position: "absolute", bottom: 12, left: 12, flexDirection: "row", gap: 6 }}>
+                {resultUrls.map((_, idx) => (
+                  <TouchableOpacity
+                    key={`dot-${idx}`}
+                    onPress={() => {
+                      resultCarouselRef.current?.scrollToIndex({ index: idx, animated: true });
+                      setCurrentVariant(idx);
+                    }}
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: idx === currentVariant ? "#fff" : "rgba(255,255,255,0.45)",
+                    }}
+                  />
+                ))}
               </View>
             )}
           </View>

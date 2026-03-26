@@ -1,31 +1,19 @@
 /**
- * Voice transcription helper using internal Speech-to-Text service
+ * Voice transcription helper using Google Gemini API
  *
- * Frontend implementation guide:
- * 1. Capture audio using MediaRecorder API
- * 2. Upload audio to storage (e.g., S3) to get URL
- * 3. Call transcription with the URL
+ * Replaces the old Replit Forge/Whisper service.
  *
  * Example usage:
  * ```tsx
- * // Frontend component
  * const transcribeMutation = trpc.voice.transcribe.useMutation({
- *   onSuccess: (data) => {
- *     console.log(data.text); // Full transcription
- *     console.log(data.language); // Detected language
- *     console.log(data.segments); // Timestamped segments
- *   }
+ *   onSuccess: (data) => console.log(data.text)
  * });
- *
- * // After uploading audio to storage
- * transcribeMutation.mutate({
- *   audioUrl: uploadedAudioUrl,
- *   language: 'en', // optional
- *   prompt: 'Transcribe the meeting' // optional
- * });
+ * transcribeMutation.mutate({ audioUrl: uploadedAudioUrl, language: 'fr' });
  * ```
  */
 import { ENV } from "./env";
+
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
@@ -79,19 +67,12 @@ export async function transcribeAudio(
   options: TranscribeOptions,
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
-    // Step 1: Validate environment configuration
-    if (!ENV.forgeApiUrl) {
+    // Step 1: Validate API key
+    if (!ENV.geminiApiKey) {
       return {
         error: "Voice transcription service is not configured",
         code: "SERVICE_ERROR",
-        details: "BUILT_IN_FORGE_API_URL is not set",
-      };
-    }
-    if (!ENV.forgeApiKey) {
-      return {
-        error: "Voice transcription service authentication is missing",
-        code: "SERVICE_ERROR",
-        details: "BUILT_IN_FORGE_API_KEY is not set",
+        details: "GEMINI_API_KEY is not set in .env",
       };
     }
 
@@ -107,17 +88,15 @@ export async function transcribeAudio(
           details: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-
       audioBuffer = Buffer.from(await response.arrayBuffer());
       mimeType = response.headers.get("content-type") || "audio/mpeg";
 
-      // Check file size (16MB limit)
       const sizeMB = audioBuffer.length / (1024 * 1024);
-      if (sizeMB > 16) {
+      if (sizeMB > 20) {
         return {
           error: "Audio file exceeds maximum size limit",
           code: "FILE_TOO_LARGE",
-          details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 16MB`,
+          details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 20MB`,
         };
       }
     } catch (error) {
@@ -128,63 +107,70 @@ export async function transcribeAudio(
       };
     }
 
-    // Step 3: Create FormData for multipart upload to Whisper API
-    const formData = new FormData();
-
-    // Create a Blob from the buffer and append to form
-    const filename = `audio.${getFileExtension(mimeType)}`;
-    const audioBlob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
-    formData.append("file", audioBlob, filename);
-
-    formData.append("model", "whisper-1");
-    formData.append("response_format", "verbose_json");
-
-    // Add prompt - use custom prompt if provided, otherwise generate based on language
-    const prompt =
+    // Step 3: Build prompt
+    const langHint = options.language
+      ? ` The audio language is ${getLanguageName(options.language)}.`
+      : "";
+    const userPrompt =
       options.prompt ||
-      (options.language
-        ? `Transcribe the user's voice to text, the user's working language is ${getLanguageName(options.language)}`
-        : "Transcribe the user's voice to text");
-    formData.append("prompt", prompt);
+      `Please transcribe the following audio exactly, word for word.${langHint} Return only the transcript text, nothing else.`;
 
-    // Step 4: Call the transcription service
-    const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
+    // Step 4: Call Gemini with the audio as inline_data
+    const b64Audio = audioBuffer.toString("base64");
+    const body = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: userPrompt },
+            { inline_data: { mime_type: mimeType, data: b64Audio } },
+          ],
+        },
+      ],
+    };
 
-    const fullUrl = new URL("v1/audio/transcriptions", baseUrl).toString();
-
-    const response = await fetch(fullUrl, {
+    const apiUrl = `${GEMINI_API_BASE}/models/gemini-1.5-flash:generateContent?key=${ENV.geminiApiKey}`;
+    const res = await fetch(apiUrl, {
       method: "POST",
-      headers: {
-        authorization: `Bearer ${ENV.forgeApiKey}`,
-        "Accept-Encoding": "identity",
-      },
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "");
       return {
-        error: "Transcription service request failed",
+        error: "Transcription request failed",
         code: "TRANSCRIPTION_FAILED",
-        details: `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ""}`,
+        details: `${res.status} ${res.statusText}${errorText ? `: ${errorText}` : ""}`,
       };
     }
 
-    // Step 5: Parse and return the transcription result
-    const whisperResponse = (await response.json()) as WhisperResponse;
+    const json = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
 
-    // Validate response structure
-    if (!whisperResponse.text || typeof whisperResponse.text !== "string") {
+    const text = json.candidates?.[0]?.content?.parts
+      ?.map((p) => p.text ?? "")
+      .join("")
+      .trim();
+
+    if (!text) {
       return {
         error: "Invalid transcription response",
         code: "SERVICE_ERROR",
-        details: "Transcription service returned an invalid response format",
+        details: "Gemini returned an empty transcription",
       };
     }
 
-    return whisperResponse; // Return native Whisper API response directly
+    // Return in WhisperResponse-compatible format
+    return {
+      task: "transcribe",
+      language: options.language ?? "unknown",
+      duration: 0,
+      text,
+      segments: [],
+    };
   } catch (error) {
-    // Handle unexpected errors
     return {
       error: "Voice transcription failed",
       code: "SERVICE_ERROR",

@@ -22,6 +22,10 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { analytics } from "@/services/analytics-service";
+import {
+  normalizePartnerJewelryImageUrl,
+  shouldUseDemoJewelry,
+} from "@/lib/boutique/partner-jewelry";
 
 // Types
 type JewelryType = "necklace" | "earrings" | "ring" | "bracelet" | "anklet" | "brooch" | "set";
@@ -117,7 +121,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Sublimez votre look avec cette paire de boucles d'oreilles artisanales en forme de fleur, minutieusement confectionnées à la main. Grâce à un élégant mélange de nuances or et reflets métallisés, elles apportent une touche naturelle et sophistiquée. Légères et agréables à porter, environ 2 cm de diamètre. Puce en acier inoxydable.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/foIbwvIEZnQRCkLk.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2F223655cb-e35b-42b9-9762-6496fba3ad45.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -134,7 +138,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles artisanales en forme de fleur dans un magnifique vert émeraude. Chaque modèle est créé une seule fois dans l'atelier Moni'attitude. Puce en acier inoxydable.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/haAwgRGsClqKFANk.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2F8429df8d-f6fb-49a7-83e1-a4f04182d234.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -151,7 +155,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles fleur duo en pâte polymère, pièce unique faite main. Design élégant avec deux fleurs assorties. Puce en acier inoxydable.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/xObLlbhKgtqgQKtR.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2Fe2ce5eac-b2fe-4b93-a177-b74c2c3d272a.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -169,7 +173,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Adorables boucles d'oreilles en forme de cœur, faites main avec amour. Idéales pour exprimer votre côté romantique. Puce en acier inoxydable.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/jxfiqAoWKZPAIFjU.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2F3d65f8f0-2811-4400-9346-2285d731ae43.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -186,7 +190,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles artisanales en argile polymère. Création unique faite main dans l'atelier Moni'attitude. Parfaites pour toutes les occasions.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/CAEjpatzbSHKxJTS.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2F5c3ce63a-9a59-492b-adb5-f2f38d001877.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -203,7 +207,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles cœur rouge passion, faites main en argile polymère. Pièce unique de l'atelier Moni'attitude.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/HZMcGGjuhtIOsCCh.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2Fa8a7729d-580e-42e9-897b-263560a2b04e.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -221,7 +225,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles texturées et Acier inoxydable. Design moderne et élégant. Artisanat local belge, pièce unique.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/DTttUkeYfSQGDWYX.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2F2f0c9074-1d10-48f5-8d38-38ed4cfe24ba.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -238,7 +242,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles géométriques blanches avec paillettes argent. Design élégant fait main.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/udutSvgNwUOYCjca.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2F01604c9d-7c5a-40ee-b909-1a4723b35f51.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -256,7 +260,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles artisanales en résine UV avec reflets uniques. Chaque paire est une création originale.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/SSbYeXEaRLVOrBMD.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2Fa8a7729d-580e-42e9-897b-263560a2b04e.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "resin",
     gemType: "none",
@@ -273,7 +277,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Sublimez votre look avec cette paire de boucles d'oreilles artisanales en résine orange éclatante. Ornées de paillettes scintillantes et de détails dorés. Environ 4 cm.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/rjfmUlamBZcBgUfF.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2Fe8e92430-3df4-42fa-b27f-114bccebc4cb.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "resin",
     gemType: "none",
@@ -291,7 +295,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles en forme de feuille avec finition métallisée. Inspirées par la nature, faites main.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/enfnjOfHaPReDorw.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2F1278bc3a-40dc-4bc2-9ae1-4b3090f43f42.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -308,7 +312,7 @@ const DEMO_JEWELRY: PartnerJewelry[] = [
     description: "Boucles d'oreilles feuilles sculptées à la main. Artisanat belge, pièce unique.",
     priceInCents: null,
     currency: null,
-    imageUrl: { uri: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/PmXGVTpIdVrAoJbK.jpeg" },
+    imageUrl: { uri: "https://cdn.zyrosite.com/cdn-cgi/image/format=auto,w=375,h=375,fit=crop,q=100/cdn-ecommerce/store_01K3TQM870EP842MGTADV6KKSD%2Fassets%2Fdbd8d4c7-b6d5-451d-9e7a-4eed325d8f44.jpeg" },
     productUrl: "https://moniattitude.com/boutique-de-bijoux-artisanaux",
     metalType: "polymer",
     gemType: "none",
@@ -703,7 +707,13 @@ export default function BoutiqueScreen() {
 
   // Fallback to demo data if Supabase returns nothing
   const rawBrands = brandsQuery.data && brandsQuery.data.length > 0 ? brandsQuery.data : [DEMO_BRAND];
-  const rawJewelry = jewelryQuery.data && jewelryQuery.data.length > 0 ? jewelryQuery.data : DEMO_JEWELRY;
+  const fetchedJewelry = jewelryQuery.data ?? [];
+  // Si Supabase renvoie des lignes mais sans URLs d'images utilisables,
+  // on force le fallback démo (sinon on a uniquement des placeholders).
+  const rawJewelry =
+    fetchedJewelry.length > 0 && !shouldUseDemoJewelry(fetchedJewelry)
+      ? fetchedJewelry
+      : DEMO_JEWELRY;
   const isLoading = jewelryQuery.isLoading;
 
   // Normalize brands to PartnerBrand type
@@ -734,7 +744,7 @@ export default function BoutiqueScreen() {
       description: j.description ?? null,
       priceInCents: jAny.priceInCents ?? jAny.price_in_cents ?? null,
       currency: jAny.currency ?? null,
-      imageUrl: imageUrlValue ? { uri: imageUrlValue } : null,
+        imageUrl: normalizePartnerJewelryImageUrl(imageUrlValue),
       productUrl: jAny.productUrl ?? jAny.product_url ?? null,
       metalType: jAny.metalType ?? jAny.metal_type ?? null,
       gemType: jAny.gemType ?? jAny.gem_type ?? null,

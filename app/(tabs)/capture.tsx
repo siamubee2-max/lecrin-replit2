@@ -1,7 +1,6 @@
-import { Text, View, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { Text, View, TouchableOpacity, StyleSheet, Alert , Platform } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { router } from "expo-router";

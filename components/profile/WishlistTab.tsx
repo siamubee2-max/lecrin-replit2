@@ -4,9 +4,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList, Alert, ActivityIndicator, TextInput, Modal, Linking } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, Alert, ActivityIndicator, TextInput, Modal, Linking , Platform } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 import { useColors } from "@/hooks/use-colors";
 import { useI18n } from "@/lib/i18n-context";

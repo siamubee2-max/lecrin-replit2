@@ -3,6 +3,19 @@ import { DailySuggestion } from "../services/daily-look-suggestion-types";
 import { WeatherData, WeatherCondition } from "../services/weather-types";
 import { EventType } from "../services/calendar-service";
 
+// Import after mocks are set up
+import {
+  WidgetData,
+  getWidgetContent,
+  suggestionToWidgetData,
+  getDefaultWidgetData,
+  formatForIOSWidget,
+  formatForAndroidWidget,
+  generateWidgetTimeline,
+  WIDGET_CONFIG,
+  WIDGET_REFRESH_INTERVALS,
+} from "../services/widget-data-service";
+
 // Mock AsyncStorage and Platform before importing the service
 vi.mock("@react-native-async-storage/async-storage", () => ({
   default: {
@@ -16,19 +29,6 @@ vi.mock("react-native", () => ({
     OS: "ios",
   },
 }));
-
-// Import after mocks are set up
-import {
-  WidgetData,
-  getWidgetContent,
-  suggestionToWidgetData,
-  getDefaultWidgetData,
-  formatForIOSWidget,
-  formatForAndroidWidget,
-  generateWidgetTimeline,
-  WIDGET_CONFIG,
-  WIDGET_REFRESH_INTERVALS,
-} from "../services/widget-data-service";
 
 describe("Widget Data Service", () => {
   // Sample test data

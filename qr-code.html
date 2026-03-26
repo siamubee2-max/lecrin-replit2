@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expo QR Code</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #1a1a2e;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #aaa;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        img {
+            border-radius: 12px;
+            background: white;
+            padding: 12px;
+        }
+
+        .url {
+            margin-top: 20px;
+            color: #4ecdc4;
+            font-size: 16px;
+            font-family: monospace;
+        }
+
+        .instructions {
+            margin-top: 30px;
+            color: #888;
+            font-size: 13px;
+            max-width: 400px;
+            text-align: center;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📱 Scan to open in Expo Go</h1>
+    <p>Make sure your phone is on the same Wi-Fi network</p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=exp%3A%2F%2F192.168.129.57%3A8081"
+        alt="QR Code" width="300" height="300">
+    <div class="url">exp://192.168.129.57:8081</div>
+    <div class="instructions">
+        <strong>iOS:</strong> Open the Camera app and scan the QR code<br>
+        <strong>Android:</strong> Open Expo Go app and scan the QR code
+    </div>
+</body>
+
+</html>
