@@ -30,8 +30,8 @@ interface LookSuggestion {
   description: string;
   occasion: Occasion;
   season: Season;
-  wardrobeItemIds: number[];
-  jewelryItemIds: number[];
+  wardrobeItemIds: string[];
+  jewelryItemIds: string[];
   stylingTips: string;
   confidence: number;
 }

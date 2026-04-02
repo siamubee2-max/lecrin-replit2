@@ -31,7 +31,7 @@ type Season = "spring" | "summer" | "fall" | "winter" | "all";
 type SortOption = "date" | "name" | "favorites";
 
 interface SavedLook {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   occasion: string | null;
@@ -148,7 +148,7 @@ export default function MyLooksScreen() {
 
   const handleToggleFavorite = useCallback(async (look: SavedLook) => {
     handleHaptic();
-    if (look.id < 0) {
+    if (String(look.id).startsWith("-")) {
       const updated = localLooks.map((l) => (l.id === look.id ? { ...l, isFavorite: !l.isFavorite } : l));
       setLocalLooks(updated);
       await AsyncStorage.setItem(LOCAL_LOOKS_KEY, JSON.stringify(updated));
@@ -179,7 +179,7 @@ export default function MyLooksScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              if (look.id < 0) {
+              if (String(look.id).startsWith("-")) {
                 const updated = localLooks.filter((l) => l.id !== look.id);
                 setLocalLooks(updated);
                 await AsyncStorage.setItem(LOCAL_LOOKS_KEY, JSON.stringify(updated));
@@ -315,11 +315,11 @@ export default function MyLooksScreen() {
 
   // Get items for a look
   const getLookItems = useCallback((look: SavedLook) => {
-    const wardrobeIds: number[] = look.wardrobeItemIds 
-      ? JSON.parse(look.wardrobeItemIds) 
+    const wardrobeIds: string[] = look.wardrobeItemIds 
+      ? JSON.parse(look.wardrobeItemIds).map(String) 
       : [];
-    const jewelryIds: number[] = look.jewelryItemIds 
-      ? JSON.parse(look.jewelryItemIds) 
+    const jewelryIds: string[] = look.jewelryItemIds 
+      ? JSON.parse(look.jewelryItemIds).map(String) 
       : [];
 
     const clothes = wardrobeItems.filter((item) => wardrobeIds.includes(item.id));

@@ -254,7 +254,7 @@ export function trackWardrobeRecommendationApplied(props: {
 
 /** Launch offers */
 export function trackLaunchOfferCampaignSeen(props: {
-  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  campaignKey: "yearly_50_first_100" | "yearly_30_next_100" | "yearly_20_next_100" | "yearly_10_next_100" | "monthly_10_next_100";
   remaining?: number;
   source?: string;
 }): void {
@@ -262,7 +262,7 @@ export function trackLaunchOfferCampaignSeen(props: {
 }
 
 export function trackLaunchOfferClaimed(props: {
-  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  campaignKey: "yearly_50_first_100" | "yearly_30_next_100" | "yearly_20_next_100" | "yearly_10_next_100" | "monthly_10_next_100";
   source?: string;
 }): void {
   _client?.capture("launch_offer_claimed", props);
@@ -275,7 +275,7 @@ export function trackLaunchOfferExhausted(props?: {
 }
 
 export function trackLaunchOfferPurchaseSuccess(props: {
-  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  campaignKey: "yearly_50_first_100" | "yearly_30_next_100" | "yearly_20_next_100" | "yearly_10_next_100" | "monthly_10_next_100";
   storeId: string;
   source?: string;
 }): void {
@@ -283,7 +283,7 @@ export function trackLaunchOfferPurchaseSuccess(props: {
 }
 
 export function trackLaunchOfferPurchaseFailed(props: {
-  campaignKey: "yearly_50_first_100" | "yearly_25_next_100" | "yearly_10_next_100" | "monthly_10_next_200";
+  campaignKey: "yearly_50_first_100" | "yearly_30_next_100" | "yearly_20_next_100" | "yearly_10_next_100" | "monthly_10_next_100";
   storeId?: string;
   reason: "claim_unavailable" | "store_product_missing" | "purchase_failed" | "unexpected_error";
   source?: string;

@@ -151,7 +151,7 @@ export default function WardrobeScreen() {
   };
 
   // Handle delete
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     Alert.alert(
       "Supprimer",
       "Voulez-vous vraiment supprimer cette photo ?",
@@ -231,7 +231,7 @@ export default function WardrobeScreen() {
           <View className="px-4">
             <View className="flex-row flex-wrap" style={{ marginHorizontal: -6 }}>
               {bodyParts.map((part) => (
-                <View key={part.id} className="w-1/2 p-1.5">
+                <View key={String(part.id)} className="w-1/2 p-1.5">
                   <View 
                     className="rounded-2xl overflow-hidden"
                     style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -245,7 +245,7 @@ export default function WardrobeScreen() {
                       
                       {/* Delete button */}
                       <TouchableOpacity
-                        onPress={() => handleDelete(part.id)}
+                        onPress={() => handleDelete(String(part.id))}
                         className="absolute top-2 right-2 w-8 h-8 rounded-full items-center justify-center"
                         style={{ backgroundColor: 'rgba(239, 68, 68, 0.9)' }}
                       >

@@ -8,14 +8,14 @@ import { WatermarkMinimal } from "@/components/watermark";
 
 // Types
 interface WardrobeItem {
-  id: number;
+  id: string;
   name: string;
   category?: string | null;
   imageUrl?: string | null;
 }
 
 interface JewelryItem {
-  id: number;
+  id: string;
   jewelryType: string;
   imageUri?: string | null;
   jewelryIcon?: string | null;

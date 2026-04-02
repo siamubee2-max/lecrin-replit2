@@ -20,11 +20,12 @@ export const ENTITLEMENT_LIFETIME = "lifetime_access"; // Premium à vie (achat 
 export const PRODUCT_JEWELRY_MONTHLY = "ecrin.jewelry.monthly";
 export const PRODUCT_PREMIUM_MONTHLY = "ecrin.premium.monthly";
 export const PRODUCT_PREMIUM_YEARLY = "ecrin.premium.yearly";
+// Produits promo de lancement (à créer dans App Store Connect + RevenueCat)
 export const PRODUCT_PREMIUM_YEARLY_50 = process.env.EXPO_PUBLIC_RC_PRODUCT_PREMIUM_YEARLY_50 ?? "ecrin.premium.yearly.launch50";
-export const PRODUCT_PREMIUM_YEARLY_25 = process.env.EXPO_PUBLIC_RC_PRODUCT_PREMIUM_YEARLY_25 ?? "ecrin.premium.yearly.launch25";
+export const PRODUCT_PREMIUM_YEARLY_30 = process.env.EXPO_PUBLIC_RC_PRODUCT_PREMIUM_YEARLY_30 ?? "ecrin.premium.yearly.launch30";
+export const PRODUCT_PREMIUM_YEARLY_20 = process.env.EXPO_PUBLIC_RC_PRODUCT_PREMIUM_YEARLY_20 ?? "ecrin.premium.yearly.launch20";
 export const PRODUCT_PREMIUM_YEARLY_10 = process.env.EXPO_PUBLIC_RC_PRODUCT_PREMIUM_YEARLY_10 ?? "ecrin.premium.yearly.launch10";
 export const PRODUCT_PREMIUM_MONTHLY_10 = process.env.EXPO_PUBLIC_RC_PRODUCT_PREMIUM_MONTHLY_10 ?? "ecrin.premium.monthly.launch10";
-export const PRODUCT_LIFETIME = "ecrin.lifetime.premium"; // Premium à vie
 export const PRODUCT_CREDITS_50 = "ecrin.credits.50";
 export const PRODUCT_CREDITS_100 = "ecrin.credits.100";
 export const PRODUCT_CREDITS_250 = "ecrin.credits.250";
@@ -55,11 +56,12 @@ export type SubscriptionState = {
   monthlyTryOnsLimit: number;
 };
 
-const FREE_TRYON_LIMIT = 3;          // essayages gratuits/mois (bijoux uniquement)
-const JEWELRY_TRYON_LIMIT = 100;     // essayages Jewelry/mois
-const PREMIUM_MONTHLY_LIMIT = 150;   // essayages Premium mensuel/mois
-const PREMIUM_YEARLY_LIMIT = 1500;   // essayages Premium annuel/an
-const PREMIUM_FOUNDER_YEARLY_LIMIT = 10000; // offre fondateur (-50% annuel)
+const FREE_TRYON_LIMIT = 3;                  // essayages gratuits/mois (bijoux uniquement)
+const JEWELRY_TRYON_LIMIT = 100;             // essayages Jewelry/mois
+const PREMIUM_MONTHLY_LIMIT = 150;           // essayages Premium mensuel/mois
+const PREMIUM_YEARLY_LIMIT = 1500;           // essayages Premium annuel/an (tarif normal)
+// Offres de lancement : 1 000 essayages/an pour −50%, −30%, −20%
+const PREMIUM_LAUNCH_YEARLY_LIMIT = 1000;    // cohortes founder_50, early_30, early_20
 
 let purchasesInitialized = false;
 
@@ -131,7 +133,6 @@ export function useSubscription(): SubscriptionState & {
   purchasePremiumMonthly: () => Promise<boolean>;
   purchasePremiumYearly: () => Promise<boolean>;
   purchaseStoreProduct: (storeId: string) => Promise<boolean>;
-  purchaseLifetime: () => Promise<boolean>;
   purchaseCredits: (pack: "50" | "100" | "250" | "500") => Promise<boolean>;
   restorePurchases: () => Promise<void>;
   incrementTryOnUsage: () => void;
@@ -258,9 +259,6 @@ export function useSubscription(): SubscriptionState & {
   const purchasePremiumYearly = useCallback(() =>
     purchaseByStoreId(PRODUCT_PREMIUM_YEARLY), [purchaseByStoreId]);
 
-  const purchaseLifetime = useCallback(() =>
-    purchaseByStoreId(PRODUCT_LIFETIME), [purchaseByStoreId]);
-
   // ─── Achats crédits consommables ─────────────────────────────────────────
   const purchaseCredits = useCallback(async (pack: "50" | "100" | "250" | "500"): Promise<boolean> => {
     const storeIdMap = {
@@ -295,18 +293,22 @@ export function useSubscription(): SubscriptionState & {
   // ─── Permissions dérivées ────────────────────────────────────────────────
   const hasJewelryAccess = tier === "jewelry" || tier === "premium" || tier === "lifetime";
   const hasPremiumAccess = tier === "premium" || tier === "lifetime";
-  const isFounderYearly = activeProductIds.includes(PRODUCT_PREMIUM_YEARLY_50);
-  const hasAnyYearlyPremium = [
-    PRODUCT_PREMIUM_YEARLY,
+  // Produits annuels avec limit 1 000 essayages (cohortes promo −50/−30/−20%)
+  const isLaunchYearly1000 = [
     PRODUCT_PREMIUM_YEARLY_50,
-    PRODUCT_PREMIUM_YEARLY_25,
+    PRODUCT_PREMIUM_YEARLY_30,
+    PRODUCT_PREMIUM_YEARLY_20,
+  ].some((id) => activeProductIds.includes(id));
+  // Produits annuels avec limit 1 500 essayages (cohorte −10% + tarif normal)
+  const isAnyOtherYearly = [
+    PRODUCT_PREMIUM_YEARLY,
     PRODUCT_PREMIUM_YEARLY_10,
   ].some((id) => activeProductIds.includes(id));
-  const premiumLimit = isFounderYearly
-    ? PREMIUM_FOUNDER_YEARLY_LIMIT
-    : hasAnyYearlyPremium
-      ? PREMIUM_YEARLY_LIMIT
-      : PREMIUM_MONTHLY_LIMIT;
+  const premiumLimit = isLaunchYearly1000
+    ? PREMIUM_LAUNCH_YEARLY_LIMIT       // 1 000 essayages/an (fondateur + early bird)
+    : isAnyOtherYearly
+      ? PREMIUM_YEARLY_LIMIT            // 1 500 essayages/an (annuel normal ou −10%)
+      : PREMIUM_MONTHLY_LIMIT;          // 150 essayages/mois (mensuel)
 
   return {
     tier,
@@ -330,7 +332,6 @@ export function useSubscription(): SubscriptionState & {
     purchasePremiumMonthly,
     purchasePremiumYearly,
     purchaseStoreProduct: purchaseByStoreId,
-    purchaseLifetime,
     purchaseCredits,
     restorePurchases,
     incrementTryOnUsage,

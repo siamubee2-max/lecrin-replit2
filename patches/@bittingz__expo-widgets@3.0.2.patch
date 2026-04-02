@@ -1,3 +1,76 @@
+diff --git a/plugin/build/android/withModule.js b/plugin/build/android/withModule.js
+index ce4508116faa998b577aeb95441cfdb4dda17bbd..98d5521503ddb90e80a25b9bdd5c7d1267bc8a5c 100644
+--- a/plugin/build/android/withModule.js
++++ b/plugin/build/android/withModule.js
+@@ -13,27 +13,9 @@ const withModule = (config, options) => {
+     return (0, config_plugins_1.withDangerousMod)(config, [
+         "android",
+         async (newConfig) => {
+-            const { modRequest } = newConfig;
+-            const projectRoot = modRequest.projectRoot;
+-            const platformRoot = modRequest.platformProjectRoot;
+-            const widgetFolderPath = path_1.default.join(modRequest.projectRoot, options.src);
+-            const packageName = config_plugins_1.AndroidConfig.Package.getPackage(config);
+-            if (!packageName) {
+-                throw new Error(`ExpoWidgets:: app.(ts/json) must provide a value for android.package.`);
+-            }
+-            const packageNameAsPath = packageName?.replace(/\./g, "/");
+-            const moduleSourcePath = path_1.default.join(widgetFolderPath, 'src/main/java/package_name/Module.kt');
+-            logger_1.Logging.logger.debug('moduleSourcePath: ', moduleSourcePath);
+-            const moduleDestinationPath = path_1.default.join(projectRoot, 'android/app/src/main/java', packageNameAsPath, 'Module.kt');
+-            if (!fs_extra_1.default.existsSync(moduleSourcePath)) {
+-                logger_1.Logging.logger.debug('No module file found. Adding template...');
+-                const contents = (0, module_template_1.getTemplate)(packageName);
+-                logger_1.Logging.logger.debug('Writing contents');
+-                fs_extra_1.default.writeFileSync(moduleDestinationPath, contents);
+-            }
+-            else {
+-                fs_extra_1.default.copyFileSync(moduleSourcePath, moduleDestinationPath);
+-            }
++            // Expo SDK 54 already provides the module from the library package.
++            // Injecting Module.kt into the app project creates duplicate classes at dex merge.
++            logger_1.Logging.logger.debug('Skipping Module.kt injection to avoid duplicate ExpoWidgetsModule classes.');
+             return newConfig;
+         }
+     ]);
+diff --git a/plugin/build/ios/withAppExtensions.js b/plugin/build/ios/withAppExtensions.js
+index 2d7b8766dc132ca9317f4519c1e1bda4888f5341..4c6820f77d1751c4fff1ce72e5b3045f24662dba 100644
+--- a/plugin/build/ios/withAppExtensions.js
++++ b/plugin/build/ios/withAppExtensions.js
+@@ -10,13 +10,13 @@ const withAppExtensions = (config, options) => {
+     const bundleIdentifier = (0, withWidgetXCode_1.getBundleIdentifier)(config, options);
+     const entitlement = (0, withAppGroupPermissions_1.getAppGroupEntitlement)(config);
+     const appGroupEntitlements = (config.ios?.entitlements && config.ios.entitlements['com.apple.security.application-groups']) || [];
++    const nextAppGroupEntitlements = [...new Set([...appGroupEntitlements, entitlement])];
+     config.ios = {
+         ...config.ios,
+         entitlements: {
+             ...(config.ios?.entitlements || {}),
+             'com.apple.security.application-groups': [
+-                ...appGroupEntitlements,
+-                entitlement,
++                ...nextAppGroupEntitlements,
+             ],
+             'aps-environment': (0, withEntitlements_1.getPushNotificationsMode)(options)
+         }
+diff --git a/plugin/build/ios/withAppGroupPermissions.js b/plugin/build/ios/withAppGroupPermissions.js
+index 3bee591a4631ef07a9ae8f34966ad73e8269a215..11221028109dda04587c8903ef63b95b1f7c012e 100644
+--- a/plugin/build/ios/withAppGroupPermissions.js
++++ b/plugin/build/ios/withAppGroupPermissions.js
+@@ -6,6 +6,13 @@ const logger_1 = require("../utils/logger");
+ const withEntitlements_1 = require("./xcode/withEntitlements");
+ const APP_GROUP_KEY = "com.apple.security.application-groups";
+ const getAppGroupEntitlement = (config) => {
++    const configuredAppGroups = config?.ios?.entitlements?.[APP_GROUP_KEY];
++    if (Array.isArray(configuredAppGroups)) {
++        const firstGroup = configuredAppGroups.find(Boolean);
++        if (typeof firstGroup === "string" && firstGroup.trim().length > 0) {
++            return firstGroup;
++        }
++    }
+     return `group.${config?.ios?.bundleIdentifier || ""}.expowidgets`;
+ };
+ exports.getAppGroupEntitlement = getAppGroupEntitlement;
 diff --git a/plugin/build/ios/withPodfile.js b/plugin/build/ios/withPodfile.js
 index e39bf98439ad763668d7e31dfc70e2ab2b600352..ee4bf80773aa239ccbdd0b44d5ab4d04a8c8cfac 100644
 --- a/plugin/build/ios/withPodfile.js

@@ -368,6 +368,8 @@ const ACCESSORIES_DEMO = [
 ];
 type TryOnMode = "jewelry" | "shoes" | "clothing" | "accessories" | "outfit";
 type AccessoryTypeKey = "bag" | "belt" | "sunglasses" | "scarf" | "hat" | "watch" | "other";
+type ItemSource = "demo" | "dressing" | "catalogue";
+type GenderFilter = "women" | "men";
 
 const ACCESSORY_TYPES: { key: AccessoryTypeKey; label: string; emoji: string }[] = [
   { key: "bag", label: "Sacs", emoji: "👜" },
@@ -465,6 +467,7 @@ export default function TryOnScreen() {
     retryModelUrl?: string;
     retryItemUrl?: string;
     retryItemName?: string;
+    catalogImageUrl?: string;
     retrySubType?: string;
     // Params depuis la boutique (bouton ESSAYER)
     partnerJewelryId?: string;
@@ -487,6 +490,14 @@ export default function TryOnScreen() {
   const [numSamples, setNumSamples] = useState<1 | 2 | 4>(1);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [selectedJewelry, setSelectedJewelry] = useState<GalleryItem | null>(null);
+  const [itemSource, setItemSource] = useState<ItemSource>("demo");
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("women");
+
+  // Sync tryOnMode when params change (tab navigation doesn't remount the screen)
+  useEffect(() => {
+    setTryOnMode(initialMode);
+  }, [initialMode]);
+
   const guideSteps = useMemo(() => {
     if (!params.guideSteps) return [] as { section: string; itemId: string; itemName: string; presetSubType?: string }[];
     try {
@@ -526,13 +537,16 @@ export default function TryOnScreen() {
   }, []);
 
   // Pré-remplissage depuis la boutique (bouton ESSAYER)
-  const hasPartnerParams = !!(params.partnerJewelryId && params.partnerJewelryImage);
   useEffect(() => {
-    if (!hasPartnerParams) return;
+    if (!params.partnerJewelryId || !params.partnerJewelryImage) return;
+    // Nettoyer les résultats précédents
+    setResultImageUrl(null);
+    setResultImageUrls([]);
+    setShowResultModal(false);
     // Pré-sélectionner l'article de la boutique
     setSelectedJewelry({
       id: `partner-${params.partnerJewelryId}`,
-      uri: params.partnerJewelryImage!,
+      uri: params.partnerJewelryImage,
       label: params.partnerJewelryName ?? "Bijou",
     });
     // Ajuster le type de bijou si disponible
@@ -540,7 +554,9 @@ export default function TryOnScreen() {
     if (params.partnerJewelryType && validJewelryTypes.includes(params.partnerJewelryType as JewelryTypeKey)) {
       setSelectedJewelryType(params.partnerJewelryType as JewelryTypeKey);
     }
-  }, [hasPartnerParams]);
+    // Forcer le mode bijoux pour les articles boutique
+    setTryOnMode("jewelry");
+  }, [params.partnerJewelryId, params.partnerJewelryImage, params.partnerJewelryName, params.partnerJewelryType]);
 
   // Pré-remplissage depuis l'historique (bouton Réessayer)
   const hasRetryParams = !!(params.retryModelUrl && params.retryItemUrl);
@@ -594,6 +610,25 @@ export default function TryOnScreen() {
       }
     }
   }, [findPresetItem, params.itemId, params.itemName]);
+
+  // Handle catalogue items (wardrobe_models) and dressing items with image URLs
+  const catalogUrl = params.catalogImageUrl;
+  const catalogId = params.itemId;
+  const catalogName = params.itemName;
+  useEffect(() => {
+    if (!catalogUrl || !catalogUrl.startsWith('http')) return;
+    // Nettoyer les résultats précédents
+    setResultImageUrl(null);
+    setResultImageUrls([]);
+    setShowResultModal(false);
+    const catalogItem: GalleryItem = {
+      id: catalogId ?? 'catalog-item',
+      uri: catalogUrl,
+      label: catalogName ?? 'Article catalogue',
+    };
+    setSelectedJewelry(catalogItem);
+  }, [catalogUrl, catalogId, catalogName]);
+
   const [showMannequinModal, setShowMannequinModal] = useState(false);
   const [showJewelryModal, setShowJewelryModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -634,6 +669,50 @@ export default function TryOnScreen() {
   const tryOnQueueRef = useRef<Array<{ forceStrict?: boolean }>>([]);
 
   const { user } = useAuth();
+
+  // ─── Fetch wardrobe & catalogue items for item picker ──────────────
+  const { data: wardrobeRaw = [] } = trpc.wardrobe.list.useQuery(undefined, { enabled: !!user });
+  const { data: catalogueRaw = [] } = trpc.wardrobeModels.list.useQuery(
+    { gender: genderFilter },
+    { enabled: true }
+  );
+
+  // Map wardrobe items to GalleryItem[]
+  const wardrobeGalleryItems = useMemo((): GalleryItem[] => {
+    const categoryMap: Record<string, TryOnMode> = {
+      accessories: "jewelry", shoes: "shoes",
+      tops: "clothing", bottoms: "clothing", dresses: "clothing", outerwear: "clothing",
+      bags: "accessories", other: "accessories",
+    };
+    return (wardrobeRaw as any[]).filter((item) => {
+      if (!item.imageUrl) return false;
+      const mode = categoryMap[item.category] ?? "clothing";
+      return mode === tryOnMode;
+    }).map((item) => ({
+      id: `wardrobe-${item.id}`,
+      uri: item.imageUrl as string,
+      label: item.name,
+    }));
+  }, [wardrobeRaw, tryOnMode]);
+
+  // Map catalogue items to GalleryItem[]
+  const catalogueGalleryItems = useMemo((): GalleryItem[] => {
+    const categoryMap: Record<string, TryOnMode> = {
+      accessories: "jewelry", shoes: "shoes",
+      tops: "clothing", bottoms: "clothing", dresses: "clothing", outerwear: "clothing", clothing: "clothing",
+      bags: "accessories", other: "accessories",
+    };
+    return (catalogueRaw as any[]).filter((item) => {
+      if (!item.image_url) return false;
+      const mode = categoryMap[item.category] ?? "clothing";
+      return mode === tryOnMode;
+    }).map((item) => ({
+      id: `catalogue-${item.id}`,
+      uri: item.image_url as string,
+      label: item.name,
+    }));
+  }, [catalogueRaw, tryOnMode]);
+
   const addToCollectionMutation = trpc.collection.add.useMutation();
   const createCommunityPostMutation = trpc.community.create.useMutation();
   const uploadImageMutation = trpc.ai.uploadImage.useMutation();
@@ -890,6 +969,11 @@ export default function TryOnScreen() {
         ...(tryOnMode === "jewelry" ? { jewelryType: selectedJewelryType } : {}),
         ...(tryOnMode === "accessories" ? { accessoryType: selectedAccessoryType } : {}),
         jewelryName: selectedJewelry.label,
+        // Passe l'ID du mannequin pour adapter les proportions côté serveur
+        modelId: MANNEQUIN_SECTIONS.flatMap(s => s.data)
+          .concat(CLOTHING_MANNEQUIN_SECTIONS.flatMap(s => s.data))
+          .concat(SHOES_MANNEQUIN_SECTIONS.flatMap(s => s.data))
+          .find(m => m.uri === userPhoto)?.id ?? undefined,
       };
 
       const scoreGenerationQuality = (
@@ -1205,7 +1289,8 @@ export default function TryOnScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       >
-         {/* Header luxe avec sélecteur de mode */}
+
+
         <View style={styles.luxeHeader}>
           <View>
             <Text style={[styles.title, { color: colors.foreground }]}>{MODE_CONFIG[tryOnMode].title}</Text>
@@ -1339,7 +1424,7 @@ export default function TryOnScreen() {
             );
           })}
         </ScrollView>
-        <View style={[styles.headerLine, { backgroundColor: colors.border }]} />
+        <View style={{ height: 1, marginHorizontal: 20, marginBottom: 8, backgroundColor: colors.border, opacity: 0.4 }} />
 
         {/* Mode Tenue Complète - Premium requis */}
         {tryOnMode === "outfit" && (
@@ -1448,8 +1533,8 @@ export default function TryOnScreen() {
         )}
 
         {/* Sélecteur du nombre de variantes */}
-        <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
-          <Text style={[styles.photoLabel, { color: colors.muted, marginBottom: 8 }]}>VARIANTES</Text>
+        <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
+          <Text style={[styles.photoLabel, { color: colors.muted, marginBottom: 10 }]}>VARIANTES</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             {([1, 2, 4] as const).map((n) => (
               <TouchableOpacity
@@ -1461,8 +1546,10 @@ export default function TryOnScreen() {
                 style={[
                   styles.typeChip,
                   {
-                    paddingHorizontal: 20,
-                    backgroundColor: numSamples === n ? colors.foreground : "transparent",
+                    flex: 1,
+                    paddingHorizontal: 0,
+                    alignItems: "center",
+                    backgroundColor: numSamples === n ? colors.foreground : colors.surface,
                     borderColor: numSamples === n ? colors.primary : colors.border,
                   },
                 ]}
@@ -1476,8 +1563,8 @@ export default function TryOnScreen() {
         </View>
 
         {/* Sélecteur de pose du mannequin */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
-          <Text style={[styles.photoLabel, { color: colors.muted, marginBottom: 8 }]}>POSE</Text>
+        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+          <Text style={[styles.photoLabel, { color: colors.muted, marginBottom: 10 }]}>POSE</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             {POSE_OPTIONS.map((pose) => {
               const isSelected = selectedPose === pose.key;
@@ -1488,16 +1575,25 @@ export default function TryOnScreen() {
                     setSelectedPose(pose.key);
                     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  style={[styles.typeChip, { flex: 1, paddingHorizontal: 4, backgroundColor: isSelected ? colors.foreground : "transparent", borderColor: isSelected ? colors.primary : colors.border }]}
+                  style={[styles.typeChip, {
+                    flex: 1,
+                    paddingHorizontal: 4,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                    backgroundColor: isSelected ? colors.foreground : colors.surface,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                    flexDirection: "column",
+                    gap: 4,
+                  }]}
                 >
-                  <Text style={{ fontSize: 16, textAlign: "center" }}>{pose.icon}</Text>
-                  <Text style={[styles.typeChipText, { color: isSelected ? colors.background : colors.muted, marginTop: 2 }]}>{pose.label}</Text>
+                  <Text style={{ fontSize: 18, textAlign: "center" }}>{pose.icon}</Text>
+                  <Text style={[styles.typeChipText, { color: isSelected ? colors.background : colors.muted, fontSize: 9 }]}>{pose.label}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
           {numSamples > 1 && (
-            <Text style={[styles.hintText, { color: colors.muted, marginTop: 8 }]}>
+            <Text style={[styles.hintText, { color: colors.muted, marginTop: 10 }]}>
               {numSamples === 2
                 ? "2 images: Face + Profil (automatique)"
                 : "4 images: Face + Profil + Marche + Dos (automatique)"}
@@ -1505,11 +1601,11 @@ export default function TryOnScreen() {
           )}
         </View>
 
-        {/* Zone principale : Photo + Bijou côte à côte */}
+
+        {/* Zone principale */}
         <View style={styles.photosRow}>
-          {/* ── Votre photo ── */}
           <View style={styles.photoCol}>
-            <Text style={[styles.photoLabel, { color: colors.muted }]}>VOTRE PHOTO</Text>
+            <Text style={[styles.photoLabel, { color: colors.muted }]}>MODÈLE</Text>
 
             {/* Grande zone photo */}
             <TouchableOpacity
@@ -1533,10 +1629,10 @@ export default function TryOnScreen() {
               ) : (
                 <View style={styles.emptyBox}>
                   <View style={[styles.emptyIcon, { backgroundColor: colors.border }]}>
-                    <IconSymbol name="person.fill" size={28} color={colors.muted} />
+                    <IconSymbol name="person.fill" size={30} color={colors.muted} />
                   </View>
                   <Text style={[styles.emptyText, { color: colors.muted }]}>
-                    Appuyez pour choisir
+                    Photo ou{"\n"}mannequin
                   </Text>
                 </View>
               )}
@@ -1879,19 +1975,29 @@ export default function TryOnScreen() {
         visible={showJewelryModal}
         title={tryOnMode === "jewelry" ? `Galerie — ${currentType.label}` : `Galerie — ${MODE_CONFIG[tryOnMode].itemLabel}`}
         subtitle={tryOnMode === "jewelry" ? "Sélectionnez un bijou à essayer" : tryOnMode === "shoes" ? "Sélectionnez une chaussure à essayer" : tryOnMode === "clothing" ? "Sélectionnez un vêtement à essayer" : "Sélectionnez un accessoire à essayer"}
-        sections={tryOnMode === "jewelry"
-          ? [{ title: currentType.label, data: jewelryOptions }]
-          : tryOnMode === "shoes"
-          ? [{ title: "Chaussures de démonstration", data: SHOES_DEMO }]
-          : tryOnMode === "clothing"
-          ? [{ title: "Vêtements de démonstration", data: CLOTHING_DEMO }]
-          : tryOnMode === "accessories"
-          ? [{ title: ACCESSORY_TYPES.find(t => t.key === selectedAccessoryType)?.label ?? "Accessoires", data: ACCESSORIES_BY_TYPE[selectedAccessoryType].length > 0 ? ACCESSORIES_BY_TYPE[selectedAccessoryType] : ACCESSORIES_DEMO }]
-          : [{ title: "Articles", data: [] as typeof ACCESSORIES_DEMO }]}
+        sections={
+          itemSource === "dressing"
+            ? [{ title: "Mon Dressing", data: wardrobeGalleryItems }]
+            : itemSource === "catalogue"
+            ? [{ title: `Catalogue ${genderFilter === "women" ? "Femme" : "Homme"}`, data: catalogueGalleryItems }]
+            : tryOnMode === "jewelry"
+            ? [{ title: currentType.label, data: jewelryOptions }]
+            : tryOnMode === "shoes"
+            ? [{ title: "Chaussures de démonstration", data: SHOES_DEMO }]
+            : tryOnMode === "clothing"
+            ? [{ title: "Vêtements de démonstration", data: CLOTHING_DEMO }]
+            : tryOnMode === "accessories"
+            ? [{ title: ACCESSORY_TYPES.find(t => t.key === selectedAccessoryType)?.label ?? "Accessoires", data: ACCESSORIES_BY_TYPE[selectedAccessoryType].length > 0 ? ACCESSORIES_BY_TYPE[selectedAccessoryType] : ACCESSORIES_DEMO }]
+            : [{ title: "Articles", data: [] as typeof ACCESSORIES_DEMO }]
+        }
         onSelect={handleSelectJewelry}
         onClose={() => setShowJewelryModal(false)}
         imageMode="contain"
         colors={colors}
+        itemSource={itemSource}
+        onItemSourceChange={setItemSource}
+        genderFilter={genderFilter}
+        onGenderFilterChange={setGenderFilter}
       />
 
       {/* ─── Modal Résultat Essayage ─────────────────────────────────────────── */}
@@ -2602,6 +2708,10 @@ function GalleryModal({
   onClose,
   imageMode,
   colors,
+  itemSource,
+  onItemSourceChange,
+  genderFilter,
+  onGenderFilterChange,
 }: {
   visible: boolean;
   title: string;
@@ -2611,6 +2721,10 @@ function GalleryModal({
   onClose: () => void;
   imageMode: "cover" | "contain";
   colors: ReturnType<typeof useColors>;
+  itemSource?: ItemSource;
+  onItemSourceChange?: (source: ItemSource) => void;
+  genderFilter?: GenderFilter;
+  onGenderFilterChange?: (gender: GenderFilter) => void;
 }) {
   const ITEM_SIZE = (SCREEN_WIDTH - 48 - 12) / 2;
 
@@ -2636,6 +2750,83 @@ function GalleryModal({
           </TouchableOpacity>
         </View>
 
+        {/* Source tabs: Démo / Mon Dressing / Catalogue */}
+        {itemSource && onItemSourceChange && (
+          <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 }}>
+            <View style={{ flexDirection: "row", backgroundColor: colors.surface, borderRadius: 10, padding: 3, borderWidth: 1, borderColor: colors.border }}>
+              {([
+                { key: "demo" as ItemSource, label: "✨ Démo", emoji: "" },
+                { key: "dressing" as ItemSource, label: "👗 Dressing", emoji: "" },
+                { key: "catalogue" as ItemSource, label: "🛍 Catalogue", emoji: "" },
+              ]).map((tab) => {
+                const isActive = itemSource === tab.key;
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    onPress={() => {
+                      onItemSourceChange(tab.key);
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 8,
+                      alignItems: "center",
+                      backgroundColor: isActive ? colors.primary : "transparent",
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      letterSpacing: 0.3,
+                      color: isActive ? colors.background : colors.muted,
+                    }}>
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Gender filter for catalogue */}
+            {itemSource === "catalogue" && genderFilter && onGenderFilterChange && (
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                {(["women", "men"] as GenderFilter[]).map((g) => {
+                  const isActive = genderFilter === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      onPress={() => {
+                        onGenderFilterChange(g);
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        alignItems: "center",
+                        borderWidth: 1,
+                        backgroundColor: isActive ? (g === "men" ? "#1E3A5F" : "#B5478A") : colors.surface,
+                        borderColor: isActive ? (g === "men" ? "#1E3A5F" : "#B5478A") : colors.border,
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: isActive ? "#FFF" : colors.muted,
+                      }}>
+                        {g === "women" ? "♀ FEMME" : "♂ HOMME"}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Grille par sections avec ScrollView */}
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -2654,6 +2845,30 @@ function GalleryModal({
                   {section.title.toUpperCase()}
                 </Text>
               )}
+
+              {/* Empty state */}
+              {section.data.length === 0 && (
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 12 }}>
+                    {itemSource === "dressing" ? "👗" : itemSource === "catalogue" ? "🛍" : "✨"}
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, textAlign: "center" }}>
+                    {itemSource === "dressing"
+                      ? "Aucun article dans votre dressing"
+                      : itemSource === "catalogue"
+                      ? "Aucun article dans le catalogue"
+                      : "Aucun article disponible"}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.muted, textAlign: "center", marginTop: 4, maxWidth: 240 }}>
+                    {itemSource === "dressing"
+                      ? "Ajoutez des articles dans votre dressing avec une photo pour les essayer ici"
+                      : itemSource === "catalogue"
+                      ? `Aucun article ${genderFilter === "women" ? "femme" : "homme"} dans cette catégorie`
+                      : "Sélectionnez un autre type d'article"}
+                  </Text>
+                </View>
+              )}
+
               {/* Grille 2 colonnes */}
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
                 {section.data.map((item) => (
@@ -2734,29 +2949,30 @@ const styles = StyleSheet.create({
   },
   typeChip: {
     paddingHorizontal: 16,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderWidth: 1,
+    borderRadius: 20,
   },
   typeChipText: {
     fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 1.5,
+    fontWeight: "600",
+    letterSpacing: 1.2,
     textTransform: "uppercase",
   },
   photosRow: {
     flexDirection: "row",
     paddingHorizontal: 20,
     gap: 14,
-    marginTop: 4,
+    marginTop: 8,
   },
   photoCol: {
     flex: 1,
   },
   photoLabel: {
     fontSize: 9,
-    fontWeight: "500",
+    fontWeight: "600",
     letterSpacing: 2.5,
-    marginBottom: 8,
+    marginBottom: 10,
     textTransform: "uppercase",
   },
   photoBox: {
@@ -2764,35 +2980,43 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
     borderWidth: 1,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   emptyBox: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 12,
   },
   emptyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
     fontSize: 10,
     textAlign: "center",
-    paddingHorizontal: 8,
-    letterSpacing: 0.3,
+    paddingHorizontal: 12,
+    letterSpacing: 0.5,
+    lineHeight: 16,
   },
   btnRow: {
     flexDirection: "row",
     gap: 6,
-    marginTop: 8,
+    marginTop: 10,
   },
   smallBtn: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderWidth: 1,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -2800,40 +3024,47 @@ const styles = StyleSheet.create({
   },
   smallBtnText: {
     fontSize: 10,
-    fontWeight: "500",
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   fullBtn: {
-    marginTop: 6,
-    paddingVertical: 10,
+    marginTop: 8,
+    paddingVertical: 11,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
+    gap: 6,
   },
   fullBtnText: {
     fontSize: 9,
-    fontWeight: "600",
+    fontWeight: "700",
     letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   selectedLabel: {
     fontSize: 10,
-    fontWeight: "400",
+    fontWeight: "500",
     textAlign: "center",
-    marginTop: 6,
-    letterSpacing: 0.5,
+    marginTop: 8,
+    letterSpacing: 0.8,
   },
   tryOnBtn: {
-    paddingVertical: 18,
+    paddingVertical: 20,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   tryOnBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     letterSpacing: 2.5,
     textTransform: "uppercase",
   },
@@ -2841,7 +3072,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: "center",
     marginTop: 10,
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
+    lineHeight: 16,
   },
   // Modal
   modalContainer: {

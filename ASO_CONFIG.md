@@ -9,8 +9,8 @@ Ce document contient toutes les métadonnées optimisées pour la soumission sur
 | Champ | Valeur |
 |-------|--------|
 | **Nom de l'app** | Écrin Virtuel |
-| **Bundle ID (iOS)** | com.ecrin.jewelry |
-| **Package Name (Android)** | com.ecrin.jewelry |
+| **Bundle ID (iOS)** | com.inferencevision.lecrinvirtuel |
+| **Package Name (Android)** | com.inferencevision.lecrinvirtuel |
 | **Team ID Apple** | SPLML3CN76 |
 | **Version** | 1.0.0 |
 | **Catégorie principale** | Shopping |
@@ -178,33 +178,70 @@ Dimensions : 1080 x 1920 pixels (minimum)
 
 ## Produits In-App (Abonnements)
 
-| ID Produit | Nom | Prix | Type |
-|------------|-----|------|------|
-| `monthly_basic` | Essentiel | 9,99€/mois | Abonnement auto-renouvelable |
-| `monthly_premium` | Premium | 12,99€/mois | Abonnement auto-renouvelable |
-| `yearly` | Annuel | 100€/an | Abonnement auto-renouvelable |
+> ⚠️ Ces IDs sont les identifiants réels utilisés dans le code (`use-subscription.ts`).
+> Ils doivent être créés **exactement** avec ces noms dans App Store Connect et RepenueCat.
+
+### Abonnements principaux
+
+| ID Produit (App Store Connect) | Nom affiché | Prix | Entitlement RevenueCat | Type |
+|-------------------------------|-------------|------|------------------------|------|
+| `ecrin.jewelry.monthly` | Essentiel | 14,99 €/mois | `jewelry_access` | Abonnement auto-renouvelable |
+| `ecrin.premium.monthly` | Premium Mensuel | 24,99 €/mois | `premium_access` | Abonnement auto-renouvelable |
+| `ecrin.premium.yearly` | Premium Annuel | 199,99 €/an | `premium_access` | Abonnement auto-renouvelable |
+
+### Offres de lancement (promo — à créer dans ASC + RevenueCat)
+
+| ID Produit | Nom affiché | Prix | Entitlement RevenueCat | Campagne |
+|------------|------------|------|------------------------|----------|
+| `ecrin.premium.yearly.launch50` | Fondateur −50% | 99,99 €/an | `premium_access` | `yearly_50_first_100` |
+| `ecrin.premium.yearly.launch30` | Early Bird −30% | 139,99 €/an | `premium_access` | `yearly_30_next_100` |
+| `ecrin.premium.yearly.launch20` | Lancement −20% | 159,99 €/an | `premium_access` | `yearly_20_next_100` |
+| `ecrin.premium.yearly.launch10` | Offre spéciale −10% | 179,99 €/an | `premium_access` | `yearly_10_next_100` |
+| `ecrin.premium.monthly.launch10` | Mensuel −10% | 22,49 €/mois | `premium_access` | `monthly_10_next_100` |
+
+### Crédits consommables (à créer dans App Store Connect)
+
+| ID Produit | Nom affiché | Prix | Type |
+|------------|------------|------|------|
+| `ecrin.credits.50` | 50 crédits | 4,99 € | Consommable |
+| `ecrin.credits.100` | 100 crédits | 9,99 € | Consommable |
+| `ecrin.credits.250` | 250 crédits | 19,99 € | Consommable |
+| `ecrin.credits.500` | 500 crédits | 35,99 € | Consommable |
+
+### Entitlements RevenueCat (lookup_key)
+
+| Entitlement | Produits associés | Accès |
+|-------------|-------------------|-------|
+| `jewelry_access` | `ecrin.jewelry.monthly` | Essayage bijoux (100/mois) |
+| `premium_access` | Tous les premium + promos | Essayage complet, vêtements, tenues |
+| `lifetime_access` | *(acces interne dev/privilegie uniquement)* | Premium a vie, illimite |
 
 ---
 
 ## Checklist Soumission
 
 ### App Store Connect
-- [ ] Créer l'app dans App Store Connect
-- [ ] Uploader l'icône 1024x1024
-- [ ] Ajouter les captures d'écran (iPhone + iPad)
-- [ ] Remplir les métadonnées (titre, sous-titre, description)
-- [ ] Ajouter les mots-clés
-- [ ] Configurer les produits In-App
-- [ ] Ajouter les liens légaux (Privacy Policy, Terms)
-- [ ] Sélectionner la classification d'âge
-- [ ] Uploader le build via EAS
+- [x] Icône 1024×1024 px prête (`assets/images/icon.png`)
+- [ ] Créer les 4 abonnements principaux dans ASC (Monetization → In-App Purchases)
+- [ ] Créer les 5 offres promo de lancement dans ASC
+- [ ] Créer les 4 packs de crédits consommables dans ASC
+- [ ] Vérifier la cohérence des IDs dans RevenueCat (entitlements + offerings)
+- [ ] Renseigner `EXPO_PUBLIC_RC_API_KEY_IOS` dans le fichier `.env`
+- [ ] Ajouter les captures d'écran (iPhone 6.7" + iPad 12.9")
+- [ ] Remplir les métadonnées (titre, sous-titre, description, mots-clés)
+- [ ] Déclarer l'App Privacy (Caméra, Localisation, Auth, Analytics)
+- [ ] Ajouter l'URL Politique de Confidentialité (doit être en ligne)
+- [ ] Sélectionner la classification d'âge (4+)
+- [ ] Uploader le build via `eas build --platform ios --profile production`
+- [ ] Soumettre via `eas submit --platform ios --latest`
 
 ### Google Play Console
 - [ ] Créer l'app dans Google Play Console
-- [ ] Uploader l'icône 512x512
+- [ ] Uploader l'icône 512×512
 - [ ] Ajouter les captures d'écran
 - [ ] Remplir la fiche Play Store
-- [ ] Configurer les abonnements
+- [ ] Configurer les abonnements (mêmes IDs que ASC)
+- [ ] Renseigner `EXPO_PUBLIC_RC_API_KEY_ANDROID` dans `.env`
 - [ ] Ajouter les liens légaux
 - [ ] Remplir le questionnaire de classification
-- [ ] Uploader l'APK/AAB via EAS
+- [ ] Uploader l'APK/AAB via `eas build --platform android --profile production`

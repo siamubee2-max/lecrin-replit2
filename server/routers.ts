@@ -6,9 +6,18 @@ import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_
 import * as db from "./db";
 import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
 import { supabaseStoragePut } from "./_core/supabaseStorage";
+import {
+  getSupabaseWardrobeItems,
+  getSupabaseWardrobeItem,
+  createSupabaseWardrobeItem,
+  updateSupabaseWardrobeItem,
+  deleteSupabaseWardrobeItem,
+  getSupabaseWardrobeModels,
+} from "./_core/supabaseDb";
 import { generateImage } from "./_core/imageGeneration";
 import { invokeLLM } from "./_core/llm";
 import { generateLookSuggestions, generateStylingTips, analyzeColorHarmony } from "./ai-stylist";
+import { monetizationRouter } from "./monetization";
 
 // ─── Comptes privilégiés (accès Lifetime Premium gratuit en prod) ─────────────
 // Configuré via PRIVILEGED_EMAILS dans .env (jamais exposé au client)
@@ -184,6 +193,7 @@ async function assessTryOnQuality(params: {
 
 export const appRouter = router({
   system: systemRouter,
+  monetization: monetizationRouter,
 
   // ============================================
   // AUTH ROUTES
@@ -284,7 +294,8 @@ export const appRouter = router({
   favorites: router({
     // Get all user favorites
     list: protectedProcedure.query(async ({ ctx }) => {
-      return db.getUserFavorites(ctx.user.id);
+      const favorites = await db.getUserFavorites(ctx.user.id);
+      return favorites.map(f => ({ ...f, id: String(f.id) }));
     }),
 
     // Add a new favorite
@@ -294,8 +305,8 @@ export const appRouter = router({
         jewelryIcon: z.string().max(16).optional(),
         modelName: z.string().max(128).optional(),
         imageUri: z.string().optional(),
-        jewelryItemId: z.number().optional(),
-        creatorId: z.number().optional(),
+        jewelryItemId: z.string().optional(),
+        creatorId: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const id = await db.addFavorite({
@@ -304,17 +315,17 @@ export const appRouter = router({
           jewelryIcon: input.jewelryIcon,
           modelName: input.modelName,
           imageUri: input.imageUri,
-          jewelryItemId: input.jewelryItemId,
-          creatorId: input.creatorId,
+          jewelryItemId: input.jewelryItemId ? Number(input.jewelryItemId) : undefined,
+          creatorId: input.creatorId ? Number(input.creatorId) : undefined,
         });
         return { id };
       }),
 
     // Remove a favorite
     remove: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        await db.removeFavorite(input.id, ctx.user.id);
+        await db.removeFavorite(Number(input.id), ctx.user.id);
         return { success: true };
       }),
 
@@ -398,13 +409,17 @@ export const appRouter = router({
 
     // Get creator by ID with their jewelry
     get: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .query(async ({ input }) => {
-        const creator = await db.getCreatorById(input.id);
+        const creator = await db.getCreatorById(Number(input.id));
         if (!creator) return null;
 
-        const jewelry = await db.getCreatorJewelry(input.id);
-        return { ...creator, jewelry };
+        const jewelry = await db.getCreatorJewelry(Number(input.id));
+        return { 
+          ...creator, 
+          id: String(creator.id),
+          jewelry: jewelry.map(j => ({ ...j, id: String(j.id), creatorId: String(j.creatorId) }))
+        };
       }),
 
     // Get all available jewelry for try-on
@@ -419,7 +434,8 @@ export const appRouter = router({
   bodyParts: router({
     // Get all demo body parts
     list: publicProcedure.query(async () => {
-      return db.getDemoBodyParts();
+      const parts = await db.getDemoBodyParts();
+      return parts.map(p => ({ ...p, id: String(p.id) }));
     }),
 
     // Get body parts by type (supports all types)
@@ -436,12 +452,14 @@ export const appRouter = router({
         ])
       }))
       .query(async ({ input }) => {
-        return db.getBodyPartsByType(input.type);
+        const parts = await db.getBodyPartsByType(input.type);
+        return parts.map(p => ({ ...p, id: String(p.id) }));
       }),
 
     // Get user's custom body parts (wardrobe)
     userParts: protectedProcedure.query(async ({ ctx }) => {
-      return db.getUserBodyParts(ctx.user.id);
+      const parts = await db.getUserBodyParts(ctx.user.id);
+      return parts.map(p => ({ ...p, id: String(p.id) }));
     }),
 
     // Add custom body part (for wardrobe)
@@ -472,9 +490,9 @@ export const appRouter = router({
 
     // Delete user's body part
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        await db.deleteUserBodyPart(input.id, ctx.user.id);
+        await db.deleteUserBodyPart(Number(input.id), ctx.user.id);
         return { success: true };
       }),
   }),
@@ -554,7 +572,8 @@ export const appRouter = router({
   collection: router({
     // Get user's jewelry collection
     list: protectedProcedure.query(async ({ ctx }) => {
-      return db.getUserCollection(ctx.user.id);
+      const items = await db.getUserCollection(ctx.user.id);
+      return items.map(item => ({ ...item, id: String(item.id) }));
     }),
 
     // Add item to collection
@@ -580,16 +599,16 @@ export const appRouter = router({
 
     // Remove item from collection
     remove: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        await db.removeFromCollection(input.id, ctx.user.id);
+        await db.removeFromCollection(Number(input.id), ctx.user.id);
         return { success: true };
       }),
 
     // Update item in collection
     update: protectedProcedure
       .input(z.object({
-        id: z.number(),
+        id: z.string(),
         name: z.string().min(1).max(255).optional(),
         type: z.string().min(1).max(64).optional(),
         metal: z.string().max(64).optional(),
@@ -603,42 +622,70 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
-        await db.updateCollectionItem(id, ctx.user.id, data);
+        await db.updateCollectionItem(Number(id), ctx.user.id, data);
         return { success: true };
       }),
   }),
 
   // ============================================
-  // WARDROBE ROUTES (Mon Dressing)
+  // WARDROBE ROUTES (Mon Dressing) — Supabase backend
   // ============================================
   wardrobe: router({
-    // Get all user wardrobe items
-    list: protectedProcedure.query(async ({ ctx }) => {
-      return db.getUserWardrobeItems(ctx.user.id);
-    }),
-
     // Get a single wardrobe item
     get: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ ctx, input }) => {
-        return db.getWardrobeItemById(input.id, ctx.user.id);
+      .input(z.object({ id: z.string() }))
+      .query(async ({ input }) => {
+        const item = await getSupabaseWardrobeItem(input.id);
+        if (!item) return null;
+        return {
+          id: String(item.id),
+          userId: item.user_id,
+          name: item.name,
+          category: item.category,
+          brand: item.brand ?? null,
+          color: item.color ?? null,
+          secondaryColor: item.secondary_color ?? null,
+          material: item.material ?? null,
+          size: item.size ?? null,
+          price: item.price ?? null,
+          imageUrl: item.image_url ?? null,
+          season: item.season ?? "all",
+          occasion: item.occasion ?? "all",
+          isFavorite: item.is_favorite ?? false,
+          tags: Array.isArray(item.tags) ? item.tags.join(",") : (item.tags ?? ""),
+          notes: item.notes ?? null,
+          createdAt: new Date(item.created_at),
+          updatedAt: new Date(item.updated_at),
+        };
       }),
 
-    // Search wardrobe items with filters
-    search: protectedProcedure
-      .input(z.object({
-        category: z.string().optional(),
-        brand: z.string().optional(),
-        color: z.string().optional(),
-        minPrice: z.number().optional(),
-        maxPrice: z.number().optional(),
-        search: z.string().optional(),
-      }))
-      .query(async ({ ctx, input }) => {
-        return db.searchWardrobeItems(ctx.user.id, input);
-      }),
+    // Get all user wardrobe items (from Supabase)
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const items = await getSupabaseWardrobeItems(ctx.user.openId);
+      // Normalize to match existing app shape
+      return items.map((item) => ({
+        id: String(item.id),
+        userId: item.user_id,
+        name: item.name,
+        category: item.category,
+        brand: item.brand ?? null,
+        color: item.color ?? null,
+        secondaryColor: item.secondary_color ?? null,
+        material: item.material ?? null,
+        size: item.size ?? null,
+        price: item.price ?? null,
+        imageUrl: item.image_url ?? null,
+        season: item.season ?? "all",
+        occasion: item.occasion ?? "all",
+        isFavorite: item.is_favorite ?? false,
+        tags: Array.isArray(item.tags) ? item.tags.join(",") : (item.tags ?? ""),
+        notes: item.notes ?? null,
+        createdAt: new Date(item.created_at),
+        updatedAt: new Date(item.updated_at),
+      }));
+    }),
 
-    // Add a new wardrobe item
+    // Add a new wardrobe item (to Supabase)
     add: protectedProcedure
       .input(z.object({
         name: z.string().min(1).max(255),
@@ -656,27 +703,29 @@ export const appRouter = router({
         notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const smart = inferWardrobeTags({
+        const item = await createSupabaseWardrobeItem({
+          user_id: ctx.user.openId,
           name: input.name,
           category: input.category,
+          brand: input.brand,
           color: input.color,
-          tags: input.tags,
-          season: input.season,
-          occasion: input.occasion,
+          secondary_color: input.secondaryColor,
+          material: input.material,
+          size: input.size,
+          price: input.price,
+          image_url: input.imageUrl,
+          season: input.season ?? "all",
+          occasion: input.occasion ?? "all",
+          tags: input.tags ? input.tags.split(",").map(t => t.trim()) : [],
+          notes: input.notes,
         });
-        return db.createWardrobeItem({
-          userId: ctx.user.id,
-          ...input,
-          tags: smart.tags,
-          season: smart.season,
-          occasion: smart.occasion,
-        });
+        return { id: item?.id };
       }),
 
-    // Update a wardrobe item
+    // Update a wardrobe item (Supabase)
     update: protectedProcedure
       .input(z.object({
-        id: z.number(),
+        id: z.string(),
         name: z.string().min(1).max(255).optional(),
         category: z.enum(["tops", "bottoms", "dresses", "outerwear", "shoes", "bags", "accessories", "other"]).optional(),
         brand: z.string().max(128).optional(),
@@ -693,19 +742,26 @@ export const appRouter = router({
         notes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { id, ...data } = input;
-        return db.updateWardrobeItem(id, ctx.user.id, data);
+        const { id, secondaryColor, imageUrl, isFavorite, tags, ...rest } = input;
+        await updateSupabaseWardrobeItem(id, ctx.user.openId, {
+          ...rest,
+          secondary_color: secondaryColor,
+          image_url: imageUrl,
+          is_favorite: isFavorite,
+          tags: tags ? tags.split(",").map(t => t.trim()) : undefined,
+        });
+        return { success: true };
       }),
 
-    // Delete a wardrobe item
+    // Delete a wardrobe item (Supabase)
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const success = await db.deleteWardrobeItem(input.id, ctx.user.id);
-        return { success };
+        await deleteSupabaseWardrobeItem(input.id, ctx.user.openId);
+        return { success: true };
       }),
 
-    // Upload wardrobe item image
+    // Upload wardrobe item image to Supabase Storage
     uploadImage: protectedProcedure
       .input(z.object({
         base64Data: z.string(),
@@ -714,13 +770,33 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const timestamp = Date.now();
         const ext = input.mimeType?.includes("png") ? "png" : "jpg";
-        const key = `wardrobe/${ctx.user.id}/${timestamp}.${ext}`;
-
-        // Decode base64 and upload
+        const key = `wardrobe/${ctx.user.openId}/${timestamp}.${ext}`;
         const buffer = Buffer.from(input.base64Data, "base64");
         const result = await supabaseStoragePut(key, buffer, input.mimeType || "image/jpeg");
-
         return { url: result.url };
+      }),
+  }),
+
+  // ============================================
+  // WARDROBE MODELS ROUTES (Catalogue 50F + 45H)
+  // ============================================
+  wardrobeModels: router({
+    // Get all catalogue models (filterable)
+    list: publicProcedure
+      .input(z.object({
+        gender: z.enum(["women", "men", "all"]).optional(),
+        category: z.string().optional(),
+        season: z.string().optional(),
+        occasion: z.string().optional(),
+      }).nullish())
+      .query(async ({ input }) => {
+        const filters = (!input || input?.gender === "all") ? {} : {
+          gender: input?.gender,
+          category: input?.category,
+          season: input?.season,
+          occasion: input?.occasion,
+        };
+        return getSupabaseWardrobeModels(filters);
       }),
   }),
 
@@ -730,14 +806,17 @@ export const appRouter = router({
   looks: router({
     // Get all user saved looks
     list: protectedProcedure.query(async ({ ctx }) => {
-      return db.getUserSavedLooks(ctx.user.id);
+      const looks = await db.getUserSavedLooks(ctx.user.id);
+      return looks.map(l => ({ ...l, id: String(l.id) }));
     }),
 
     // Get a single saved look
     get: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .query(async ({ ctx, input }) => {
-        return db.getSavedLookById(input.id, ctx.user.id);
+        const look = await db.getSavedLookById(Number(input.id), ctx.user.id);
+        if (!look) return null;
+        return { ...look, id: String(look.id) };
       }),
 
     // Create a new saved look
@@ -763,7 +842,7 @@ export const appRouter = router({
     // Update a saved look
     update: protectedProcedure
       .input(z.object({
-        id: z.number(),
+        id: z.string(),
         name: z.string().min(1).max(255).optional(),
         description: z.string().optional(),
         occasion: z.enum(["casual", "work", "formal", "sport", "party", "all"]).optional(),
@@ -776,14 +855,14 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...data } = input;
-        return db.updateSavedLook(id, ctx.user.id, data);
+        return db.updateSavedLook(Number(id), ctx.user.id, data);
       }),
 
     // Delete a saved look
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const success = await db.deleteSavedLook(input.id, ctx.user.id);
+        const success = await db.deleteSavedLook(Number(input.id), ctx.user.id);
         return { success };
       }),
   }),
@@ -807,7 +886,7 @@ export const appRouter = router({
         // Get user's favorite jewelry (from favorites)
         const favorites = await db.getUserFavorites(ctx.user.id);
         const jewelryItems = favorites.map((f) => ({
-          id: f.id,
+          id: String(f.id),
           name: f.modelName || `${f.jewelryType} favori`,
           type: f.jewelryType,
           metal: null,
@@ -818,7 +897,7 @@ export const appRouter = router({
 
         const suggestions = await generateLookSuggestions({
           wardrobeItems: wardrobeItems.map((item) => ({
-            id: item.id,
+            id: String(item.id),
             name: item.name,
             category: item.category,
             brand: item.brand,
@@ -841,26 +920,26 @@ export const appRouter = router({
     // Get styling tips for specific items
     getStylingTips: protectedProcedure
       .input(z.object({
-        wardrobeItemIds: z.array(z.number()),
-        jewelryItemIds: z.array(z.number()).optional(),
+        wardrobeItemIds: z.array(z.string()),
+        jewelryItemIds: z.array(z.string()).optional(),
         occasion: z.string().optional(),
       }))
       .query(async ({ ctx, input }) => {
         // Get wardrobe items by IDs
         const allWardrobeItems = await db.getUserWardrobeItems(ctx.user.id);
         const wardrobeItems = allWardrobeItems.filter((item) =>
-          input.wardrobeItemIds.includes(item.id)
+          input.wardrobeItemIds.includes(String(item.id))
         );
 
         // Get jewelry items by IDs
         const allFavorites = await db.getUserFavorites(ctx.user.id);
         const jewelryItems = input.jewelryItemIds
-          ? allFavorites.filter((f) => input.jewelryItemIds!.includes(f.id))
+          ? allFavorites.filter((f) => input.jewelryItemIds!.includes(String(f.id)))
           : [];
 
         const tips = await generateStylingTips(
           wardrobeItems.map((item) => ({
-            id: item.id,
+            id: String(item.id),
             name: item.name,
             category: item.category,
             brand: item.brand,
@@ -871,7 +950,7 @@ export const appRouter = router({
             occasion: item.occasion,
           })),
           jewelryItems.map((f) => ({
-            id: f.id,
+            id: String(f.id),
             name: f.modelName || `${f.jewelryType} favori`,
             type: f.jewelryType,
             metal: null,
@@ -901,26 +980,32 @@ export const appRouter = router({
   partnerBrands: router({
     // List all partner brands
     list: publicProcedure.query(async () => {
-      return db.getPartnerBrands();
+      const brands = await db.getPartnerBrands();
+      return brands.map(b => ({ ...b, id: String(b.id) }));
     }),
 
     // Get featured partner brands
     featured: publicProcedure.query(async () => {
-      return db.getFeaturedPartnerBrands();
+      const brands = await db.getFeaturedPartnerBrands();
+      return brands.map(b => ({ ...b, id: String(b.id) }));
     }),
 
     // Get brand by ID
     getById: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .query(async ({ input }) => {
-        return db.getPartnerBrandById(input.id);
+        const brand = await db.getPartnerBrandById(Number(input.id));
+        if (!brand) return null;
+        return { ...brand, id: String(brand.id) };
       }),
 
     // Get brand by slug
     getBySlug: publicProcedure
       .input(z.object({ slug: z.string() }))
       .query(async ({ input }) => {
-        return db.getPartnerBrandBySlug(input.slug);
+        const brand = await db.getPartnerBrandBySlug(input.slug);
+        if (!brand) return null;
+        return { ...brand, id: String(brand.id) };
       }),
 
     // Create a new partner brand (admin only)
@@ -937,7 +1022,9 @@ export const appRouter = router({
         country: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        return db.createPartnerBrand(input);
+        const brand = await db.createPartnerBrand(input);
+        if (!brand) return null;
+        return { ...brand, id: String(brand.id) };
       }),
   }),
 
@@ -948,7 +1035,7 @@ export const appRouter = router({
     // List partner jewelry with filters
     list: publicProcedure
       .input(z.object({
-        brandId: z.number().optional(),
+        brandId: z.string().optional(),
         type: z.string().optional(),
         metalType: z.string().optional(),
         gemType: z.string().optional(),
@@ -958,27 +1045,35 @@ export const appRouter = router({
         search: z.string().optional(),
       }).optional())
       .query(async ({ input }) => {
-        return db.getPartnerJewelry(input);
+        const dbInput = input ? {
+          ...input,
+          brandId: input.brandId ? Number(input.brandId) : undefined
+        } : undefined;
+        const items = await db.getPartnerJewelry(dbInput);
+        return items.map(i => ({ ...i, id: String(i.id), brandId: String(i.brandId) }));
       }),
 
     // Get jewelry by ID
     getById: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .query(async ({ input }) => {
-        return db.getPartnerJewelryById(input.id);
+        const item = await db.getPartnerJewelryById(Number(input.id));
+        if (!item) return null;
+        return { ...item, id: String(item.id), brandId: String(item.brandId) };
       }),
 
     // Get jewelry by brand
     getByBrand: publicProcedure
-      .input(z.object({ brandId: z.number() }))
+      .input(z.object({ brandId: z.string() }))
       .query(async ({ input }) => {
-        return db.getPartnerJewelryByBrand(input.brandId);
+        const items = await db.getPartnerJewelryByBrand(Number(input.brandId));
+        return items.map(i => ({ ...i, id: String(i.id), brandId: String(i.brandId) }));
       }),
 
     // Create partner jewelry (admin only)
     create: adminProcedure
       .input(z.object({
-        brandId: z.number(),
+        brandId: z.string(),
         name: z.string().min(1).max(255),
         type: z.enum(["necklace", "earrings", "ring", "bracelet", "anklet", "brooch", "set"]),
         description: z.string().optional(),
@@ -995,57 +1090,63 @@ export const appRouter = router({
         tryOnImageUrl: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        return db.createPartnerJewelry(input);
+        const item = await db.createPartnerJewelry({
+          ...input,
+          brandId: Number(input.brandId)
+        });
+        if (!item) return null;
+        return { ...item, id: String(item.id), brandId: String(item.brandId) };
       }),
 
     // Track view
     trackView: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ input }) => {
-        await db.incrementPartnerJewelryStats(input.id, 'viewCount');
+        await db.incrementPartnerJewelryStats(Number(input.id), 'viewCount');
         return { success: true };
       }),
 
     // Track try-on
     trackTryOn: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ input }) => {
-        await db.incrementPartnerJewelryStats(input.id, 'tryOnCount');
+        await db.incrementPartnerJewelryStats(Number(input.id), 'tryOnCount');
         return { success: true };
       }),
 
     // Track click to product page
     trackClick: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ id: z.string() }))
       .mutation(async ({ input }) => {
-        await db.incrementPartnerJewelryStats(input.id, 'clickCount');
+        await db.incrementPartnerJewelryStats(Number(input.id), 'clickCount');
         return { success: true };
       }),
 
     // Get user favorites
     favorites: protectedProcedure.query(async ({ ctx }) => {
-      return db.getPartnerJewelryFavorites(ctx.user.id);
+      const items = await db.getPartnerJewelryFavorites(ctx.user.id);
+      return items.map(i => ({ ...i, id: String(i.id), jewelryId: String(i.jewelryId) }));
     }),
 
     // Add to favorites
     addFavorite: protectedProcedure
-      .input(z.object({ jewelryId: z.number() }))
+      .input(z.object({ jewelryId: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        return db.addPartnerJewelryFavorite(ctx.user.id, input.jewelryId);
+        return db.addPartnerJewelryFavorite(ctx.user.id, Number(input.jewelryId));
       }),
 
     // Remove from favorites
     removeFavorite: protectedProcedure
-      .input(z.object({ jewelryId: z.number() }))
+      .input(z.object({ jewelryId: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        return db.removePartnerJewelryFavorite(ctx.user.id, input.jewelryId);
+        return db.removePartnerJewelryFavorite(ctx.user.id, Number(input.jewelryId));
       }),
 
     // Check if favorited
     isFavorited: protectedProcedure
-      .input(z.object({ jewelryId: z.number() }))
+      .input(z.object({ jewelryId: z.string() }))
       .query(async ({ ctx, input }) => {
-        return db.isPartnerJewelryFavorited(ctx.user.id, input.jewelryId);
+        return db.isPartnerJewelryFavorited(ctx.user.id, Number(input.jewelryId));
       }),
   }),
 
@@ -1075,9 +1176,33 @@ export const appRouter = router({
         guaranteedResult: z.boolean().default(false),
         qualityThreshold: z.number().min(50).max(95).default(72),
         modelCandidates: z.string().optional(),
+        // ID du mannequin sélectionné (permet d'adapter les proportions)
+        modelId: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const itemName = input.jewelryName || input.jewelryType || input.accessoryType || input.category;
+
+        // Déduit le type de vue du mannequin depuis son ID
+        const modelId = input.modelId ?? "";
+        type ModelViewType = "face" | "hand" | "wrist" | "ankle" | "fullbody";
+        const detectModelView = (id: string): ModelViewType => {
+          if (id.startsWith("face") || id === "rousse") return "face";
+          if (id.startsWith("hand")) return "hand";
+          if (id.startsWith("wrist")) return "wrist";
+          if (id.startsWith("ankle")) return "ankle";
+          return "fullbody";
+        };
+        const modelView = detectModelView(modelId);
+
+        // Instructions de proportion adaptées au type de vue
+        const modelViewContext: Record<ModelViewType, string> = {
+          face: "Image 1 shows a CLOSE-UP OF A FACE/HEAD. All items must be scaled to fit a human face/head. Earrings at earlobe scale, necklaces at neck scale, glasses at face width. Nothing should cover the entire face.",
+          hand: "Image 1 shows a CLOSE-UP OF HANDS. Items must be scaled to human hand proportions. Rings fit finger width, bracelets fit wrist/hand size. Keep the hand clearly visible.",
+          wrist: "Image 1 shows a CLOSE-UP OF A WRIST/FOREARM. Items must fit the wrist precisely — bracelet or watch scale only. Do not scale up beyond the wrist area.",
+          ankle: "Image 1 shows a CLOSE-UP OF AN ANKLE/FOOT. Items must fit ankle proportions — anklet or small accessory scale only.",
+          fullbody: "Image 1 shows a FULL BODY person. All items must be scaled to realistic body-relative size. Scarf no wider than shoulders, bag no bigger than torso, hat fitting the head.",
+        };
+        const modelViewNote = modelViewContext[modelView];
 
         // Pose courte (1 phrase max)
         const posePhrases: Record<string, string> = {
@@ -1109,26 +1234,36 @@ export const appRouter = router({
             set: "earrings on ears, necklace on neck, bracelet on wrist",
           };
           const where = placement[input.jewelryType || "earrings"] ?? placement.earrings;
-          prompt = `Virtual try-on. Image 1: person. Image 2: ${input.jewelryType ?? "jewelry"}. Place the jewelry ${where}. Keep face, skin tone, hair, and pose identical. Photorealistic luxury jewelry photography. ${jewelryScaleRule} ${strictRule} ${lightingRule}`;
+          prompt = `Virtual try-on. ${modelViewNote} Image 2: ${input.jewelryType ?? "jewelry"}. Place the jewelry ${where}. Keep face, skin tone, hair, and pose identical. Photorealistic luxury jewelry photography. ${jewelryScaleRule} ${strictRule} ${lightingRule}`;
 
         } else if (input.category === "shoes") {
-          prompt = `Virtual try-on. Image 1: person. Image 2: shoes. Show full body head-to-toe (9:16 portrait), ${pose}. Place these exact shoes on both feet. Feet fully visible at bottom. Keep face, hair, skin, clothing unchanged. ${strictRule} ${lightingRule}`;
+          prompt = `Virtual try-on. ${modelViewNote} Image 2: shoes. Show full body head-to-toe (9:16 portrait), ${pose}. Place these exact shoes on both feet. Feet fully visible at bottom. Keep face, hair, skin, clothing unchanged. ${strictRule} ${lightingRule}`;
 
         } else if (input.category === "clothing") {
-          prompt = `Virtual try-on. Image 1: person. Image 2: garment. Show full body head-to-toe (9:16 portrait), ${pose}. Dress the person in this exact garment. Full outfit visible, no cropping. Keep face, skin, hair unchanged. ${strictRule} ${lightingRule}`;
+          prompt = `Virtual try-on. ${modelViewNote} Image 2: garment. Show full body head-to-toe (9:16 portrait), ${pose}. Dress the person in this exact garment. Full outfit visible, no cropping. Keep face, skin, hair unchanged. ${strictRule} ${lightingRule}`;
 
         } else {
           const accPlacement: Record<string, string> = {
-            bag: "holding or carrying the bag on shoulder/arm",
-            belt: "wearing the belt around the waist",
-            sunglasses: "wearing the glasses on the face",
-            scarf: "wearing the scarf draped around the neck",
-            hat: "wearing the hat on the head",
-            watch: "wearing the watch on the wrist",
-            other: "wearing or carrying the accessory naturally",
+            bag: "holding or carrying the bag naturally on shoulder or arm",
+            belt: "wearing the belt snugly around the waist",
+            sunglasses: "wearing the glasses on the face, temples on ears",
+            scarf: "wearing the scarf loosely draped around the neck and shoulders — the scarf must be realistically sized: no wider than the shoulders, no longer than mid-torso, draped naturally like a real scarf on a person",
+            hat: "wearing the hat on top of the head, fitting naturally",
+            watch: "wearing the watch on the wrist, strap fitting snugly",
+            other: "wearing or carrying the accessory naturally at correct body scale",
+          };
+          const accScaleRule: Record<string, string> = {
+            bag: "SCALE: Bag must be realistic handbag size — not larger than the person's torso.",
+            belt: "SCALE: Belt must fit exactly at waist width, no wider.",
+            sunglasses: "SCALE: Glasses must fit face width precisely, frames proportional to face.",
+            scarf: "SCALE CRITICAL: The scarf must appear at TRUE LIFE SIZE. It should be narrower than the person's shoulders and no longer than mid-chest. Never oversized, never covering the face. Must look like a real scarf worn by a human, not a giant fabric.",
+            hat: "SCALE: Hat must fit the head naturally — not oversized or floating above the head.",
+            watch: "SCALE: Watch face must be wrist-proportionate (30-45mm equivalent), strap fitting snugly.",
+            other: "SCALE: Keep the accessory at realistic human-scale proportions.",
           };
           const where = accPlacement[input.accessoryType || "other"] ?? accPlacement.other;
-          prompt = `Virtual try-on. Image 1: person (${pose}). Image 2: ${input.accessoryType ?? "accessory"}. Show the person ${where}. Correct scale, realistic materials. Keep appearance identical. ${strictRule} ${lightingRule}`;
+          const scaleRule = accScaleRule[input.accessoryType || "other"] ?? accScaleRule.other;
+          prompt = `Virtual try-on. ${modelViewNote} Image 2: ${input.accessoryType ?? "accessory"}. Show the person ${where}. ${scaleRule} Keep face, hair, skin, clothing completely unchanged. Photorealistic result. ${strictRule} ${lightingRule}`;
         }
 
         // Générer numSamples variantes avec retry automatique (3 tentatives par image)
@@ -1535,7 +1670,7 @@ export const appRouter = router({
           .orderBy(desc(communityPosts.isPinned), desc(communityPosts.createdAt))
           .limit(input?.limit ?? 20)
           .offset(input?.offset ?? 0);
-        return posts;
+        return posts.map(p => ({ ...p, id: String(p.id) }));
       }),
 
     // Create a new post (authenticated users only)
@@ -1569,17 +1704,19 @@ export const appRouter = router({
           likesCount: 0,
           commentsCount: 0,
         });
-        return { success: true, id: (result as any)?.insertId ?? null };
+        return { success: true, id: result ? String((result as any)?.insertId) : null };
       }),
 
     // Toggle like on a post (authenticated users only)
     like: protectedProcedure
-      .input(z.object({ postId: z.number() }))
+      .input(z.object({ postId: z.string() }))
       .mutation(async ({ ctx, input }) => {
         const dbInstance = await db.getDb();
         if (!dbInstance) throw new Error('DB not available');
         const { communityPosts, communityPostLikes } = await import('../drizzle/schema');
         const { eq, and, sql } = await import('drizzle-orm');
+
+        const postId = Number(input.postId);
 
         // Wrap entire like/unlike operation in a transaction to prevent race conditions
         await dbInstance.transaction(async (tx) => {
@@ -1588,7 +1725,7 @@ export const appRouter = router({
             .select()
             .from(communityPostLikes)
             .where(and(
-              eq(communityPostLikes.postId, input.postId),
+              eq(communityPostLikes.postId, postId),
               eq(communityPostLikes.userId, ctx.user.id)
             ));
 
@@ -1597,23 +1734,23 @@ export const appRouter = router({
             await tx
               .delete(communityPostLikes)
               .where(and(
-                eq(communityPostLikes.postId, input.postId),
+                eq(communityPostLikes.postId, postId),
                 eq(communityPostLikes.userId, ctx.user.id)
               ));
             await tx
               .update(communityPosts)
               .set({ likesCount: sql`GREATEST(${communityPosts.likesCount} - 1, 0)` })
-              .where(eq(communityPosts.id, input.postId));
+              .where(eq(communityPosts.id, postId));
           } else {
             // Like: add the like record and increment counter
             await tx.insert(communityPostLikes).values({
-              postId: input.postId,
+              postId: postId,
               userId: ctx.user.id,
             });
             await tx
               .update(communityPosts)
               .set({ likesCount: sql`${communityPosts.likesCount} + 1` })
-              .where(eq(communityPosts.id, input.postId));
+              .where(eq(communityPosts.id, postId));
           }
         });
         return { success: true };
@@ -1682,7 +1819,7 @@ export const appRouter = router({
           console.error('[PartnerApplications] Erreur envoi email:', emailErr);
         }
 
-        return { success: true, id: insertedId };
+        return { success: true, id: insertedId ? String(insertedId) : null };
       }),
 
     // List all applications (admin only, protected by secret code)
@@ -1709,14 +1846,14 @@ export const appRouter = router({
           .select()
           .from(partnerApplications)
           .orderBy(partnerApplications.createdAt);
-        return { applications: apps };
+        return { applications: apps.map(a => ({ ...a, id: String(a.id) })) };
       }),
 
     // Update application status (admin only)
     updateStatus: publicProcedure
       .input(z.object({
         adminCode: z.string(),
-        id: z.number(),
+        id: z.string(),
         status: z.enum(['pending', 'approved', 'rejected']),
       }))
       .mutation(async ({ input }) => {
@@ -1738,55 +1875,8 @@ export const appRouter = router({
         await dbInstance
           .update(partnerApplications)
           .set({ status: input.status })
-          .where(eq(partnerApplications.id, input.id));
+          .where(eq(partnerApplications.id, Number(input.id)));
         return { success: true };
-      }),
-  }),
-
-  // ============================================
-  // MONETIZATION / LAUNCH OFFERS
-  // ============================================
-  monetization: router({
-    getLaunchOfferStatus: publicProcedure
-      .input(z.object({ clientId: z.string().min(8).max(128).optional() }).optional())
-      .query(async ({ input }) => {
-        const counts = await db.getLaunchOfferCampaignCounts();
-        const order = db.getLaunchCampaignOrder();
-        const campaigns = order.map((campaignKey) => {
-          const used = counts[campaignKey] ?? 0;
-          const limit = db.getLaunchCampaignLimit(campaignKey);
-          return {
-            campaignKey,
-            used,
-            limit,
-            remaining: Math.max(0, limit - used),
-          };
-        });
-
-        const activeCampaignKey = await db.getCurrentLaunchCampaign(counts);
-        const existingClaim = input?.clientId
-          ? await db.getLaunchOfferClaimByClientId(input.clientId)
-          : null;
-
-        return {
-          campaigns,
-          activeCampaignKey,
-          existingClaimCampaignKey: existingClaim?.campaignKey ?? null,
-        };
-      }),
-
-    claimLaunchOffer: publicProcedure
-      .input(z.object({ clientId: z.string().min(8).max(128) }))
-      .mutation(async ({ input }) => {
-        const claim = await db.claimLaunchOfferForClient(input.clientId);
-        if (!claim) {
-          return { success: false as const, campaignKey: null };
-        }
-        return {
-          success: true as const,
-          campaignKey: claim.campaignKey,
-          createdAt: claim.createdAt,
-        };
       }),
   }),
 });

@@ -23,6 +23,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+type ScreenMode = "my-dressing" | "catalogue";
+type GenderFilter = "women" | "men";
 type DressingSection = "jewelry" | "shoes" | "clothing" | "accessories";
 type WardrobeCategory =
   | "tops"
@@ -35,7 +37,7 @@ type WardrobeCategory =
   | "other";
 
 interface WardrobeItem {
-  id: number;
+  id: string;
   name: string;
   category: WardrobeCategory;
   brand?: string | null;
@@ -121,145 +123,7 @@ const SECTION_SUBCATEGORIES: Record<
   ],
 };
 
-// ─── Demo items ───────────────────────────────────────────────────────────────
-const DEMO_ITEMS: WardrobeItem[] = [
-  // Bijoux
-  {
-    id: -10,
-    name: "Boucles Fleur Dorée",
-    category: "accessories",
-    brand: "Moni'attitude",
-    color: "gold",
-    imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/foIbwvIEZnQRCkLk.jpeg",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -11,
-    name: "Boucles Résine Orange",
-    category: "accessories",
-    brand: "Moni'attitude",
-    color: "orange",
-    imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/rjfmUlamBZcBgUfF.jpeg",
-    isFavorite: false,
-    isDemo: true,
-  },
-  {
-    id: -12,
-    name: "Collier Chaîne Dorée",
-    category: "accessories",
-    brand: "Moni'attitude",
-    color: "gold",
-    imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/enfnjOfHaPReDorw.jpeg",
-    isFavorite: false,
-    isDemo: true,
-  },
-  // Chaussures
-  {
-    id: -20,
-    name: "Escarpins Nude",
-    category: "shoes",
-    brand: "Jonak",
-    color: "beige",
-    imageUrl:
-      "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=400&fit=crop",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -21,
-    name: "Sneakers Blanches",
-    category: "shoes",
-    brand: "Nike",
-    color: "white",
-    imageUrl:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
-    isFavorite: false,
-    isDemo: true,
-  },
-  {
-    id: -22,
-    name: "Bottines Noires",
-    category: "shoes",
-    brand: "Sandro",
-    color: "black",
-    imageUrl:
-      "https://images.unsplash.com/photo-1605812860427-4024433a70fd?w=400&h=400&fit=crop",
-    isFavorite: true,
-    isDemo: true,
-  },
-  // Vêtements
-  {
-    id: -30,
-    name: "Chemisier Soie Ivoire",
-    category: "tops",
-    brand: "Sandro",
-    color: "beige",
-    imageUrl:
-      "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=400&h=400&fit=crop",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -31,
-    name: "Pantalon Tailleur Marine",
-    category: "bottoms",
-    brand: "Maje",
-    color: "navy",
-    imageUrl:
-      "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=400&fit=crop",
-    isFavorite: false,
-    isDemo: true,
-  },
-  {
-    id: -32,
-    name: "Robe Cocktail Noire",
-    category: "dresses",
-    brand: "Ba&sh",
-    color: "black",
-    imageUrl:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -33,
-    name: "Blazer Camel",
-    category: "outerwear",
-    brand: "The Kooples",
-    color: "beige",
-    imageUrl:
-      "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=400&fit=crop",
-    isFavorite: false,
-    isDemo: true,
-  },
-  // Accessoires
-  {
-    id: -40,
-    name: "Sac Cuir Caramel",
-    category: "bags",
-    brand: "Polène",
-    color: "brown",
-    imageUrl:
-      "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop",
-    isFavorite: true,
-    isDemo: true,
-  },
-  {
-    id: -41,
-    name: "Ceinture Dorée",
-    category: "other",
-    brand: "Zara",
-    color: "gold",
-    imageUrl:
-      "https://images.unsplash.com/photo-1624891283882-dfe05d1f2c71?w=400&h=400&fit=crop",
-    isFavorite: false,
-    isDemo: true,
-  },
-];
+
 
 const COLORS = [
   { id: "black", label: "Noir", hex: "#000000" },
@@ -356,26 +220,30 @@ export default function DressingScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
+  const [screenMode, setScreenMode] = useState<ScreenMode>("my-dressing");
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("women");
   const [activeSection, setActiveSection] = useState<DressingSection>("jewelry");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const { data: wardrobeItems = [], isLoading, refetch } = trpc.wardrobe.list.useQuery(
     undefined,
     { enabled: !!user }
   );
+  const { data: catalogueItems = [], isLoading: isCatalogueLoading } =
+    trpc.wardrobeModels.list.useQuery(
+      { gender: genderFilter },
+      { enabled: screenMode === "catalogue" }
+    );
   const deleteItemMutation = trpc.wardrobe.delete.useMutation({
     onSuccess: () => refetch(),
   });
 
   const allItems: WardrobeItem[] = useMemo(() => {
-    if (!user || wardrobeItems.length === 0) return DEMO_ITEMS;
-    return wardrobeItems as WardrobeItem[];
-  }, [user, wardrobeItems]);
-
-  const isShowingDemo = !user || wardrobeItems.length === 0;
+    return (wardrobeItems ?? []) as WardrobeItem[];
+  }, [wardrobeItems]);
   const currentSection = SECTIONS.find((s) => s.id === activeSection)!;
 
   const sectionItems = useMemo(() => {
@@ -393,7 +261,7 @@ export default function DressingScreen() {
   }, [allItems, currentSection, searchQuery, showFavoritesOnly, favoriteIds]);
 
   const handleToggleFavorite = useCallback(
-    (id: number) => {
+    (id: string) => {
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setFavoriteIds((prev) => {
@@ -411,15 +279,14 @@ export default function DressingScreen() {
       if (Platform.OS !== "web")
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       router.push(
-        `/tryon?section=${activeSection}&itemId=${item.id}&itemName=${encodeURIComponent(item.name)}` as any
+        `/tryon?section=${activeSection}&itemId=${item.id}&itemName=${encodeURIComponent(item.name)}&catalogImageUrl=${encodeURIComponent(item.imageUrl || "")}` as any
       );
     },
     [activeSection, router]
   );
 
   const handleDelete = useCallback(
-    (id: number) => {
-      if (id < 0) return;
+    (id: string) => {
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       deleteItemMutation.mutate({ id });
@@ -467,17 +334,7 @@ export default function DressingScreen() {
                 color={isFav ? "#E53E3E" : "rgba(255,255,255,0.6)"}
               />
             </TouchableOpacity>
-            {/* Demo badge */}
-            {item.isDemo && (
-              <View
-                style={[
-                  styles.demoBadge,
-                  { backgroundColor: colors.primary },
-                ]}
-              >
-                <Text style={styles.demoBadgeText}>DÉMO</Text>
-              </View>
-            )}
+
           </View>
 
           {/* Info */}
@@ -509,18 +366,69 @@ export default function DressingScreen() {
           </View>
 
           {/* Delete */}
-          {!item.isDemo && (
-            <TouchableOpacity
-              style={styles.deleteBtn}
-              onPress={() => handleDelete(item.id)}
-            >
-              <IconSymbol name="xmark" size={11} color={colors.muted} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={() => handleDelete(item.id)}
+          >
+            <IconSymbol name="xmark" size={11} color={colors.muted} />
+          </TouchableOpacity>
         </View>
       );
     },
     [colors, currentSection, favoriteIds, handleToggleFavorite, handleTryOn, handleDelete]
+  );
+
+  // ─── Render: catalogue card ───────────────────────────────────────────────────
+  const renderCatalogueItem = useCallback(
+    ({ item }: { item: any }) => {
+      const catLabel: Record<string, string> = {
+        tops: "Haut", bottoms: "Bas", dresses: "Robe", outerwear: "Veste",
+        shoes: "Chaussures", bags: "Sac", accessories: "Accessoire",
+        clothing: "Vêtement", other: "Autre",
+      };
+      return (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.cardImageContainer, { backgroundColor: colors.background }]}>
+            {item.image_url ? (
+              <Image source={{ uri: item.image_url }} style={styles.cardImage} contentFit="cover" />
+            ) : (
+              <View style={styles.cardImagePlaceholder}>
+                <Text style={styles.cardEmoji}>👗</Text>
+              </View>
+            )}
+            {/* Gender badge */}
+            <View style={[styles.demoBadge, { backgroundColor: item.gender === "men" ? "#1E3A5F" : "#B5478A" }]}>
+              <Text style={styles.demoBadgeText}>{item.gender === "men" ? "♂" : "♀"}</Text>
+            </View>
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={[styles.cardName, { color: colors.foreground }]} numberOfLines={2}>
+              {item.name}
+            </Text>
+            {item.brand && (
+              <Text style={[styles.cardBrand, { color: colors.primary }]}>{item.brand.toUpperCase()}</Text>
+            )}
+            <Text style={[styles.cardCat, { color: colors.muted }]}>
+              {catLabel[item.category] ?? item.category}
+            </Text>
+            <TouchableOpacity
+              style={[styles.tryBtn, { borderColor: colors.primary }]}
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const section = ["shoes"].includes(item.category) ? "shoes"
+                  : ["bags", "accessories", "other"].includes(item.category) ? "accessories"
+                  : "clothing";
+                router.push(`/tryon?section=${section}&itemId=${item.id}&itemName=${encodeURIComponent(item.name)}&catalogImageUrl=${encodeURIComponent(item.image_url || "")}` as any);
+              }}
+            >
+              <IconSymbol name="wand.and.stars" size={11} color={colors.primary} />
+              <Text style={[styles.tryBtnText, { color: colors.primary }]}>ESSAYER</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    },
+    [colors, router]
   );
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -530,18 +438,41 @@ export default function DressingScreen() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-            MON DRESSING
+            {screenMode === "catalogue" ? "CATALOGUE" : "MON DRESSING"}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.primary }]}>
             VIRTUEL
           </Text>
         </View>
-        <TouchableOpacity
-          style={[styles.addBtn, { backgroundColor: colors.primary }]}
-          onPress={() => setShowAddModal(true)}
-        >
-          <IconSymbol name="plus" size={18} color={colors.background} />
-        </TouchableOpacity>
+        {screenMode === "my-dressing" ? (
+          <TouchableOpacity
+            style={[styles.addBtn, { backgroundColor: colors.primary }]}
+            onPress={() => setShowAddModal(true)}
+          >
+            <IconSymbol name="plus" size={18} color={colors.background} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* Mode switcher: Mon Dressing / Catalogue */}
+      <View style={{ flexDirection: "row", marginHorizontal: 16, marginBottom: 8, backgroundColor: colors.surface, borderRadius: 10, padding: 3, borderWidth: 1, borderColor: colors.border }}>
+        {(["my-dressing", "catalogue"] as ScreenMode[]).map((mode) => (
+          <TouchableOpacity
+            key={mode}
+            onPress={() => {
+              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setScreenMode(mode);
+            }}
+            style={[
+              { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: "center" },
+              screenMode === mode ? { backgroundColor: colors.primary } : null,
+            ]}
+          >
+            <Text style={{ fontSize: 12, fontWeight: "700", color: screenMode === mode ? colors.background : colors.muted }}>
+              {mode === "my-dressing" ? "👗 MON DRESSING" : "🛍 CATALOGUE"}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Section tabs */}
@@ -553,7 +484,8 @@ export default function DressingScreen() {
       >
         {SECTIONS.map((section) => {
           const isActive = activeSection === section.id;
-          const count = allItems.filter((i) =>
+          const sourceItems = screenMode === "catalogue" ? catalogueItems : allItems;
+          const count = sourceItems.filter((i: any) =>
             section.categories.includes(i.category)
           ).length;
           return (
@@ -606,106 +538,127 @@ export default function DressingScreen() {
 
       <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
-      {/* Search + Favoris filter */}
-      <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}>
-        <View
-          style={[
-            styles.searchBar,
-            { flex: 1, backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <IconSymbol name="magnifyingglass" size={15} color={colors.muted} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder={`Rechercher dans ${currentSection.label.toLowerCase()}…`}
-            placeholderTextColor={colors.muted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <IconSymbol name="xmark.circle.fill" size={15} color={colors.muted} />
-            </TouchableOpacity>
-          )}
-        </View>
-        {/* Bouton Favoris */}
-        <TouchableOpacity
-          style={[
-            styles.favFilterBtn,
-            {
-              backgroundColor: showFavoritesOnly ? "#E53E3E" : colors.surface,
-              borderColor: showFavoritesOnly ? "#E53E3E" : colors.border,
-            },
-          ]}
-          onPress={() => {
-            if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowFavoritesOnly((prev) => !prev);
-          }}
-        >
-          <IconSymbol
-            name="heart.fill"
-            size={16}
-            color={showFavoritesOnly ? "#FFFFFF" : colors.muted}
-          />
-        </TouchableOpacity>
-      </View>
+      {screenMode === "catalogue" ? (
+        /* ── CATALOGUE MODE ─────────────────────────────────────────────────── */
+        <>
+          {/* Gender switcher */}
+          <View style={{ flexDirection: "row", marginHorizontal: 16, marginBottom: 10, gap: 8 }}>
+            {(["women", "men"] as GenderFilter[]).map((g) => (
+              <TouchableOpacity
+                key={g}
+                onPress={() => {
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setGenderFilter(g);
+                }}
+                style={[
+                  { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: "center", borderWidth: 1 },
+                  genderFilter === g
+                    ? { backgroundColor: g === "men" ? "#1E3A5F" : "#B5478A", borderColor: g === "men" ? "#1E3A5F" : "#B5478A" }
+                    : { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "700", color: genderFilter === g ? "#FFF" : colors.muted }}>
+                  {g === "women" ? "♀ FEMME" : "♂ HOMME"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-      {/* Demo banner */}
-      {isShowingDemo && (
-        <View
-          style={[
-            styles.demoBanner,
-            {
-              backgroundColor: colors.primary + "15",
-              borderColor: colors.primary + "40",
-            },
-          ]}
-        >
-          <IconSymbol name="sparkles" size={13} color={colors.primary} />
-          <Text style={[styles.demoBannerText, { color: colors.primary }]}>
-            Connectez-vous pour sauvegarder votre dressing
-          </Text>
-        </View>
-      )}
-
-      {/* Content */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.muted }]}>
-            Chargement…
-          </Text>
-        </View>
-      ) : sectionItems.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>{currentSection.emoji}</Text>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-            Aucun article
-          </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
-            Ajoutez vos {currentSection.label.toLowerCase()} pour les essayer
-            virtuellement
-          </Text>
-          <TouchableOpacity
-            style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
-            onPress={() => setShowAddModal(true)}
-          >
-            <Text style={[styles.emptyBtnText, { color: colors.background }]}>
-              + AJOUTER
-            </Text>
-          </TouchableOpacity>
-        </View>
+          {isCatalogueLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.muted }]}>Chargement du catalogue…</Text>
+            </View>
+          ) : (() => {
+            const filteredCatalogue = catalogueItems.filter((item: any) =>
+              currentSection.categories.includes(item.category)
+            );
+            return filteredCatalogue.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyEmoji}>{currentSection.emoji}</Text>
+                <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Aucun article</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
+                  Pas de {currentSection.label.toLowerCase()} dans le catalogue {genderFilter === "women" ? "femme" : "homme"}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredCatalogue}
+                renderItem={renderCatalogueItem}
+                keyExtractor={(item: any) => String(item.id)}
+                numColumns={2}
+                columnWrapperStyle={styles.row}
+                contentContainerStyle={styles.grid}
+                showsVerticalScrollIndicator={false}
+              />
+            );
+          })()}
+        </>
       ) : (
-        <FlatList
-          data={sectionItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => String(item.id)}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.grid}
-          showsVerticalScrollIndicator={false}
-        />
+        /* ── MON DRESSING MODE ──────────────────────────────────────────────── */
+        <>
+          {/* Search + Favoris filter */}
+          <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}>
+            <View style={[styles.searchBar, { flex: 1, backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <IconSymbol name="magnifyingglass" size={15} color={colors.muted} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.foreground }]}
+                placeholder={`Rechercher dans ${currentSection.label.toLowerCase()}…`}
+                placeholderTextColor={colors.muted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery("")}>
+                  <IconSymbol name="xmark.circle.fill" size={15} color={colors.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.favFilterBtn, { backgroundColor: showFavoritesOnly ? "#E53E3E" : colors.surface, borderColor: showFavoritesOnly ? "#E53E3E" : colors.border }]}
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowFavoritesOnly((prev) => !prev);
+              }}
+            >
+              <IconSymbol name="heart.fill" size={16} color={showFavoritesOnly ? "#FFFFFF" : colors.muted} />
+            </TouchableOpacity>
+          </View>
+
+
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.muted }]}>Chargement…</Text>
+            </View>
+          ) : sectionItems.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyEmoji}>{currentSection.emoji}</Text>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Aucun article</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
+                Ajoutez vos {currentSection.label.toLowerCase()} pour les essayer virtuellement
+              </Text>
+              <TouchableOpacity
+                style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+                onPress={() => setShowAddModal(true)}
+              >
+                <Text style={[styles.emptyBtnText, { color: colors.background }]}>+ AJOUTER</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={sectionItems}
+              renderItem={renderItem}
+              keyExtractor={(item) => String(item.id)}
+              numColumns={2}
+              columnWrapperStyle={styles.row}
+              contentContainerStyle={styles.grid}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </>
       )}
 
       {/* Add Modal */}

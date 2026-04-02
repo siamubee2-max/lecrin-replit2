@@ -3,7 +3,7 @@ import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
 
 // Bundle ID for App Store
-const bundleId = "com.ecrin.jewelry";
+const bundleId = "com.inferencevision.lecrinvirtuel";
 
 // Deep link configuration
 const DEEP_LINK_CONFIG = {
@@ -58,6 +58,9 @@ const config: ExpoConfig = {
         NSAllowsLocalNetworking: true,
       },
     },
+    // entitlements: {
+    //   "com.apple.security.application-groups": ["group.com.ecrin.jewelry.widget"],
+    // },
     // App Store configuration
     config: {
       usesNonExemptEncryption: false,
@@ -152,32 +155,35 @@ const config: ExpoConfig = {
         },
       },
     ],
-    // iOS: patch pnpm `patches/@bittingz__expo-widgets@3.0.2.patch` (withPodfile no-op pour Expo 54).
-    [
-      "@bittingz/expo-widgets",
-      {
-        ios: {
-          src: "./widgets/ios",
-          devTeamId: "SPLML3CN76",
-          mode: "production",
-          moduleDependencies: [],
-          useLiveActivities: false,
-          frequentUpdates: false,
-          entitlements: {
-            "com.apple.security.application-groups": ["group.com.ecrin.jewelry.widget"],
-          },
-        },
-        android: {
-          src: "./widgets/android",
-          widgets: [
-            {
-              name: "DailySuggestionWidget",
-              resourceName: "@xml/daily_suggestion_widget_info",
-            },
-          ],
-        },
-      },
-    ],
+    // TEMPORAIREMENT DÉSACTIVÉ — Le widget nécessite une config App Group sur Apple Developer Portal
+    // [
+    //   "@bittingz/expo-widgets",
+    //   {
+    //     ios: {
+    //       src: "./widgets/ios",
+    //       devTeamId: "SPLML3CN76",
+    //       mode: "production",
+    //       xcode: {
+    //         appGroupId: "group.com.ecrin.jewelry.widget",
+    //       },
+    //       moduleDependencies: [],
+    //       useLiveActivities: false,
+    //       frequentUpdates: false,
+    //       entitlements: {
+    //         "com.apple.security.application-groups": ["group.com.ecrin.jewelry.widget"],
+    //       },
+    //     },
+    //     android: {
+    //       src: "./widgets/android",
+    //       widgets: [
+    //         {
+    //           name: "DailySuggestionWidget",
+    //           resourceName: "@xml/daily_suggestion_widget_info",
+    //         },
+    //       ],
+    //     },
+    //   },
+    // ],
   ],
 
   experiments: {
@@ -191,7 +197,12 @@ const config: ExpoConfig = {
     deepLinkBaseUrl: `https://${DEEP_LINK_CONFIG.associatedDomain}`,
     // App Store URLs (to be updated after app submission)
     appStoreUrl: "https://apps.apple.com/app/ecrin-virtuel/id000000000",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.ecrin.jewelry",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.inferencevision.lecrinvirtuel",
+    // Supabase — injectées au build pour être disponibles via Constants.expoConfig.extra
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",
+    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "",
+    // RevenueCat
+    revenueCatIosKey: process.env.EXPO_PUBLIC_RC_API_KEY_IOS ?? "",
     // EAS Project ID (required for eas build with dynamic config)
     eas: {
       projectId: "52023f23-2329-4fab-b9c9-a518b17f94f3",

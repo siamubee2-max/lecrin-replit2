@@ -220,9 +220,9 @@ export default function CommunityScreen() {
         next.delete(postId);
       } else {
         next.add(postId);
-        // Only like server posts (numeric IDs)
-        const numId = parseInt(postId, 10);
-        if (!isNaN(numId)) likePostMutation.mutate({ postId: numId });
+        if (postId) {
+          likePostMutation.mutate({ postId });
+        }
       }
       return next;
     });

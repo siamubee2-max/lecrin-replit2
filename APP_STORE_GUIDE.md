@@ -4,7 +4,7 @@
 
 | Paramètre | Valeur |
 |-----------|--------|
-| **Bundle ID** | com.ecrin.jewelry |
+| **Bundle ID** | com.inferencevision.lecrinvirtuel |
 | **Nom de l'App** | Ecrin Virtuel |
 | **Apple Team ID** | SPLML3CN76 |
 | **Apple ID** | chrweber@skynet.be |
@@ -94,7 +94,7 @@ Lors du premier build, EAS vous demandera :
 3. Remplissez :
    - **Nom** : Écrin Virtuel
    - **Langue principale** : Français
-   - **Bundle ID** : com.ecrin.jewelry
+   - **Bundle ID** : com.inferencevision.lecrinvirtuel
    - **SKU** : ecrin-virtuel-2024
 
 ## Étape 7 : Préparer les Métadonnées

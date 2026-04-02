@@ -18,7 +18,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 
 type Application = {
-  id: number;
+  id: string;
   brandName: string;
   contactName: string;
   email: string;
@@ -67,7 +67,7 @@ export default function AdminCandidaturesScreen() {
     setRefreshing(false);
   };
 
-  const handleUpdateStatus = (id: number, status: "approved" | "rejected" | "pending") => {
+  const handleUpdateStatus = (id: string, status: "approved" | "rejected" | "pending") => {
     const labels = { approved: "Approuver", rejected: "Rejeter", pending: "Remettre en attente" };
     Alert.alert(
       labels[status],

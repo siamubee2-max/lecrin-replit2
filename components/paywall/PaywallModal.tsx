@@ -18,7 +18,8 @@ import {
 import {
   PRODUCT_PREMIUM_MONTHLY_10,
   PRODUCT_PREMIUM_YEARLY_10,
-  PRODUCT_PREMIUM_YEARLY_25,
+  PRODUCT_PREMIUM_YEARLY_20,
+  PRODUCT_PREMIUM_YEARLY_30,
   PRODUCT_PREMIUM_YEARLY_50,
 } from "@/hooks/use-subscription";
 
@@ -90,25 +91,28 @@ export function PaywallModal({
   const isLoading = isPurchasing || isBuyingCredits;
 
   const campaignLabels: Record<LaunchOfferCampaignKey, string> = {
-    yearly_50_first_100: "Offre fondateur: -50% annuel (100 places)",
-    yearly_25_next_100: "Lancement: -25% annuel (100 places)",
-    yearly_10_next_100: "Lancement: -10% annuel (100 places)",
-    monthly_10_next_200: "Lancement: -10% mensuel (200 places)",
+    yearly_50_first_100: "🏅 Offre Fondateur — −50% annuel · 1 000 essayages/an",
+    yearly_30_next_100: "✨ Early Bird — −30% annuel · 1 000 essayages/an",
+    yearly_20_next_100: "🎁 Lancement — −20% annuel · 1 000 essayages/an",
+    yearly_10_next_100: "💫 Offre Spéciale — −10% annuel ou mensuel",
+    monthly_10_next_100: "🌟 Offre Mensuel — −10% mensuel uniquement",
   };
 
   const campaignProducts: Partial<Record<LaunchOfferCampaignKey, string>> = {
     yearly_50_first_100: PRODUCT_PREMIUM_YEARLY_50,
-    yearly_25_next_100: PRODUCT_PREMIUM_YEARLY_25,
+    yearly_30_next_100: PRODUCT_PREMIUM_YEARLY_30,
+    yearly_20_next_100: PRODUCT_PREMIUM_YEARLY_20,
     yearly_10_next_100: PRODUCT_PREMIUM_YEARLY_10,
-    monthly_10_next_200: PRODUCT_PREMIUM_MONTHLY_10,
+    monthly_10_next_100: PRODUCT_PREMIUM_MONTHLY_10,
   };
 
   const currentCampaign = launchOffer.activeCampaign;
   const currentCampaignLabel = currentCampaign ? campaignLabels[currentCampaign] : null;
+  const remainingSpots = launchOffer.remainingSpots;
   const launchCampaignForCurrentPlan: LaunchOfferCampaignKey | null =
     selectedPlan === "premium_yearly" && currentCampaign?.startsWith("yearly_")
       ? currentCampaign
-      : selectedPlan === "premium_monthly" && currentCampaign === "monthly_10_next_200"
+      : selectedPlan === "premium_monthly" && (currentCampaign === "monthly_10_next_100" || currentCampaign === "yearly_10_next_100")
         ? currentCampaign
         : null;
 
@@ -253,17 +257,19 @@ export function PaywallModal({
   const planLabel = {
     jewelry: "ESSENTIEL — 14,99 €/mois",
     premium_monthly:
-      launchCampaignForCurrentPlan === "monthly_10_next_200"
+      (launchCampaignForCurrentPlan === "monthly_10_next_100" || launchCampaignForCurrentPlan === "yearly_10_next_100")
         ? "PREMIUM — 22,49 €/mois (offre lancement)"
         : "PREMIUM — 24,99 €/mois",
     premium_yearly:
       launchCampaignForCurrentPlan === "yearly_50_first_100"
         ? "PREMIUM ANNUEL — 99,99 €/an (fondateur)"
-        : launchCampaignForCurrentPlan === "yearly_25_next_100"
-          ? "PREMIUM ANNUEL — 149,99 €/an (lancement)"
-          : launchCampaignForCurrentPlan === "yearly_10_next_100"
-            ? "PREMIUM ANNUEL — 179,99 €/an (lancement)"
-            : "PREMIUM ANNUEL — 199,99 €/an",
+        : launchCampaignForCurrentPlan === "yearly_30_next_100"
+          ? "PREMIUM ANNUEL — 139,99 €/an (−30%)"
+          : launchCampaignForCurrentPlan === "yearly_20_next_100"
+            ? "PREMIUM ANNUEL — 159,99 €/an (−20%)"
+            : launchCampaignForCurrentPlan === "yearly_10_next_100"
+              ? "PREMIUM ANNUEL — 179,99 €/an (−10%)"
+              : "PREMIUM ANNUEL — 199,99 €/an",
   }[selectedPlan];
 
   return (
@@ -302,9 +308,29 @@ export function PaywallModal({
                 <Text style={styles.launchPillText}>{currentCampaignLabel}</Text>
               </View>
             )}
+            {/* Compteur de places restantes — urgence visuelle */}
+            {remainingSpots !== null && remainingSpots <= 30 && (
+              <View style={[styles.urgencyPill, { borderColor: "#DC2626AA", backgroundColor: "#DC26261A" }]}>
+                <Text style={styles.urgencyPillText}>
+                  🔥 Plus que {remainingSpots} place{remainingSpots > 1 ? "s" : ""} à ce tarif !
+                </Text>
+              </View>
+            )}
+            {remainingSpots !== null && remainingSpots > 30 && (
+              <View style={[styles.launchPill, { borderColor: "#22C55E66", backgroundColor: "#22C55E1A" }]}>
+                <Text style={[styles.launchPillText, { color: "#22C55E" }]}>
+                  {remainingSpots} places restantes
+                </Text>
+              </View>
+            )}
             {currentCampaign === "yearly_50_first_100" && (
               <Text style={[styles.founderNote, { color: colors.muted }]}>
-                Inclut 10 000 essayages/an et prix garanti tant que l'abonnement reste actif.
+                1 000 essayages/an · Prix garanti tant que l'abonnement reste actif.
+              </Text>
+            )}
+            {(currentCampaign === "yearly_30_next_100" || currentCampaign === "yearly_20_next_100") && (
+              <Text style={[styles.founderNote, { color: colors.muted }]}>
+                1 000 essayages/an · Tarif lancement garanti 12 mois.
               </Text>
             )}
           </View>
@@ -351,7 +377,7 @@ export function PaywallModal({
                   </View>
                   <Text style={[styles.planName, { color: colors.foreground, marginTop: 10 }]}>✦ Premium</Text>
                   <Text style={[styles.planPrice, { color: "#C9A96E" }]}>24,99 €</Text>
-                  {currentCampaign === "monthly_10_next_200" && (
+                  {(currentCampaign === "monthly_10_next_100" || currentCampaign === "yearly_10_next_100") && (
                     <Text style={[styles.planPeriod, { color: "#22C55E", fontWeight: "700" }]}>22,49 € offre active</Text>
                   )}
                   <Text style={[styles.planPeriod, { color: colors.muted }]}>/ mois</Text>
@@ -369,9 +395,11 @@ export function PaywallModal({
                       {currentCampaign?.startsWith("yearly_")
                         ? currentCampaign === "yearly_50_first_100"
                           ? "−50%"
-                          : currentCampaign === "yearly_25_next_100"
-                            ? "−25%"
-                            : "−10%"
+                          : currentCampaign === "yearly_30_next_100"
+                            ? "−30%"
+                            : currentCampaign === "yearly_20_next_100"
+                              ? "−20%"
+                              : "−10%"
                         : "−33%"}
                     </Text>
                   </View>
@@ -379,14 +407,18 @@ export function PaywallModal({
                   <Text style={[styles.planPrice, { color: "#C9A96E" }]}>
                     {currentCampaign === "yearly_50_first_100"
                       ? "99,99 €"
-                      : currentCampaign === "yearly_25_next_100"
-                        ? "149,99 €"
-                        : currentCampaign === "yearly_10_next_100"
-                          ? "179,99 €"
-                          : "199,99 €"}
+                      : currentCampaign === "yearly_30_next_100"
+                        ? "139,99 €"
+                        : currentCampaign === "yearly_20_next_100"
+                          ? "159,99 €"
+                          : currentCampaign === "yearly_10_next_100"
+                            ? "179,99 €"
+                            : "199,99 €"}
                   </Text>
                   <Text style={[styles.planPeriod, { color: colors.muted }]}>/ an</Text>
-                  <Text style={[styles.planDesc, { color: "#22C55E" }]}>16,67 €/mois</Text>
+                  <Text style={[styles.planDesc, { color: "#22C55E" }]}>
+                    {currentCampaign?.startsWith("yearly_") ? "1 000 essayages inclus" : "≈ 16,67 €/mois"}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -499,6 +531,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 20,
     lineHeight: 16,
+  },
+  urgencyPill: {
+    marginTop: 8,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  urgencyPillText: {
+    fontSize: 11,
+    color: "#DC2626",
+    fontWeight: "700",
   },
   tabRow: {
     flexDirection: "row",

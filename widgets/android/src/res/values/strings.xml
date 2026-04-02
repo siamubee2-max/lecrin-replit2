@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">L\'Écrin Virtuel</string>
+    <string name="widget_description">Votre suggestion de bijoux du jour basée sur la météo et vos événements</string>
+</resources>

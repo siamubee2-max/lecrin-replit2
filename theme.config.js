@@ -1,22 +1,22 @@
 /** @type {const} */
 const themeColors = {
-  // Couleur d'accent principale — or champagne luxe
-  primary:    { light: '#B8975A', dark: '#C9A96E' },
-  // Fond principal — noir profond (dark) / crème ivoire (light)
-  background: { light: '#FAF8F4', dark: '#0A0A0A' },
-  // Surfaces élevées — blanc cassé (light) / noir charbon (dark)
-  surface:    { light: '#F2EDE4', dark: '#141414' },
-  // Texte principal — noir absolu (light) / crème (dark)
-  foreground: { light: '#0A0A0A', dark: '#F5F0E8' },
-  // Texte secondaire — gris foncé (light) / gris clair (dark)
-  muted:      { light: '#6B6560', dark: '#9A9490' },
-  // Bordures fines — sable (light) / anthracite (dark)
-  border:     { light: '#D9D0C3', dark: '#2A2A2A' },
+  // Couleur d'accent — or chaud, nuance miel-cognac
+  primary:    { light: '#B8935A', dark: '#D4A96A' },
+  // Fond principal — noir espresso chaud (dark) / parchemin crème (light)
+  background: { light: '#FBF7F0', dark: '#0C0906' },
+  // Surfaces élevées — ivoire ambré (light) / brun charbon (dark)
+  surface:    { light: '#F3EBDf', dark: '#161009' },
+  // Texte principal — brun foncé (light) / crème ivoire (dark)
+  foreground: { light: '#1A1208', dark: '#F5EDDE' },
+  // Texte secondaire — brun moyen (light) / sable chaud (dark)
+  muted:      { light: '#7A6E5F', dark: '#A0907A' },
+  // Bordures — sable doré (light) / brun anthracite chaud (dark)
+  border:     { light: '#DDD0B8', dark: '#2C2018' },
   // Or pour les accents décoratifs
-  gold:       { light: '#B8975A', dark: '#C9A96E' },
+  gold:       { light: '#B8935A', dark: '#D4A96A' },
   // États sémantiques
   success:    { light: '#4A7C59', dark: '#6AAF7A' },
-  warning:    { light: '#B8975A', dark: '#C9A96E' },
+  warning:    { light: '#B8935A', dark: '#D4A96A' },
   error:      { light: '#8B3A3A', dark: '#C97070' },
 };
 

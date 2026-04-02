@@ -7,13 +7,15 @@ import {
   trackLaunchOfferExhausted,
 } from "@/lib/analytics";
 
-const LAUNCH_CLIENT_ID_KEY = "launch_offer_client_id_v1";
+const LAUNCH_CLIENT_ID_KEY = "launch_offer_client_id_v2";
 
+// ─── Types des campagnes (doit correspondre exactement à server/monetization.ts)
 export type LaunchOfferCampaignKey =
-  | "yearly_50_first_100"
-  | "yearly_25_next_100"
-  | "yearly_10_next_100"
-  | "monthly_10_next_200";
+  | "yearly_50_first_100"    // −50% annuel  · 1 000 essayages
+  | "yearly_30_next_100"     // −30% annuel  · 1 000 essayages
+  | "yearly_20_next_100"     // −20% annuel  · 1 000 essayages
+  | "yearly_10_next_100"     // −10% annuel+mensuel · 1 500 essayages
+  | "monthly_10_next_100";   // −10% mensuel uniquement
 
 function generateClientId(): string {
   return `lc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -61,6 +63,14 @@ export function useLaunchOffer(enabled: boolean, source: string = "paywall") {
     return (claim ?? statusQuery.data.activeCampaignKey) as LaunchOfferCampaignKey | null;
   }, [statusQuery.data]);
 
+  // Infos enrichies de la campagne active (remaining spots, prices, etc.)
+  // On utilise activeCampaignKey pour éviter les problèmes d'inférence TypeScript
+  const activeCampaignInfo = useMemo(() => {
+    const key = (statusQuery.data as any)?.activeCampaignKey as string | null;
+    if (!key) return null;
+    return (statusQuery.data as any)?.activeCampaign ?? null;
+  }, [statusQuery.data]);
+
   const hasOffer = Boolean(activeCampaign);
 
   useEffect(() => {
@@ -103,7 +113,9 @@ export function useLaunchOffer(enabled: boolean, source: string = "paywall") {
     isLoading: statusQuery.isLoading || claimMutation.isPending || !clientId,
     campaigns: statusQuery.data?.campaigns ?? [],
     activeCampaign,
+    activeCampaignInfo,
     hasOffer,
     claimCurrentOffer,
+    remainingSpots: activeCampaignInfo?.remaining ?? null,
   };
 }

@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "SPLML3CN76.com.ecrin.jewelry",
+        "appID": "SPLML3CN76.com.inferencevision.lecrinvirtuel",
         "paths": [
           "*",
           "/tryon/*",
@@ -18,7 +18,7 @@
   },
   "webcredentials": {
     "apps": [
-      "SPLML3CN76.com.ecrin.jewelry"
+      "SPLML3CN76.com.inferencevision.lecrinvirtuel"
     ]
   }
 }

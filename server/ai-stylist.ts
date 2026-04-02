@@ -2,7 +2,7 @@ import { invokeLLM } from "./_core/llm";
 
 // Types
 export interface WardrobeItemForStyling {
-  id: number;
+  id: string;
   name: string;
   category: string;
   brand?: string | null;
@@ -14,7 +14,7 @@ export interface WardrobeItemForStyling {
 }
 
 export interface JewelryItemForStyling {
-  id: number;
+  id: string;
   name: string;
   type: string;
   metal?: string | null;
@@ -28,8 +28,8 @@ export interface LookSuggestion {
   description: string;
   occasion: "casual" | "work" | "formal" | "sport" | "party" | "all";
   season: "spring" | "summer" | "fall" | "winter" | "all";
-  wardrobeItemIds: number[];
-  jewelryItemIds: number[];
+  wardrobeItemIds: string[];
+  jewelryItemIds: string[];
   stylingTips: string;
   confidence: number;
 }
@@ -107,8 +107,8 @@ Réponds UNIQUEMENT en JSON valide avec ce format:
       "description": "string",
       "occasion": "casual|work|formal|sport|party|all",
       "season": "spring|summer|fall|winter|all",
-      "wardrobeItemIds": [number],
-      "jewelryItemIds": [number],
+      "wardrobeItemIds": [string],
+      "jewelryItemIds": [string],
       "stylingTips": "string",
       "confidence": number
     }
@@ -258,9 +258,9 @@ function validateSeason(value: string): LookSuggestion["season"] {
   return valid.includes(value) ? (value as LookSuggestion["season"]) : "all";
 }
 
-function validateIds(ids: any, validIds: number[]): number[] {
+function validateIds(ids: any, validIds: string[]): string[] {
   if (!Array.isArray(ids)) return [];
-  return ids.filter((id) => typeof id === "number" && validIds.includes(id));
+  return ids.filter((id) => (typeof id === "string" || typeof id === "number") && validIds.includes(String(id))).map(String);
 }
 
 function generateFallbackSuggestions(
@@ -277,8 +277,8 @@ function generateFallbackSuggestions(
   
   // Generate simple combinations
   for (let i = 0; i < Math.min(count, 3); i++) {
-    const wardrobeIds: number[] = [];
-    const jewelryIds: number[] = [];
+    const wardrobeIds: string[] = [];
+    const jewelryIds: string[] = [];
     
     if (dresses.length > i) {
       wardrobeIds.push(dresses[i].id);

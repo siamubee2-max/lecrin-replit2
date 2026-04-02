@@ -218,10 +218,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     // Sync to server if authenticated
     if (isAuthenticated) {
       try {
-        const numericId = parseInt(id, 10);
-        if (!isNaN(numericId)) {
-          await removeFavoriteMutation.mutateAsync({ id: numericId });
-        }
+        await removeFavoriteMutation.mutateAsync({ id });
       } catch (error) {
         console.error("Error removing favorite from server:", error);
       }

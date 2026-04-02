@@ -11,7 +11,7 @@ export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const bottomPadding = Platform.OS === "web" ? 14 : Math.max(insets.bottom, 10);
-  const tabBarHeight = 60 + bottomPadding;
+  const tabBarHeight = 64 + bottomPadding;
 
   return (
     <Tabs
@@ -21,7 +21,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          paddingTop: 10,
+          paddingTop: 8,
           paddingBottom: bottomPadding,
           height: tabBarHeight,
           backgroundColor: colors.background,
@@ -29,10 +29,13 @@ export default function TabLayout() {
           borderTopWidth: 0.5,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "500",
-          letterSpacing: 0.5,
+          fontSize: 9,
+          fontWeight: "600",
+          letterSpacing: 0.8,
           textTransform: "uppercase",
+          marginTop: 3,
+        },
+        tabBarIconStyle: {
           marginTop: 2,
         },
       }}
@@ -41,7 +44,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Accueil",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={22}
+              name={focused ? "house.fill" : "house.fill"}
+              color={color}
+              weight={focused ? "semibold" : "regular"}
+            />
+          ),
         }}
       />
       <Tabs.Screen
@@ -57,35 +67,70 @@ export default function TabLayout() {
         name="ecrin"
         options={{
           title: "Mon Écrin",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="diamond.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={22}
+              name="diamond.fill"
+              color={color}
+              weight={focused ? "semibold" : "regular"}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="dressing"
         options={{
           title: "Dressing",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="tshirt.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={22}
+              name="tshirt.fill"
+              color={color}
+              weight={focused ? "semibold" : "regular"}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
           title: "Comm.",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={22}
+              name="person.2.fill"
+              color={color}
+              weight={focused ? "semibold" : "regular"}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="boutique"
         options={{
           title: "Boutique",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="storefront.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={22}
+              name="storefront.fill"
+              color={color}
+              weight={focused ? "semibold" : "regular"}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Plus",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="menubar.rectangle" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={22}
+              name="menubar.rectangle"
+              color={color}
+              weight={focused ? "semibold" : "regular"}
+            />
+          ),
         }}
       />
       {/* Hidden screens */}
