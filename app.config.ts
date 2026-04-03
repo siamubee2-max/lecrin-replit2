@@ -37,9 +37,9 @@ const config: ExpoConfig = {
   newArchEnabled: true,
 
   ios: {
-    supportsTablet: true,
+    supportsTablet: false,
     bundleIdentifier: env.iosBundleId,
-    buildNumber: "13",
+    buildNumber: "14",
     // Associated domains for Universal Links
     associatedDomains: [
       `applinks:${DEEP_LINK_CONFIG.associatedDomain}`,
