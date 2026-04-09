@@ -1,0 +1,6 @@
+{
+  "NSCameraUsageDescription": "Écrin Virtuel usa la tua fotocamera per provare virtualmente i gioielli in realtà aumentata.",
+  "NSPhotoLibraryUsageDescription": "Écrin Virtuel accede alle tue foto per salvare le prove virtuali.",
+  "NSPhotoLibraryAddUsageDescription": "Écrin Virtuel salva le tue prove virtuali nella galleria.",
+  "NSLocationWhenInUseUsageDescription": "Écrin Virtuel usa la tua posizione per suggerire stili adatti al clima locale."
+}

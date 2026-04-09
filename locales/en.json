@@ -1,0 +1,6 @@
+{
+  "NSCameraUsageDescription": "Écrin Virtuel uses your camera for augmented reality virtual jewelry try-on.",
+  "NSPhotoLibraryUsageDescription": "Écrin Virtuel accesses your photos to save your virtual try-ons.",
+  "NSPhotoLibraryAddUsageDescription": "Écrin Virtuel saves your virtual try-ons to your gallery.",
+  "NSLocationWhenInUseUsageDescription": "Écrin Virtuel uses your location to suggest styles adapted to the local weather."
+}

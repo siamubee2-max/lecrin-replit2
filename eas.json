@@ -29,6 +29,10 @@
         "appleId": "chrweber@skynet.be",
         "appleTeamId": "SPLML3CN76",
         "ascAppId": "6758549821"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-key.json",
+        "track": "production"
       }
     }
   }

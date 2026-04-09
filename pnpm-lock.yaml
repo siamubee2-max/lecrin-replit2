@@ -112,6 +112,9 @@ importers:
       expo-linking:
         specifier: ~8.0.10
         version: 8.0.10(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      expo-localization:
+        specifier: ~17.0.8
+        version: 17.0.8(expo@54.0.29)(react@19.1.0)
       expo-location:
         specifier: ^19.0.8
         version: 19.0.8(expo@54.0.29)
@@ -171,7 +174,7 @@ importers:
         version: 8.0.2
       posthog-react-native:
         specifier: ^4.37.5
-        version: 4.37.5(@react-native-async-storage/async-storage@2.2.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(@react-navigation/native@7.1.25(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-application@7.0.8(expo@54.0.29))(expo-device@8.0.10(expo@54.0.29))(expo-file-system@19.0.21(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(react-native-safe-area-context@5.6.2(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-svg@15.12.1(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))
+        version: 4.37.5(@react-native-async-storage/async-storage@2.2.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(@react-navigation/native@7.1.25(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-application@7.0.8(expo@54.0.29))(expo-device@8.0.10(expo@54.0.29))(expo-file-system@19.0.21(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(expo-localization@17.0.8(expo@54.0.29)(react@19.1.0))(react-native-safe-area-context@5.6.2(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-svg@15.12.1(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -3845,6 +3848,12 @@ packages:
       react: '*'
       react-native: '*'
 
+  expo-localization@17.0.8:
+    resolution: {integrity: sha512-UrdwklZBDJ+t+ZszMMiE0SXZ2eJxcquCuQcl6EvGHM9K+e6YqKVRQ+w8qE+iIB3H75v2RJy6MHAaLK+Mqeo04g==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+
   expo-location@19.0.8:
     resolution: {integrity: sha512-H/FI75VuJ1coodJbbMu82pf+Zjess8X8Xkiv9Bv58ZgPKS/2ztjC1YO1/XMcGz7+s9DrbLuMIw22dFuP4HqneA==}
     peerDependencies:
@@ -5778,6 +5787,9 @@ packages:
     resolution: {integrity: sha512-iTNAbFSlRpcHeeWu73ywU/8KuU/LZmNCSxp6fjQkJBD3ivUb8tpDrXhIxEzA05HlYMEwmtaUnb3RP+YNv162OQ==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
+
+  rtl-detect@1.1.2:
+    resolution: {integrity: sha512-PGMBq03+TTG/p/cRB7HCLKJ1MgDIi07+QU1faSjiYRfmY5UsAttV9Hs08jDAHVwcOwmVLcSJkpwyfXszVjWfIQ==}
 
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
@@ -10430,6 +10442,12 @@ snapshots:
       - expo
       - supports-color
 
+  expo-localization@17.0.8(expo@54.0.29)(react@19.1.0):
+    dependencies:
+      expo: 54.0.29(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(expo-router@6.0.19)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      rtl-detect: 1.1.2
+
   expo-location@19.0.8(expo@54.0.29):
     dependencies:
       expo: 54.0.29(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(expo-router@6.0.19)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -12204,7 +12222,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  posthog-react-native@4.37.5(@react-native-async-storage/async-storage@2.2.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(@react-navigation/native@7.1.25(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-application@7.0.8(expo@54.0.29))(expo-device@8.0.10(expo@54.0.29))(expo-file-system@19.0.21(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(react-native-safe-area-context@5.6.2(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-svg@15.12.1(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)):
+  posthog-react-native@4.37.5(@react-native-async-storage/async-storage@2.2.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(@react-navigation/native@7.1.25(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(expo-application@7.0.8(expo@54.0.29))(expo-device@8.0.10(expo@54.0.29))(expo-file-system@19.0.21(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)))(expo-localization@17.0.8(expo@54.0.29)(react@19.1.0))(react-native-safe-area-context@5.6.2(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-svg@15.12.1(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)):
     dependencies:
       '@posthog/core': 1.24.1
       react-native-svg: 15.12.1(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -12214,6 +12232,7 @@ snapshots:
       expo-application: 7.0.8(expo@54.0.29)
       expo-device: 8.0.10(expo@54.0.29)
       expo-file-system: 19.0.21(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
+      expo-localization: 17.0.8(expo@54.0.29)(react@19.1.0)
       react-native-safe-area-context: 5.6.2(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
 
   prelude-ls@1.2.1: {}
@@ -12672,6 +12691,8 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.53.5
       '@rollup/rollup-win32-x64-msvc': 4.53.5
       fsevents: 2.3.3
+
+  rtl-detect@1.1.2: {}
 
   run-parallel@1.2.0:
     dependencies:

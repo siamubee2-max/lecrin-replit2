@@ -28,7 +28,7 @@ export default function PrivacyScreen() {
       >
         <View className="py-6">
           <Text className="text-sm text-muted mb-6">
-            Dernière mise à jour : Janvier 2025
+            Dernière mise à jour : Avril 2026
           </Text>
 
           <Section title="1. Introduction">
@@ -59,29 +59,46 @@ export default function PrivacyScreen() {
             <BulletPoint text="Améliorer nos services" />
           </Section>
 
-          <Section title="4. Stockage des Données">
+          <Section title="4. Stockage et Traitement des Données">
             <Text className="text-base text-foreground leading-relaxed">
               Vos photos et essayages sont stockés localement sur votre appareil.
               Nous ne transférons pas vos images vers nos serveurs sans votre consentement explicite.
-              Les données d{"'"}abonnement sont gérées de manière sécurisée par Apple via StoreKit.
+              Les données d{"'"}abonnement sont gérées de manière sécurisée par Apple via StoreKit.{"\n\n"}
+              La fonctionnalité AI Stylist analyse votre garde-robe (noms, catégories, couleurs) sur
+              nos propres serveurs sécurisés pour générer des suggestions de looks. Ces données
+              ne sont jamais partagées avec des fournisseurs d{"'"}intelligence artificielle tiers
+              (OpenAI, Google, Anthropic, etc.). Tout le traitement s{"'"}effectue en interne.
             </Text>
           </Section>
 
           <Section title="5. Partage des Données">
             <Text className="text-base text-foreground leading-relaxed">
               Nous ne vendons, n{"'"}échangeons ni ne louons vos informations personnelles à des tiers.
-              Nous pouvons partager des données anonymisées à des fins d{"'"}analyse et d{"'"}amélioration du service.
+              Nous ne partageons pas vos données vestimentaires avec des fournisseurs d{"'"}IA externes.
+              Nous pouvons partager des données anonymisées et agrégées à des fins d{"'"}analyse
+              et d{"'"}amélioration du service.
             </Text>
           </Section>
 
-          <Section title="6. Sécurité">
+          <Section title="6. Intelligence Artificielle">
+            <Text className="text-base text-foreground leading-relaxed">
+              La fonctionnalité {"«"} AI Stylist {"»"} utilise un algorithme développé en interne
+              pour analyser vos vêtements et générer des suggestions de looks. Cet algorithme
+              fonctionne sur nos serveurs sécurisés et n{"'"}envoie aucune donnée personnelle
+              à des fournisseurs d{"'"}intelligence artificielle tiers.{"\n\n"}
+              Aucune image, description ou information de votre garde-robe n{"'"}est transmise à
+              des services comme OpenAI, Google AI, Anthropic ou tout autre prestataire IA externe.
+            </Text>
+          </Section>
+
+          <Section title="7. Sécurité">
             <Text className="text-base text-foreground leading-relaxed">
               Nous mettons en œuvre des mesures de sécurité appropriées pour protéger vos données contre
               tout accès non autorisé, modification, divulgation ou destruction.
             </Text>
           </Section>
 
-          <Section title="7. Vos Droits">
+          <Section title="8. Vos Droits">
             <Text className="text-base text-foreground leading-relaxed mb-3">
               Conformément au RGPD, vous avez le droit de :
             </Text>
@@ -91,21 +108,21 @@ export default function PrivacyScreen() {
             <BulletPoint text="Retirer votre consentement à tout moment" />
           </Section>
 
-          <Section title="8. Cookies et Technologies Similaires">
+          <Section title="9. Cookies et Technologies Similaires">
             <Text className="text-base text-foreground leading-relaxed">
               Notre application n{"'"}utilise pas de cookies. Nous utilisons des technologies de stockage local
               standard pour sauvegarder vos préférences sur votre appareil.
             </Text>
           </Section>
 
-          <Section title="9. Modifications">
+          <Section title="10. Modifications">
             <Text className="text-base text-foreground leading-relaxed">
               Nous pouvons mettre à jour cette politique de confidentialité de temps à autre.
               Nous vous informerons de tout changement significatif via l{"'"}application.
             </Text>
           </Section>
 
-          <Section title="10. Contact">
+          <Section title="11. Contact">
             <Text className="text-base text-foreground leading-relaxed">
               Pour toute question concernant cette politique de confidentialité, contactez-nous à :{"\n\n"}
               Email : inferencevision@inferencevision.store{"\n"}

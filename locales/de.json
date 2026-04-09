@@ -1,0 +1,6 @@
+{
+  "NSCameraUsageDescription": "Écrin Virtuel nutzt Ihre Kamera für die virtuelle Schmuck-Anprobe mit Augmented Reality.",
+  "NSPhotoLibraryUsageDescription": "Écrin Virtuel greift auf Ihre Fotos zu, um Ihre virtuellen Anproben zu speichern.",
+  "NSPhotoLibraryAddUsageDescription": "Écrin Virtuel speichert Ihre virtuellen Anproben in Ihrer Galerie.",
+  "NSLocationWhenInUseUsageDescription": "Écrin Virtuel verwendet Ihren Standort, um Stile passend zum lokalen Wetter vorzuschlagen."
+}

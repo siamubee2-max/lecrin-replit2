@@ -36,16 +36,27 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
 
+  locales: {
+    en: "./locales/en.json",
+    es: "./locales/es.json",
+    de: "./locales/de.json",
+    it: "./locales/it.json",
+    pt: "./locales/pt.json"
+  },
+
   ios: {
     supportsTablet: false,
     bundleIdentifier: env.iosBundleId,
-    buildNumber: "14",
+    buildNumber: "16",
     // Associated domains for Universal Links
     associatedDomains: [
       `applinks:${DEEP_LINK_CONFIG.associatedDomain}`,
       `webcredentials:${DEEP_LINK_CONFIG.associatedDomain}`,
     ],
     infoPlist: {
+      // Declare supported localizations so iOS knows this app is multilingual
+      CFBundleLocalizations: ["fr", "en", "es", "de", "it", "pt"],
+      CFBundleDevelopmentRegion: "fr",
       NSCameraUsageDescription: "Écrin Virtuel utilise la caméra pour l'essayage virtuel de bijoux en réalité augmentée.",
       NSPhotoLibraryUsageDescription: "Écrin Virtuel accède à vos photos pour sauvegarder vos essayages virtuels.",
       NSPhotoLibraryAddUsageDescription: "Écrin Virtuel sauvegarde vos essayages virtuels dans votre galerie.",
@@ -123,17 +134,17 @@ const config: ExpoConfig = {
 
   plugins: [
     "expo-router",
-    [
-      "expo-audio",
-      {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
-      },
-    ],
+    "expo-localization",
+    "./plugins/withAndroidLintFix",
     [
       "expo-video",
       {
-        supportsBackgroundPlayback: true,
-        supportsPictureInPicture: true,
+        supportsBackgroundPlayback: false,
+        supportsPictureInPicture: false,
+        // Explicitly remove any background modes
+        ios: {
+          ambient: true,
+        },
       },
     ],
     [
@@ -156,6 +167,8 @@ const config: ExpoConfig = {
         },
       },
     ],
+    // Retire 'audio' de UIBackgroundModes — app n'a pas de lecture en fond (guideline 2.5.4)
+    "./plugins/withNoBackgroundAudio",
     // TEMPORAIREMENT DÉSACTIVÉ — Le widget nécessite une config App Group sur Apple Developer Portal
     // [
     //   "@bittingz/expo-widgets",
