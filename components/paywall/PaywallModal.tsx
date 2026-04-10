@@ -243,7 +243,7 @@ export function PaywallModal({
               </TouchableOpacity>
 
               <Text style={[styles.legalText, { color: colors.muted }]}>
-                7 jours d'essai gratuit · Résiliable à tout moment · App Store / Google Play
+                7 jours d'essai gratuit · Résiliable à tout moment · {Platform.OS === "ios" ? "App Store" : "App Store / Google Play"}
               </Text>
             </>
           ) : (

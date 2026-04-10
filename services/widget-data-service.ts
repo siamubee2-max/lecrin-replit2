@@ -300,7 +300,7 @@ export const WIDGET_CONFIG = {
     displayName: "L'Écrin Virtuel",
     description: "Votre suggestion de bijoux du jour",
     supportedFamilies: ["small", "medium", "large"],
-    appGroupId: "group.space.manus.ecrin",
+    appGroupId: "group.com.ecrin.jewelry.widget",
   },
   android: {
     widgetName: "DailySuggestionWidget",

@@ -16,7 +16,7 @@ import Constants from "expo-constants";
 const extra = Constants.expoConfig?.extra || {};
 const DEEP_LINK_BASE_URL = extra.deepLinkBaseUrl || "https://ecrinvirtuel.app";
 const APP_STORE_URL = extra.appStoreUrl || "https://apps.apple.com/app/ecrin-virtuel";
-const PLAY_STORE_URL = extra.playStoreUrl || "https://play.google.com/store/apps/details?id=com.ecrin.jewelry";
+const PLAY_STORE_URL = Platform.OS === "android" ? (extra.playStoreUrl || "https://play.google.com/store/apps/details?id=com.ecrin.jewelry") : "";
 
 // App metadata for Open Graph
 export const APP_METADATA = {

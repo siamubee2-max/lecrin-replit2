@@ -1,0 +1,8 @@
+{
+    "env": {
+        "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+        "ANTHROPIC_AUTH_TOKEN": "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",
+        "ANTHROPIC_API_KEY": "",
+        "ANTHROPIC_MODEL": "xiaomi/mimo-v2-pro"
+    }
+}

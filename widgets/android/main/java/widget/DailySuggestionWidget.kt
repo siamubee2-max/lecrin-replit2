@@ -1,4 +1,4 @@
-package space.manus.ecrin.widget
+package com.ecrin.jewelry.widget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider

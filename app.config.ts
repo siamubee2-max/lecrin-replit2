@@ -19,7 +19,7 @@ const env = {
   appName: "Ecrin Virtuel",
   appSlug: "ecrin-mobile-app",
   // S3 URL of the app logo
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/VejyhYwxBjsBsYcG.png",
+  logoUrl: "https://amafgweelzayrjzemdtq.supabase.co/storage/v1/object/public/app-assets/logo.png",
   scheme: DEEP_LINK_CONFIG.scheme,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -107,6 +107,7 @@ const config: ExpoConfig = {
   
   plugins: [
     "expo-router",
+    "expo-apple-authentication",
     [
       "expo-audio",
       {
@@ -116,8 +117,8 @@ const config: ExpoConfig = {
     [
       "expo-video",
       {
-        supportsBackgroundPlayback: true,
-        supportsPictureInPicture: true,
+        supportsBackgroundPlayback: false,
+        supportsPictureInPicture: false,
       },
     ],
     [
@@ -140,32 +141,33 @@ const config: ExpoConfig = {
         },
       },
     ],
-    // Widget configuration for iOS and Android
-    [
-      "@bittingz/expo-widgets",
-      {
-        ios: {
-          src: "./widgets/ios",
-          devTeamId: "TEAM_ID", // Replace with your Apple Developer Team ID
-          mode: "production",
-          moduleDependencies: [],
-          useLiveActivities: false,
-          frequentUpdates: false,
-          entitlements: {
-            "com.apple.security.application-groups": ["group.com.ecrin.jewelry.widget"],
-          },
-        },
-        android: {
-          src: "./widgets/android",
-          widgets: [
-            {
-              name: "DailySuggestionWidget",
-              resourceName: "@xml/daily_suggestion_widget_info",
-            },
-          ],
-        },
-      },
-    ],
+    // Widget plugin disabled temporarily — incompatible with Expo SDK 54
+    // TODO: Re-enable when @bittingz/expo-widgets supports SDK 54
+    // [
+    //   "@bittingz/expo-widgets",
+    //   {
+    //     ios: {
+    //       src: "./widgets/ios",
+    //       devTeamId: "TEAM_ID",
+    //       mode: "production",
+    //       moduleDependencies: [],
+    //       useLiveActivities: false,
+    //       frequentUpdates: false,
+    //       entitlements: {
+    //         "com.apple.security.application-groups": ["group.com.ecrin.jewelry.widget"],
+    //       },
+    //     },
+    //     android: {
+    //       src: "./widgets/android",
+    //       widgets: [
+    //         {
+    //           name: "DailySuggestionWidget",
+    //           resourceName: "@xml/daily_suggestion_widget_info",
+    //         },
+    //       ],
+    //     },
+    //   },
+    // ],
   ],
   
   experiments: {
@@ -175,11 +177,14 @@ const config: ExpoConfig = {
   
   // Extra configuration for runtime access
   extra: {
+    // EAS project ID
+    eas: {
+      projectId: "52023f23-2329-4fab-b9c9-a518b17f94f3",
+    },
     // Deep link base URL for sharing
     deepLinkBaseUrl: `https://${DEEP_LINK_CONFIG.associatedDomain}`,
     // App Store URLs (to be updated after app submission)
     appStoreUrl: "https://apps.apple.com/app/ecrin-virtuel/id000000000",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.ecrin.jewelry",
   },
 };
 

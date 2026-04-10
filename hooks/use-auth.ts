@@ -1,5 +1,6 @@
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
+import { supabase } from "@/lib/supabase";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
@@ -19,12 +20,34 @@ export function useAuth(options?: UseAuthOptions) {
       setLoading(true);
       setError(null);
 
-      // Web platform: use cookie-based auth, fetch user from API
+      // Web platform: try Supabase session first, then cookie-based API
       if (Platform.OS === "web") {
-        console.log("[useAuth] Web platform: fetching user from API...");
-        const apiUser = await Api.getMe();
-        console.log("[useAuth] API user response:", apiUser);
+        console.log("[useAuth] Web platform: checking Supabase session...");
+        const { data: sessionData } = await supabase.auth.getSession();
 
+        if (sessionData.session?.user) {
+          const supaUser = sessionData.session.user;
+          const userInfo: Auth.User = {
+            id: 0,
+            openId: `supabase_${supaUser.id}`,
+            name:
+              supaUser.user_metadata?.name ||
+              supaUser.user_metadata?.full_name ||
+              supaUser.email?.split("@")[0] ||
+              null,
+            email: supaUser.email ?? null,
+            loginMethod: supaUser.app_metadata?.provider ?? "supabase",
+            lastSignedIn: new Date(),
+          };
+          setUser(userInfo);
+          await Auth.setUserInfo(userInfo);
+          console.log("[useAuth] Web user from Supabase:", userInfo);
+          return;
+        }
+
+        // Fallback: try cookie-based API auth (legacy)
+        console.log("[useAuth] No Supabase session, trying API...");
+        const apiUser = await Api.getMe();
         if (apiUser) {
           const userInfo: Auth.User = {
             id: apiUser.id,
@@ -35,11 +58,10 @@ export function useAuth(options?: UseAuthOptions) {
             lastSignedIn: new Date(apiUser.lastSignedIn),
           };
           setUser(userInfo);
-          // Cache user info in localStorage for faster subsequent loads
           await Auth.setUserInfo(userInfo);
-          console.log("[useAuth] Web user set from API:", userInfo);
+          console.log("[useAuth] Web user from API:", userInfo);
         } else {
-          console.log("[useAuth] Web: No authenticated user from API");
+          console.log("[useAuth] Web: No authenticated user");
           setUser(null);
           await Auth.clearUserInfo();
         }
@@ -82,10 +104,13 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logout = useCallback(async () => {
     try {
+      // Sign out from Supabase on web
+      if (Platform.OS === "web") {
+        await supabase.auth.signOut();
+      }
       await Api.logout();
     } catch (err) {
       console.error("[Auth] Logout API call failed:", err);
-      // Continue with logout even if API call fails
     } finally {
       await Auth.removeSessionToken();
       await Auth.clearUserInfo();

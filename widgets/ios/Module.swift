@@ -6,7 +6,7 @@ public class EcrinWidgetModule: Module {
         
         // Function to update widget data from React Native
         Function("updateWidgetData") { (data: String) -> Bool in
-            let userDefaults = UserDefaults(suiteName: "group.space.manus.ecrin")
+            let userDefaults = UserDefaults(suiteName: "group.com.ecrin.jewelry.widget")
             userDefaults?.set(data, forKey: "widgetData")
             userDefaults?.synchronize()
             
@@ -20,7 +20,7 @@ public class EcrinWidgetModule: Module {
         
         // Function to get current widget data
         Function("getWidgetData") { () -> String? in
-            let userDefaults = UserDefaults(suiteName: "group.space.manus.ecrin")
+            let userDefaults = UserDefaults(suiteName: "group.com.ecrin.jewelry.widget")
             return userDefaults?.string(forKey: "widgetData")
         }
         

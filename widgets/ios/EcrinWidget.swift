@@ -85,7 +85,7 @@ struct EcrinProvider: TimelineProvider {
     }
     
     private func loadWidgetData() -> EcrinEntry? {
-        guard let userDefaults = UserDefaults(suiteName: "group.space.manus.ecrin"),
+        guard let userDefaults = UserDefaults(suiteName: "group.com.ecrin.jewelry.widget"),
               let jsonString = userDefaults.string(forKey: "widgetData"),
               let jsonData = jsonString.data(using: .utf8) else {
             return nil

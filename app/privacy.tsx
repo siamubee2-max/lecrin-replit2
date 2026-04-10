@@ -28,7 +28,7 @@ export default function PrivacyScreen() {
       >
         <View className="py-6">
           <Text className="text-sm text-muted mb-6">
-            Dernière mise à jour : Janvier 2025
+            Dernière mise à jour : Avril 2026
           </Text>
 
           <Section title="1. Introduction">
@@ -47,6 +47,7 @@ export default function PrivacyScreen() {
             <BulletPoint text="Préférences d'application (langue, notifications)" />
             <BulletPoint text="Informations d'achat pour les abonnements (gérées par Apple)" />
             <BulletPoint text="Données d'utilisation anonymisées pour améliorer l'application" />
+            <BulletPoint text="Données de transcription vocale envoyées à un service de traitement audio tiers" />
           </Section>
 
           <Section title="3. Utilisation des Données">
@@ -67,10 +68,41 @@ export default function PrivacyScreen() {
             </Text>
           </Section>
 
-          <Section title="5. Partage des Données">
-            <Text className="text-base text-foreground leading-relaxed">
+          <Section title="5. Partage des Données et Services Tiers">
+            <Text className="text-base text-foreground leading-relaxed mb-3">
               Nous ne vendons, n{"'"}échangeons ni ne louons vos informations personnelles à des tiers.
-              Nous pouvons partager des données anonymisées à des fins d{"'"}analyse et d{"'"}amélioration du service.
+              Toutefois, nous faisons appel aux services tiers suivants pour fournir les fonctionnalités
+              de l{"'"}application :
+            </Text>
+          </Section>
+
+          <Section title="5.1 Intelligence Artificielle et Traitement d'Images">
+            <Text className="text-base text-foreground leading-relaxed mb-3">
+              Pour fournir les fonctionnalités d{"'"}essayage virtuel et de conseil en style, nous utilisons
+              des services d{"'"}intelligence artificielle fournis par des tiers. Les images que vous soumettez
+              pour l{"'"}essayage virtuel peuvent être transmises à ces services pour traitement.
+            </Text>
+            <BulletPoint text="Traitement d'images et génération de visuels d'essayage via des fournisseurs d'IA" />
+            <BulletPoint text="Transcription vocale via un service de reconnaissance audio tiers" />
+            <BulletPoint text="Analyse et conseil en style via des modèles de langage" />
+            <Text className="text-base text-foreground leading-relaxed mt-3">
+              Ces fournisseurs sont soumis à des accords de confidentialité et de protection des données.
+              Les images transmises sont utilisées uniquement pour générer votre résultat d{"'"}essayage
+              et ne sont pas conservées par les fournisseurs tiers au-delà du traitement nécessaire.
+            </Text>
+          </Section>
+
+          <Section title="5.2 Analyse et Statistiques">
+            <Text className="text-base text-foreground leading-relaxed mb-3">
+              Nous utilisons des services d{"'"}analyse pour comprendre comment l{"'"}application est utilisée
+              et améliorer votre expérience :
+            </Text>
+            <BulletPoint text="PostHog : collecte de données d'utilisation anonymisées (événements, navigation)" />
+            <BulletPoint text="Mixpanel : analyse des parcours utilisateurs et statistiques d'engagement" />
+            <BulletPoint text="Sentry : collecte de rapports d'erreurs pour améliorer la stabilité" />
+            <Text className="text-base text-foreground leading-relaxed mt-3">
+              Ces services ne collectent pas d{"'"}informations personnelles identifiables. Les données
+              sont traitées sur des serveurs sécurisés situés dans l{"'"}Union Européenne.
             </Text>
           </Section>
 

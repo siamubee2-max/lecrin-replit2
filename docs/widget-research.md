@@ -57,7 +57,7 @@ Pour L'Écrin Virtuel, nous allons créer:
       devTeamId: "TEAM_ID",
       mode: "production",
       entitlements: {
-        "com.apple.security.application-groups": ["group.space.manus.ecrin"]
+        "com.apple.security.application-groups": ["group.com.ecrin.jewelry.widget"]
       }
     }
   }

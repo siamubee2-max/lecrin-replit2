@@ -128,7 +128,7 @@ const DEMO_ITEMS: WardrobeItem[] = [
     brand: "Moni'attitude",
     color: "gold",
     imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/foIbwvIEZnQRCkLk.jpeg",
+      "https://amafgweelzayrjzemdtq.supabase.co/storage/v1/object/public/app-assets/foIbwvIEZnQRCkLk.jpeg",
     isFavorite: true,
     isDemo: true,
   },
@@ -139,7 +139,7 @@ const DEMO_ITEMS: WardrobeItem[] = [
     brand: "Moni'attitude",
     color: "orange",
     imageUrl:
-      "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943/rjfmUlamBZcBgUfF.jpeg",
+      "https://amafgweelzayrjzemdtq.supabase.co/storage/v1/object/public/app-assets/rjfmUlamBZcBgUfF.jpeg",
     isFavorite: false,
     isDemo: true,
   },

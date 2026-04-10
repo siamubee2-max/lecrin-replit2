@@ -1,9 +1,15 @@
+/**
+ * Notification service using Expo Push API.
+ *
+ * Sends push notifications via https://exp.host/--/api/v2/push/send.
+ * Push tokens should be registered by clients and stored in the DB.
+ */
 import { TRPCError } from "@trpc/server";
-import { ENV } from "./env";
 
 export type NotificationPayload = {
   title: string;
   content: string;
+  pushToken?: string; // Expo push token (ExponentPushToken[...])
 };
 
 const TITLE_MAX_LENGTH = 1200;
@@ -12,11 +18,6 @@ const CONTENT_MAX_LENGTH = 20000;
 const trimValue = (value: string): string => value.trim();
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
-
-const buildEndpointUrl = (baseUrl: string): string => {
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return new URL("webdevtoken.v1.WebDevService/SendNotification", normalizedBase).toString();
-};
 
 const validatePayload = (input: NotificationPayload): NotificationPayload => {
   if (!isNonEmptyString(input.title)) {
@@ -49,59 +50,58 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
     });
   }
 
-  return { title, content };
+  return { title, content, pushToken: input.pushToken };
 };
 
 /**
- * Dispatches a project-owner notification through the Manus Notification Service.
- * Returns `true` if the request was accepted, `false` when the upstream service
- * cannot be reached (callers can fall back to email/slack). Validation errors
- * bubble up as TRPC errors so callers can fix the payload.
+ * Send a push notification via Expo Push API.
+ * Returns `true` if the request was accepted, `false` otherwise.
  */
 export async function notifyOwner(payload: NotificationPayload): Promise<boolean> {
-  const { title, content } = validatePayload(payload);
+  const { title, content, pushToken } = validatePayload(payload);
 
-  if (!ENV.forgeApiUrl) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service URL is not configured.",
-    });
+  // If no push token provided, log and return
+  if (!pushToken) {
+    console.log(`[Notification] No push token — notification skipped: ${title}`);
+    return false;
   }
-
-  if (!ENV.forgeApiKey) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service API key is not configured.",
-    });
-  }
-
-  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
       headers: {
         accept: "application/json",
-        authorization: `Bearer ${ENV.forgeApiKey}`,
         "content-type": "application/json",
-        "connect-protocol-version": "1",
       },
-      body: JSON.stringify({ title, content }),
+      body: JSON.stringify({
+        to: pushToken,
+        title,
+        body: content,
+        sound: "default",
+        priority: "high",
+      }),
     });
 
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       console.warn(
-        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${
+        `[Notification] Expo Push failed (${response.status} ${response.statusText})${
           detail ? `: ${detail}` : ""
         }`,
       );
       return false;
     }
 
-    return true;
+    const result = (await response.json()) as { data?: { status?: string } };
+    if (result.data?.status === "ok") {
+      console.log("[Notification] Push notification sent successfully");
+      return true;
+    }
+
+    console.warn("[Notification] Expo Push returned non-ok status:", result);
+    return false;
   } catch (error) {
-    console.warn("[Notification] Error calling notification service:", error);
+    console.warn("[Notification] Error sending push notification:", error);
     return false;
   }
 }

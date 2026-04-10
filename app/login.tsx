@@ -5,17 +5,22 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  Alert,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { Image } from "expo-image";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-import { getLoginUrl } from "@/constants/oauth";
+import { appleSignIn } from "@/lib/_core/api";
+import * as Auth from "@/lib/_core/auth";
+import { supabase } from "@/lib/supabase";
+import * as Linking from "expo-linking";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -30,22 +35,126 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
-      const loginUrl = getLoginUrl();
-
       if (Platform.OS === "web") {
-        window.location.href = loginUrl;
-      } else {
-        const result = await WebBrowser.openAuthSessionAsync(loginUrl, undefined, {
-          showInRecents: true,
+        // Web: use Supabase OAuth (handles redirect automatically)
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "apple",
+          options: {
+            redirectTo: window.location.origin,
+          },
         });
-        if (result.type === "success") {
-          console.log("[Login] OAuth session completed successfully");
+        if (error) {
+          console.error("[Login] Supabase OAuth error:", error);
+          Alert.alert("Erreur de connexion", "La connexion a échoué. Veuillez réessayer.");
+        }
+      } else {
+        // Native: Supabase OAuth via WebBrowser to capture the callback
+        const redirectTo = Linking.createURL("/oauth/callback");
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "apple",
+          options: { redirectTo, skipBrowserRedirect: true },
+        });
+        if (error || !data?.url) {
+          console.error("[Login] Supabase OAuth error:", error);
+          Alert.alert("Erreur de connexion", "La connexion a échoué. Veuillez réessayer.");
+          return;
+        }
+
+        // Open the OAuth URL in a system browser
+        const result = await WebBrowser.openAuthSessionAsync(data.url.toString(), redirectTo);
+        if (result.type === "success" && result.url) {
+          // Parse the callback URL for the auth code
+          const url = new URL(result.url);
+          const code = url.searchParams.get("code");
+          if (code) {
+            // Exchange code for session (PKCE verifier is stored by Supabase SDK)
+            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) {
+              console.error("[Login] Code exchange error:", exchangeError);
+              Alert.alert("Erreur de connexion", "La connexion a échoué. Veuillez réessayer.");
+              return;
+            }
+            // Session is now set — update user info
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData.session?.user) {
+              const supaUser = sessionData.session.user;
+              await Auth.setUserInfo({
+                id: 0,
+                openId: `supabase_${supaUser.id}`,
+                name:
+                  supaUser.user_metadata?.name ||
+                  supaUser.user_metadata?.full_name ||
+                  supaUser.email?.split("@")[0] ||
+                  null,
+                email: supaUser.email ?? null,
+                loginMethod: supaUser.app_metadata?.provider ?? "supabase",
+                lastSignedIn: new Date(),
+              });
+            }
+            router.replace("/");
+          }
         }
       }
     } catch (error) {
       console.error("[Login] Error:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log("[Login] Apple Sign In succeeded");
+
+      if (!credential.identityToken) {
+        throw new Error("Apple identity token is missing");
+      }
+
+      // Exchange Apple identity token for a session
+      const { sessionToken, user } = await appleSignIn({
+        identityToken: credential.identityToken,
+        email: credential.email,
+        fullName: credential.fullName,
+      });
+
+      // Store session token and user info
+      await Auth.setSessionToken(sessionToken);
+      await Auth.setUserInfo({
+        id: user.id,
+        openId: user.openId,
+        name: user.name,
+        email: user.email,
+        loginMethod: user.loginMethod ?? "apple",
+        lastSignedIn: new Date(user.lastSignedIn),
+      });
+
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+
+      router.replace("/");
+    } catch (error: any) {
+      if (error?.code === "ERR_REQUEST_CANCELED") {
+        // User canceled — no action needed
+        console.log("[Login] Apple Sign In canceled by user");
+      } else {
+        console.error("[Login] Apple Sign In error:", error);
+        Alert.alert(
+          "Erreur de connexion",
+          "La connexion avec Apple a échoué. Veuillez réessayer.",
+        );
+      }
     }
   };
 
@@ -110,19 +219,33 @@ export default function LoginScreen() {
 
         {/* ── Boutons de connexion ───────────────────────────────────────── */}
         <View style={styles.actions}>
-          {/* Connexion principale */}
+          {/* Apple Sign In (iOS uniquement) — bouton officiel Apple */}
+          {Platform.OS === "ios" && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={4}
+              style={styles.appleBtn}
+              onPress={handleAppleSignIn}
+            />
+          )}
+
+          {/* Connexion par OAuth (web/Android ou fallback iOS) */}
           <TouchableOpacity
             onPress={handleLogin}
             disabled={isLoading}
-            style={[styles.loginBtn, { backgroundColor: colors.foreground }]}
+            style={[
+              styles.loginBtn,
+              { backgroundColor: Platform.OS === "ios" ? "transparent" : colors.foreground, borderWidth: Platform.OS === "ios" ? 1 : 0, borderColor: colors.border },
+            ]}
             activeOpacity={0.85}
           >
             {isLoading ? (
-              <ActivityIndicator color={colors.background} />
+              <ActivityIndicator color={Platform.OS === "ios" ? colors.foreground : colors.background} />
             ) : (
               <>
-                <IconSymbol name="person.fill" size={18} color={colors.background} />
-                <Text style={[styles.loginBtnText, { color: colors.background }]}>
+                <IconSymbol name="person.fill" size={18} color={Platform.OS === "ios" ? colors.foreground : colors.background} />
+                <Text style={[styles.loginBtnText, { color: Platform.OS === "ios" ? colors.foreground : colors.background }]}>
                   SE CONNECTER
                 </Text>
               </>
@@ -283,6 +406,10 @@ const styles = StyleSheet.create({
   actions: {
     gap: 12,
     marginTop: 8,
+  },
+  appleBtn: {
+    height: 50,
+    width: "100%",
   },
   loginBtn: {
     paddingVertical: 18,

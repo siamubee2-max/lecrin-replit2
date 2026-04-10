@@ -494,7 +494,7 @@ export default function SettingsScreen() {
                 selectable
                 style={{ fontSize: 11, color: colors.primary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 18 }}
               >
-                https://ecrinapp-cir7qz3c.manus.space/api/webhooks/revenuecat
+                https://VOTRE_DOMAINE/api/webhooks/revenuecat
               </Text>
             </View>
             <Text style={{ fontSize: 10, color: colors.muted, marginTop: 8, lineHeight: 15 }}>
@@ -527,12 +527,9 @@ export default function SettingsScreen() {
               icon="star.fill"
               title="Noter l'Application"
               onPress={() => {
-                // Ouvre le Store pour noter l'app
-                const storeUrl = Platform.OS === "ios"
-                  ? "https://apps.apple.com/app/id0"
-                  : "https://play.google.com/store/apps";
-                Linking.openURL(storeUrl).catch(() =>
-                  Alert.alert("Bientôt disponible", "La notation sera disponible après publication sur les stores.")
+                // Ouvre l'App Store pour noter l'app
+                Linking.openURL("https://apps.apple.com/app/id0").catch(() =>
+                  Alert.alert("Bientôt disponible", "La notation sera disponible après publication sur l'App Store.")
                 );
               }}
               colors={colors}

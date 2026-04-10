@@ -46,7 +46,7 @@ async function ensurePublicUrl(
   return result.url;
 }
 
-const CDN = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663144691943";
+const CDN = process.env.EXPO_PUBLIC_CDN_URL ?? "https://amafgweelzayrjzemdtq.supabase.co/storage/v1/object/public/app-assets";
 
 // ─── Mannequins ────────────────────────────────────────────────────────────────
 const MANNEQUIN_SECTIONS = [

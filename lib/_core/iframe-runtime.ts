@@ -1,8 +1,8 @@
 /**
- * Manus Runtime - Communication layer between Expo web app and parent container (next-agent-webapp)
+ * Iframe Runtime - Communication layer between Expo web app and parent container.
  *
  * Simplified flow:
- * 1. initManusRuntime() called
+ * 1. initIframeRuntime() called
  * 2. Send 'appDevServerReady' to parent to signal app is ready
  *
  * User will manually login via the app's login page - no automatic cookie injection.
@@ -11,19 +11,11 @@
 import { Platform } from "react-native";
 import type { Metrics } from "react-native-safe-area-context";
 
-// Debug logging with timestamps
-const DEBUG = true;
-const log = (msg: string) => {
-  if (!DEBUG) return;
-  const ts = new Date().toISOString();
-  console.log(`[ManusRuntime ${ts}] ${msg}`);
-};
-
 type MessageType = "appDevServerReady";
 type SafeAreaInsets = { top: number; right: number; bottom: number; left: number };
 type SafeAreaCallback = (metrics: Metrics) => void;
 
-interface SpacePreviewerMessage {
+interface IframeMessage {
   type: "SpacePreviewerChannel";
   payload: {
     type: string;
@@ -47,15 +39,13 @@ function isWeb(): boolean {
 }
 
 function sendToParent(type: MessageType, payload: Record<string, unknown> = {}): void {
-  // NOTE: Validate parent origin if we need to transfer sensitive data
   if (!isWeb() || !isInIframe()) return;
 
-  const message: SpacePreviewerMessage = {
+  const message: IframeMessage = {
     type: "SpacePreviewerChannel",
     payload: { type, from: "content", to: "container", payload },
   };
   window.parent.postMessage(message, "*");
-  log(`Sent to parent: ${type}`);
 }
 
 let initialized = false;
@@ -71,8 +61,7 @@ function isValidInsets(payload: Record<string, unknown>): payload is SafeAreaIns
 }
 
 function handleMessage(event: MessageEvent<unknown>): void {
-  // NOTE: Validate event.origin if we need to transfer sensitive data
-  const data = event.data as SpacePreviewerMessage | undefined;
+  const data = event.data as IframeMessage | undefined;
   if (!data || data.type !== "SpacePreviewerChannel") return;
 
   const { payload } = data;
@@ -82,9 +71,6 @@ function handleMessage(event: MessageEvent<unknown>): void {
     const insets = payload.payload;
     const frame = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
     safeAreaCallback({ insets, frame });
-    log(
-      `Received safe area insets from parent: top=${insets.top}, bottom=${insets.bottom}, left=${insets.left}, right=${insets.right}`,
-    );
   }
 }
 
@@ -101,14 +87,13 @@ export function subscribeSafeAreaInsets(callback: SafeAreaCallback): () => void 
 }
 
 /**
- * Initialize Manus Runtime - just notifies parent that app is ready
+ * Initialize iframe runtime - notifies parent that app is ready
  */
-export function initManusRuntime(): void {
+export function initIframeRuntime(): void {
   if (!isWeb() || !isInIframe()) return;
   if (initialized) return;
   initialized = true;
 
-  log("initManusRuntime called");
   window.addEventListener("message", handleMessage);
   sendToParent("appDevServerReady", {});
 }

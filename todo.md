@@ -60,8 +60,8 @@
 
 ## Authentification Apple/Google
 - [x] Lire la documentation du backend pour l'authentification
-- [x] Configurer l'authentification Apple Sign In (via Manus OAuth)
-- [x] Configurer l'authentification Google Sign In (via Manus OAuth)
+- [x] Configurer l'authentification Apple Sign In (via Supabase Auth)
+- [x] Configurer l'authentification Google Sign In (via Supabase Auth)
 - [x] Créer l'écran de connexion
 - [x] Intégrer le flux OAuth dans l'app
 - [x] Synchroniser les favoris avec le serveur (API tRPC)
