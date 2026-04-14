@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useI18n } from "@/lib/i18n-context";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PaywallModal } from "@/components/paywall/PaywallModal";
 import { trpc } from "@/lib/trpc";
@@ -62,7 +63,7 @@ export default function SettingsScreen() {
   const subscription = useSubscription();
   const [notifications, setNotifications] = useState(true);
   const [haptics, setHaptics] = useState(true);
-  const [currentLang, setCurrentLang] = useState("fr");
+  const { language: currentLang, setLanguage } = useI18n();
   const [showSubscription, setShowSubscription] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -378,7 +379,7 @@ export default function SettingsScreen() {
                 <TouchableOpacity
                   key={lang.code}
                   onPress={() => {
-                    setCurrentLang(lang.code);
+                    setLanguage(lang.code as any);
                     setShowLanguages(false);
                   }}
                   className="flex-row items-center justify-between px-4 py-3"
