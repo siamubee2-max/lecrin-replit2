@@ -47,6 +47,8 @@ const config: ExpoConfig = {
       NSCameraUsageDescription: "Écrin Virtuel utilise la caméra pour l'essayage virtuel de bijoux en réalité augmentée.",
       NSPhotoLibraryUsageDescription: "Écrin Virtuel accède à vos photos pour sauvegarder vos essayages virtuels.",
       NSPhotoLibraryAddUsageDescription: "Écrin Virtuel sauvegarde vos essayages virtuels dans votre galerie.",
+      NSFaceIDUsageDescription: "Écrin Virtuel utilise Face ID pour une authentification sécurisée.",
+      NSLocationWhenInUseUsageDescription: "Écrin Virtuel utilise votre position pour les suggestions personnalisées de style.",
       // App Transport Security for deep link redirects
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: false,
