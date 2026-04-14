@@ -107,14 +107,7 @@ const config: ExpoConfig = {
   
   plugins: [
     "expo-router",
-    "expo-apple-authentication",
-    [
-      "expo-audio",
-      {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
-      },
-    ],
-    [
+    "expo-apple-authentication",    [
       "expo-video",
       {
         supportsBackgroundPlayback: false,
