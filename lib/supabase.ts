@@ -1,11 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase "Ecrin" project - primary database
-const SUPABASE_URL =
-  process.env.EXPO_PUBLIC_SUPABASE_URL ?? "https://amafgweelzayrjzemdtq.supabase.co";
-const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYWZnd2VlbHpheXJqemVtZHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjI4MzgsImV4cCI6MjA4MTg5ODgzOH0.yg1jYRgrqDWMRCGHGEGR8C5jn7WmRTRC8U_1qtciDSk";
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
