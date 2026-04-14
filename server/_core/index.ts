@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { seedMoniattitude, seedBodyParts } from "../db";
+import { validateEnv } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -158,5 +159,8 @@ async function startServer() {
     }
   });
 }
+
+// Fail fast at startup if critical env vars are missing
+validateEnv();
 
 startServer().catch(console.error);
