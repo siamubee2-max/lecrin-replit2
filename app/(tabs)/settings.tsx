@@ -63,7 +63,7 @@ export default function SettingsScreen() {
   const subscription = useSubscription();
   const [notifications, setNotifications] = useState(true);
   const [haptics, setHaptics] = useState(true);
-  const { language: currentLang, setLanguage } = useI18n();
+  const { language: currentLang, setLanguage, t } = useI18n();
   const [showSubscription, setShowSubscription] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -139,16 +139,16 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Supprimer mon compte",
+      t.settings.deleteAlertTitle,
       "Cette action est irréversible. Toutes vos données (essayages, favoris, garde-robe, abonnement) seront définitivement supprimées.",
       [
         { text: "Annuler", style: "cancel" },
         {
-          text: "Supprimer définitivement",
+          text: t.settings.deleteConfirm,
           style: "destructive",
           onPress: () => {
             Alert.alert(
-              "Confirmation finale",
+              t.settings.deleteFinalTitle,
               "Êtes-vous absolument certain ? Cette action ne peut pas être annulée.",
               [
                 { text: "Annuler", style: "cancel" },
@@ -185,14 +185,14 @@ export default function SettingsScreen() {
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* Header luxe */}
         <View style={settingsStyles.header}>
-          <Text style={[settingsStyles.title, { color: colors.foreground }]}>PARAMÈTRES</Text>
-          <Text style={[settingsStyles.subtitle, { color: colors.primary }]}>ÉCRIN VIRTUEL</Text>
+          <Text style={[settingsStyles.title, { color: colors.foreground }]}>{t.settings.title}</Text>
+          <Text style={[settingsStyles.subtitle, { color: colors.primary }]}>{t.settings.subtitle}</Text>
         </View>
         <View style={[settingsStyles.headerLine, { backgroundColor: colors.border }]} />
 
         {/* Subscription Section */}
         <View style={settingsStyles.section}>
-          <Text style={[settingsStyles.sectionLabel, { color: colors.muted }]}>MON ABONNEMENT</Text>
+          <Text style={[settingsStyles.sectionLabel, { color: colors.muted }]}>{t.settings.subscriptionLabel}</Text>
 
           {/* Carte plan actif */}
           <View style={[settingsStyles.row, { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1.5 }]}>
@@ -201,7 +201,7 @@ export default function SettingsScreen() {
                 <Text style={{ fontSize: 18 }}>{planInfo.emoji}</Text>
                 <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>PLAN {planInfo.name.toUpperCase()}</Text>
                 <View style={{ backgroundColor: colors.primary + '20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 10, color: colors.primary, fontWeight: '700', letterSpacing: 0.5 }}>ACTIF</Text>
+                  <Text style={{ fontSize: 10, color: colors.primary, fontWeight: '700', letterSpacing: 0.5 }}>{t.settings.activeBadge}</Text>
                 </View>
               </View>
               {/* Barre de progression des essayages */}
@@ -244,7 +244,7 @@ export default function SettingsScreen() {
             style={[settingsStyles.row, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 8 }]}
           >
             <View style={{ flex: 1 }}>
-              <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>VOIR TOUS LES PLANS</Text>
+              <Text style={[settingsStyles.rowTitle, { color: colors.foreground }]}>{t.settings.seeAllPlans}</Text>
               <Text style={[settingsStyles.rowSubtitle, { color: colors.muted }]}>Comparer Jewelry, Premium mensuel et annuel</Text>
             </View>
             <IconSymbol 
@@ -312,7 +312,7 @@ export default function SettingsScreen() {
                         className="font-semibold"
                         style={{ color: plan.popular ? '#0A1A3B' : colors.primary }}
                       >
-                        S{"'"}abonner
+                        {t.settings.subscribeButton}
                       </Text>
                     </View>
                   )}
@@ -326,7 +326,7 @@ export default function SettingsScreen() {
               >
                 <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
                 <Text className="text-sm ml-2" style={{ color: colors.primary }}>
-                  Restaurer mes achats
+                  {t.settings.restorePurchases}
                 </Text>
               </TouchableOpacity>
               {/* Sync Subscription */}
@@ -342,7 +342,7 @@ export default function SettingsScreen() {
                   <IconSymbol name="arrow.triangle.2.circlepath" size={16} color={colors.muted} />
                 )}
                 <Text className="text-sm ml-2" style={{ color: colors.muted }}>
-                  Synchroniser mon abonnement
+                  {t.settings.syncSubscription}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -352,7 +352,7 @@ export default function SettingsScreen() {
         {/* Language Section */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
-            Langue
+            {t.settings.language}
           </Text>
           <TouchableOpacity
             onPress={() => setShowLanguages(!showLanguages)}
@@ -401,7 +401,7 @@ export default function SettingsScreen() {
         {/* My Wardrobe Section */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
-            Ma Garde-Robe
+            {t.settings.wardrobeLabel}
           </Text>
           {/* Historique des essayages */}
           <TouchableOpacity
@@ -412,8 +412,8 @@ export default function SettingsScreen() {
             <View className="flex-row items-center">
               <Text className="text-2xl mr-3">📸</Text>
               <View>
-                <Text className="text-lg font-semibold text-foreground">Historique des essayages</Text>
-                <Text className="text-sm text-muted">Vos 20 derniers essayages IA</Text>
+                <Text className="text-lg font-semibold text-foreground">{t.settings.wardrobeHistory}</Text>
+                <Text className="text-sm text-muted">{t.settings.wardrobeHistorySub}</Text>
               </View>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.muted} />
@@ -426,8 +426,8 @@ export default function SettingsScreen() {
             <View className="flex-row items-center">
               <Text className="text-2xl mr-3">👗</Text>
               <View>
-                <Text className="text-lg font-semibold text-foreground">Mes Photos</Text>
-                <Text className="text-sm text-muted">Gérez vos photos pour les essayages</Text>
+                <Text className="text-lg font-semibold text-foreground">{t.settings.wardrobePhotos}</Text>
+                <Text className="text-sm text-muted">{t.settings.wardrobePhotosSub}</Text>
               </View>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.muted} />
@@ -437,11 +437,11 @@ export default function SettingsScreen() {
         {/* Preferences Section */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
-            Préférences
+            {t.settings.preferencesLabel}
           </Text>
           <View className="bg-surface rounded-2xl border border-border overflow-hidden">
             <SettingRow
-              title="Notifications"
+              title={t.settings.notifications}
               subtitle="Recevoir des alertes"
               value={notifications}
               onToggle={() => handleToggle(setNotifications, notifications)}
@@ -449,8 +449,8 @@ export default function SettingsScreen() {
             />
             <View className="h-px bg-border mx-4" />
             <SettingRow
-              title="Retour haptique"
-              subtitle="Vibrations tactiles"
+              title={t.settings.haptics}
+              subtitle={t.settings.hapticsSub}
               value={haptics}
               onToggle={() => handleToggle(setHaptics, haptics)}
               colors={colors}
@@ -461,19 +461,19 @@ export default function SettingsScreen() {
         {/* Legal Section - Required by Apple */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
-            Légal
+            {t.settings.legalLabel}
           </Text>
           <View className="bg-surface rounded-2xl border border-border overflow-hidden">
             <LinkRow
               icon="shield.fill"
-              title="Politique de Confidentialité"
+              title={t.settings.privacyPolicy}
               onPress={() => router.push("/privacy")}
               colors={colors}
             />
             <View className="h-px bg-border mx-4" />
             <LinkRow
               icon="doc.text.fill"
-              title="Conditions d'Utilisation"
+              title={t.settings.termsOfUse}
               onPress={() => router.push("/terms")}
               colors={colors}
             />
@@ -507,26 +507,26 @@ export default function SettingsScreen() {
         {/* Support Section */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold text-muted uppercase mb-3 tracking-wide">
-            Support
+            {t.settings.supportLabel}
           </Text>
           <View className="bg-surface rounded-2xl border border-border overflow-hidden">
             <LinkRow
               icon="envelope.fill"
-              title="Nous Contacter"
+              title={t.settings.contact}
               onPress={handleContact}
               colors={colors}
             />
             <View className="h-px bg-border mx-4" />
             <LinkRow
               icon="questionmark.circle.fill"
-              title="Aide & FAQ"
+              title={t.settings.faq}
               onPress={() => Linking.openURL("https://inferencevision.store/faq")}
               colors={colors}
             />
             <View className="h-px bg-border mx-4" />
             <LinkRow
               icon="star.fill"
-              title="Noter l'Application"
+              title={t.settings.rate}
               onPress={() => {
                 // Ouvre l'App Store pour noter l'app
                 Linking.openURL("https://apps.apple.com/app/id0").catch(() =>
@@ -541,7 +541,7 @@ export default function SettingsScreen() {
         {/* Zone Danger — Apple Guideline 5.1.1(v) */}
         <View className="px-4 mb-4">
           <Text className="text-sm font-semibold uppercase mb-3 tracking-wide" style={{ color: colors.error }}>
-            Zone Danger
+            {t.settings.dangerLabel}
           </Text>
           <View className="rounded-2xl overflow-hidden" style={{ borderWidth: 1, borderColor: colors.error + '40', backgroundColor: colors.surface }}>
             <TouchableOpacity
@@ -557,10 +557,10 @@ export default function SettingsScreen() {
                 )}
                 <View className="ml-3">
                   <Text className="text-base font-medium" style={{ color: colors.error }}>
-                    Supprimer mon compte
+                    {t.settings.deleteAlertTitle}
                   </Text>
                   <Text className="text-xs mt-0.5" style={{ color: colors.muted }}>
-                    Suppression irréversible de toutes vos données
+                    {t.settings.deleteSubtitle}
                   </Text>
                 </View>
               </View>
@@ -580,7 +580,7 @@ export default function SettingsScreen() {
           <Text className="text-lg font-semibold text-foreground">L{"'"}Écrin Virtuel</Text>
           <Text className="text-sm text-muted mt-1">Version 1.0.0</Text>
           <Text className="text-xs text-muted mt-4 text-center">
-            © 2025 Inferencevision.store{"\n"}Tous droits réservés
+            © 2025 Inferencevision.store{"\n"}{t.settings.copyright}
           </Text>
           {/* Bouton admin discret */}
           <TouchableOpacity
