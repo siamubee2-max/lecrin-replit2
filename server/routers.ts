@@ -3,6 +3,7 @@ import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import * as db from "./db";
 import { uploadImageForAnalysis, analyzeImageForJewelry, detectFaceLandmarks } from "./face-detection";
 import { storagePut } from "./storage";
@@ -864,7 +865,7 @@ export const appRouter = router({
   // ============================================
   virtualTryOn: router({
     // Generate a try-on image using AI image editing (Nano Banana 2)
-    generate: publicProcedure
+    generate: protectedProcedure
       .input(z.object({
         modelImageUrl: z.string().url(),
         jewelryImageUrl: z.string().url(),
@@ -880,7 +881,11 @@ export const appRouter = router({
         // Pose du mannequin
         pose: z.enum(["front", "side", "walking", "back"]).default("front"),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // 🔒 Abonnement actif requis pour l'essayage virtuel
+        if (ctx.user.subscriptionTier === 'free') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: "Un abonnement actif est requis pour l'essayage virtuel." });
+        }
         const itemName = input.jewelryName || input.jewelryType || input.accessoryType || input.category;
 
         // Pose courte (1 phrase max)
@@ -974,7 +979,7 @@ export const appRouter = router({
       }),
 
     // Generate a full outfit try-on with multiple items from different categories
-    outfit: publicProcedure
+    outfit: protectedProcedure
       .input(z.object({
         modelImageUrl: z.string().url(),
         // Vêtements
@@ -1022,7 +1027,11 @@ export const appRouter = router({
         // Nombre de variantes
         numSamples: z.number().int().min(1).max(4).default(1),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // 🔒 Abonnement actif requis pour l'essayage virtuel
+        if (ctx.user.subscriptionTier === 'free') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: "Un abonnement actif est requis pour l'essayage virtuel." });
+        }
         const posePhrases: Record<string, string> = {
           front:   "front-facing, standing upright",
           side:    "3/4 side profile pose",
