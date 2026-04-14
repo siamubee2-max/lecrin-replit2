@@ -6,10 +6,12 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { TryOnTabIcon } from "@/components/TryOnTabIcon";
+import { useI18n } from "@/lib/i18n-context";
 
 export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useI18n();
   const bottomPadding = Platform.OS === "web" ? 14 : Math.max(insets.bottom, 10);
   const tabBarHeight = 60 + bottomPadding;
 
@@ -40,14 +42,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Accueil",
+          title: t.tabs.home,
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="tryon"
         options={{
-          title: "Essayer",
+          title: t.tabs.tryOn,
           tabBarIcon: ({ color, focused }) => (
             <TryOnTabIcon color={color} focused={focused} />
           ),
@@ -56,35 +58,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ecrin"
         options={{
-          title: "Mon Écrin",
+          title: t.tabs.ecrin,
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="diamond.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="dressing"
         options={{
-          title: "Dressing",
+          title: t.tabs.wardrobe,
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="tshirt.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
-          title: "Comm.",
+          title: t.tabs.community,
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="boutique"
         options={{
-          title: "Boutique",
+          title: t.tabs.boutique,
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="storefront.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Plus",
+          title: t.tabs.settings,
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="menubar.rectangle" color={color} />,
         }}
       />
