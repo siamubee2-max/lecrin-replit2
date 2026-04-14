@@ -309,7 +309,7 @@ export const appRouter = router({
   // ============================================
   ai: router({
     // Upload image and get S3 URL for analysis
-    uploadImage: publicProcedure
+    uploadImage: protectedProcedure
       .input(z.object({
         base64Data: z.string(),
         mimeType: z.string().optional(),
@@ -323,7 +323,7 @@ export const appRouter = router({
       }),
 
     // Detect face landmarks from image URL
-    detectFace: publicProcedure
+    detectFace: protectedProcedure
       .input(z.object({
         imageUrl: z.string(),
       }))
@@ -333,7 +333,7 @@ export const appRouter = router({
       }),
 
     // Full analysis: detect and calculate jewelry positions
-    analyzeForJewelry: publicProcedure
+    analyzeForJewelry: protectedProcedure
       .input(z.object({
         imageUrl: z.string(),
         jewelryType: z.enum(["necklace", "earrings", "ring", "bracelet", "anklet"]),
@@ -347,7 +347,7 @@ export const appRouter = router({
       }),
 
     // Combined: upload + analyze in one call
-    uploadAndAnalyze: publicProcedure
+    uploadAndAnalyze: protectedProcedure
       .input(z.object({
         base64Data: z.string(),
         mimeType: z.string().optional(),
@@ -1187,7 +1187,7 @@ export const appRouter = router({
       }),
 
     // Create a new post
-    create: publicProcedure
+    create: protectedProcedure
       .input(z.object({
         authorName: z.string().min(1).max(255),
         authorAvatar: z.string().optional(),
@@ -1212,7 +1212,7 @@ export const appRouter = router({
       }),
 
     // Toggle like on a post
-    like: publicProcedure
+    like: protectedProcedure
       .input(z.object({ postId: z.number() }))
       .mutation(async ({ input }) => {
         const dbInstance = await db.getDb();
@@ -1313,7 +1313,7 @@ export const appRouter = router({
       }),
 
     // Update application status (admin only)
-    updateStatus: publicProcedure
+    updateStatus: adminProcedure
       .input(z.object({
         adminCode: z.string(),
         id: z.number(),
