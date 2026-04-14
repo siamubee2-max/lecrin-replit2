@@ -134,6 +134,9 @@ const config: ExpoConfig = {
         android: {
           buildArchs: ["armeabi-v7a", "arm64-v8a"],
         },
+        ios: {
+          privacyManifestAggregationEnabled: true,
+        },
       },
     ],
     // Widget plugin disabled temporarily — incompatible with Expo SDK 54
