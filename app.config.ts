@@ -29,13 +29,22 @@ const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
   version: "1.0.0",
-  orientation: "portrait",
+  // "default" = laisse chaque écran décider via supportedOrientations ; sur iPad
+  // on accepte portrait + paysage (iPadOS 26.4.1 sandbox teste en paysage).
+  orientation: "default",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
-  
+
   ios: {
+    // Build 21 = correctifs modération UGC (Signaler / Bloquer / EULA tolérance zéro)
+    // + EULA Section 4 alignée sur ASC (3 subs standard + 5 paliers Fondateur + 4 packs crédits)
+    // + retrait plugin expo-audio (permission micro non utilisée)
+    // + merge branche origin : NSLocation pour suggestions météo styliste IA,
+    //   privacyManifestAggregationEnabled pour fusion SDK tiers (SDK 54)
+    // Conformité Apple Guidelines 1.2 + 3.1.2 + 5.1.1(i) + 5.1.1(x)
+    buildNumber: "21",
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
     // Associated domains for Universal Links
@@ -47,8 +56,15 @@ const config: ExpoConfig = {
       NSCameraUsageDescription: "Écrin Virtuel utilise la caméra pour l'essayage virtuel de bijoux en réalité augmentée.",
       NSPhotoLibraryUsageDescription: "Écrin Virtuel accède à vos photos pour sauvegarder vos essayages virtuels.",
       NSPhotoLibraryAddUsageDescription: "Écrin Virtuel sauvegarde vos essayages virtuels dans votre galerie.",
-      NSFaceIDUsageDescription: "Écrin Virtuel utilise Face ID pour une authentification sécurisée.",
-      NSLocationWhenInUseUsageDescription: "Écrin Virtuel utilise votre position pour les suggestions personnalisées de style.",
+      NSFaceIDUsageDescription: "Écrin Virtuel utilise Face ID pour sécuriser l'accès à votre collection personnelle.",
+      NSLocationWhenInUseUsageDescription: "Écrin Virtuel utilise votre position pour proposer des looks adaptés à la météo locale via le styliste IA.",
+      // Orientations iPad explicites (iPadOS 26 exige la liste)
+      "UISupportedInterfaceOrientations~ipad": [
+        "UIInterfaceOrientationPortrait",
+        "UIInterfaceOrientationPortraitUpsideDown",
+        "UIInterfaceOrientationLandscapeLeft",
+        "UIInterfaceOrientationLandscapeRight",
+      ],
       // App Transport Security for deep link redirects
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: false,
@@ -59,10 +75,12 @@ const config: ExpoConfig = {
     config: {
       usesNonExemptEncryption: false,
     },
+    // PrivacyInfo.xcprivacy — exigence Apple depuis mai 2024 (ITMS-91053).
+    // Expo SDK 50+ génère automatiquement le fichier xml pendant `expo prebuild`
+    // et le lie au bundle iOS. Reason strings doc: developer.apple.com/documentation/bundleresources/privacy_manifest_files
     privacyManifests: {
       NSPrivacyTracking: false,
       NSPrivacyTrackingDomains: [],
-      NSPrivacyCollectedDataTypes: [],
       NSPrivacyAccessedAPITypes: [
         {
           NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryUserDefaults",
@@ -73,17 +91,68 @@ const config: ExpoConfig = {
           NSPrivacyAccessedAPITypeReasons: ["C617.1"],
         },
         {
-          NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryDiskSpace",
-          NSPrivacyAccessedAPITypeReasons: ["E174.1"],
-        },
-        {
           NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategorySystemBootTime",
           NSPrivacyAccessedAPITypeReasons: ["35F9.1"],
         },
+        {
+          NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryDiskSpace",
+          NSPrivacyAccessedAPITypeReasons: ["E174.1"],
+        },
+      ],
+      NSPrivacyCollectedDataTypes: [
+        {
+          NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeEmailAddress",
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: [
+            "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            "NSPrivacyCollectedDataTypePurposeAuthentication",
+          ],
+        },
+        {
+          NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeUserID",
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: [
+            "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+          ],
+        },
+        {
+          NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypePurchaseHistory",
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: [
+            "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+          ],
+        },
+        {
+          NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypePhotos",
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: [
+            "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+          ],
+        },
+        {
+          NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeCrashData",
+          NSPrivacyCollectedDataTypeLinked: false,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: [
+            "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+          ],
+        },
+        {
+          NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypePerformanceData",
+          NSPrivacyCollectedDataTypeLinked: false,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: [
+            "NSPrivacyCollectedDataTypePurposeAnalytics",
+          ],
+        },
       ],
     },
-  },
-  
+  } as ExpoConfig["ios"],
+
   android: {
     adaptiveIcon: {
       backgroundColor: "#0A1A3B",
@@ -123,16 +192,21 @@ const config: ExpoConfig = {
       },
     ],
   },
-  
+
   web: {
     bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
-  
+
   plugins: [
     "expo-router",
-    "expo-apple-authentication",    [
+    "expo-apple-authentication",
+    // Build 21 — plugin expo-audio retiré. L'app ne fait aucun enregistrement audio
+    // (aucun usage de useAudioRecorder / Recording / requestRecordingPermissionsAsync
+    // dans le code). Permission micro supprimée pour conformité Apple
+    // Guideline 5.1.1(i) : pas de permission matérielle non justifiée par une feature.
+    [
       "expo-video",
       {
         supportsBackgroundPlayback: false,
@@ -158,6 +232,9 @@ const config: ExpoConfig = {
           buildArchs: ["armeabi-v7a", "arm64-v8a"],
         },
         ios: {
+          // Agrégation automatique des PrivacyInfo.xcprivacy des SDK tiers
+          // (Expo, React Native core, Firebase…) dans le manifest principal.
+          // Requis pour conformité ITMS-91053 avec dépendances multiples.
           privacyManifestAggregationEnabled: true,
         },
       },
@@ -190,12 +267,12 @@ const config: ExpoConfig = {
     //   },
     // ],
   ],
-  
+
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
   },
-  
+
   // Extra configuration for runtime access
   extra: {
     // EAS project ID

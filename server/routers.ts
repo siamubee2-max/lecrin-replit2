@@ -1166,27 +1166,47 @@ export const appRouter = router({
   }),  // fin virtualTryOn
 
   // ============================================
-  // COMMUNITY ROUTES
+  // COMMUNITY ROUTES — UGC Apple Guideline 1.2 + 5.1.1(x)
   // ============================================
   community: router({
-    // List posts (most recent first)
+    // List posts — exclut posts cachés (≥ AUTO_HIDE_THRESHOLD signalements)
+    // et auteurs bloqués par l'utilisateur courant
     list: publicProcedure
       .input(z.object({ limit: z.number().min(1).max(50).default(20), offset: z.number().default(0) }).optional())
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const dbInstance = await db.getDb();
         if (!dbInstance) return [];
-        const { communityPosts } = await import('../drizzle/schema');
-        const { desc } = await import('drizzle-orm');
+        const { communityPosts, communityBlocks } = await import('../drizzle/schema');
+        const { desc, eq, and, notInArray, sql } = await import('drizzle-orm');
+
+        // Récupérer les noms d'auteurs bloqués par l'utilisateur courant
+        let blockedNames: string[] = [];
+        const currentUserId = ctx.user?.id;
+        if (currentUserId) {
+          const blocks = await dbInstance
+            .select({ name: communityBlocks.blockedAuthorName })
+            .from(communityBlocks)
+            .where(eq(communityBlocks.blockerUserId, currentUserId));
+          blockedNames = blocks.map((b) => b.name);
+        }
+
+        const baseCondition = eq(communityPosts.isHidden, false);
+        const whereClause = blockedNames.length > 0
+          ? and(baseCondition, notInArray(communityPosts.authorName, blockedNames))
+          : baseCondition;
+
         const posts = await dbInstance
           .select()
           .from(communityPosts)
+          .where(whereClause)
           .orderBy(desc(communityPosts.isPinned), desc(communityPosts.createdAt))
           .limit(input?.limit ?? 20)
           .offset(input?.offset ?? 0);
         return posts;
       }),
 
-    // Create a new post
+    // Create a new post — protectedProcedure (auth requis, Guideline 1.2 traçabilité auteur)
+    //                    + filtre de contenu obligatoire (Guideline 5.1.1(x))
     create: protectedProcedure
       .input(z.object({
         authorName: z.string().min(1).max(255),
@@ -1196,6 +1216,21 @@ export const appRouter = router({
         jewelryType: z.string().max(64).optional(),
       }))
       .mutation(async ({ input }) => {
+        // ── Filtre contenu pré-publication (Apple 5.1.1(x))
+        const { containsForbiddenContent } = await import('./moderation');
+        const flaggedReason = containsForbiddenContent(input.content);
+        if (flaggedReason) {
+          throw new Error(
+            `Contenu non publié : votre message enfreint nos règles (${flaggedReason}). ` +
+            `Consultez nos Conditions Générales d'Utilisation pour plus d'informations.`
+          );
+        }
+        // Filtre aussi le nom d'auteur (anti-impersonation basique)
+        const flaggedName = containsForbiddenContent(input.authorName);
+        if (flaggedName) {
+          throw new Error("Le pseudo choisi n'est pas autorisé.");
+        }
+
         const dbInstance = await db.getDb();
         if (!dbInstance) throw new Error('DB not available');
         const { communityPosts } = await import('../drizzle/schema');
@@ -1223,6 +1258,150 @@ export const appRouter = router({
           .update(communityPosts)
           .set({ likesCount: sql`${communityPosts.likesCount} + 1` })
           .where(eq(communityPosts.id, input.postId));
+        return { success: true };
+      }),
+
+    // ── Apple Guideline 1.2 / 5.1.1(x) — Signaler un post abusif
+    // Auto-hide ≥ AUTO_HIDE_THRESHOLD signalements en attendant la revue 24h
+    report: publicProcedure
+      .input(z.object({
+        postId: z.number(),
+        reason: z.enum([
+          "spam",
+          "harassment",
+          "hate_speech",
+          "nudity_sexual",
+          "violence",
+          "illegal_content",
+          "intellectual_property",
+          "misinformation",
+          "other",
+        ]),
+        details: z.string().max(1000).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) throw new Error('DB not available');
+        const { communityPosts, communityReports } = await import('../drizzle/schema');
+        const { eq, sql } = await import('drizzle-orm');
+
+        const AUTO_HIDE_THRESHOLD = 3;
+
+        // 1. Insérer le signalement
+        await dbInstance.insert(communityReports).values({
+          postId: input.postId,
+          reporterUserId: ctx.user?.id ?? null,
+          reporterName: ctx.user?.name ?? null,
+          reason: input.reason,
+          details: input.details || null,
+          status: 'pending',
+        });
+
+        // 2. Incrémenter le compteur sur le post
+        await dbInstance
+          .update(communityPosts)
+          .set({ reportCount: sql`${communityPosts.reportCount} + 1` })
+          .where(eq(communityPosts.id, input.postId));
+
+        // 3. Auto-hide si seuil atteint
+        const [updated] = await dbInstance
+          .select({ count: communityPosts.reportCount })
+          .from(communityPosts)
+          .where(eq(communityPosts.id, input.postId))
+          .limit(1);
+
+        if (updated && updated.count >= AUTO_HIDE_THRESHOLD) {
+          await dbInstance
+            .update(communityPosts)
+            .set({ isHidden: true })
+            .where(eq(communityPosts.id, input.postId));
+        }
+
+        // 4. Notifier l'admin (best-effort, non-bloquant)
+        try {
+          const { sendModerationAlert } = await import('./services/email');
+          await sendModerationAlert?.({
+            postId: input.postId,
+            reason: input.reason,
+            details: input.details,
+            reporterName: ctx.user?.name ?? 'Anonyme',
+          });
+        } catch (err) {
+          console.warn('[Community.report] Email alert failed (non-blocking):', err);
+        }
+
+        console.log(`[Community.report] Post ${input.postId} reported (${input.reason}) by user ${ctx.user?.id ?? 'anon'}`);
+        return { success: true, hidden: (updated?.count ?? 0) >= AUTO_HIDE_THRESHOLD };
+      }),
+
+    // ── Apple Guideline 1.2 — Bloquer un utilisateur abusif
+    block: protectedProcedure
+      .input(z.object({
+        blockedAuthorName: z.string().min(1).max(255),
+        blockedUserId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) throw new Error('DB not available');
+        const { communityBlocks } = await import('../drizzle/schema');
+        const { and, eq } = await import('drizzle-orm');
+
+        // Empêcher les doublons
+        const existing = await dbInstance
+          .select()
+          .from(communityBlocks)
+          .where(
+            and(
+              eq(communityBlocks.blockerUserId, ctx.user.id),
+              eq(communityBlocks.blockedAuthorName, input.blockedAuthorName)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          return { success: true, alreadyBlocked: true };
+        }
+
+        await dbInstance.insert(communityBlocks).values({
+          blockerUserId: ctx.user.id,
+          blockedAuthorName: input.blockedAuthorName,
+          blockedUserId: input.blockedUserId ?? null,
+        });
+
+        console.log(`[Community.block] User ${ctx.user.id} blocked author "${input.blockedAuthorName}"`);
+        return { success: true, alreadyBlocked: false };
+      }),
+
+    // Liste des utilisateurs bloqués (pour la page Réglages)
+    listBlocks: protectedProcedure.query(async ({ ctx }) => {
+      const dbInstance = await db.getDb();
+      if (!dbInstance) return [];
+      const { communityBlocks } = await import('../drizzle/schema');
+      const { eq, desc } = await import('drizzle-orm');
+      const rows = await dbInstance
+        .select()
+        .from(communityBlocks)
+        .where(eq(communityBlocks.blockerUserId, ctx.user.id))
+        .orderBy(desc(communityBlocks.createdAt));
+      return rows;
+    }),
+
+    // Débloquer
+    unblock: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) throw new Error('DB not available');
+        const { communityBlocks } = await import('../drizzle/schema');
+        const { and, eq } = await import('drizzle-orm');
+        await dbInstance
+          .delete(communityBlocks)
+          .where(
+            and(
+              eq(communityBlocks.id, input.id),
+              eq(communityBlocks.blockerUserId, ctx.user.id)
+            )
+          );
         return { success: true };
       }),
   }),

@@ -6,8 +6,11 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
@@ -26,6 +29,26 @@ export default function LoginScreen() {
   const router = useRouter();
   const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
+
+  // ─── Champs email/password pour Apple App Review + utilisateurs standards ──
+  // Build 19 : seul « Sign in with Apple » était exposé. Apple App Review ne pouvait
+  // donc PAS utiliser le compte démo `appreview@ecrinvirtuel.app / EcrinReview2026!`
+  // fourni dans les notes → rejet 2.1(a). On ajoute ici une connexion par email.
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(Platform.OS === "ios");
+
+  useEffect(() => {
+    // iPadOS 26 : AppleAuthentication peut ne pas être dispo sur certains iPad
+    // de démo ou comptes sans Apple ID configuré. Si indispo, on masque le bouton
+    // Apple et on force le flow email/password → le réviseur a toujours un chemin.
+    if (Platform.OS === "ios") {
+      AppleAuthentication.isAvailableAsync()
+        .then((ok) => setAppleAvailable(ok))
+        .catch(() => setAppleAvailable(false));
+    }
+  }, []);
 
   const handleLogin = async () => {
     if (Platform.OS !== "web") {
@@ -107,7 +130,19 @@ export default function LoginScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
+    setIsLoading(true);
     try {
+      // iPadOS 26.4.1 : check obligatoire sinon crash possible
+      const available = await AppleAuthentication.isAvailableAsync();
+      if (!available) {
+        Alert.alert(
+          "Sign in with Apple indisponible",
+          "Ce compte iCloud ne permet pas Sign in with Apple. Vous pouvez utiliser la connexion par email ou continuer sans compte.",
+        );
+        setShowEmailForm(true);
+        return;
+      }
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -115,20 +150,23 @@ export default function LoginScreen() {
         ],
       });
 
-      console.log("[Login] Apple Sign In succeeded");
-
       if (!credential.identityToken) {
         throw new Error("Apple identity token is missing");
       }
 
-      // Exchange Apple identity token for a session
-      const { sessionToken, user } = await appleSignIn({
+      // Appel backend avec timeout explicite (10 s) — iPadOS 26 sandbox peut être lent
+      const timeoutMs = 10_000;
+      const sessionPromise = appleSignIn({
         identityToken: credential.identityToken,
         email: credential.email,
         fullName: credential.fullName,
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("APPLE_SIGNIN_TIMEOUT")), timeoutMs),
+      );
 
-      // Store session token and user info
+      const { sessionToken, user } = await Promise.race([sessionPromise, timeoutPromise]);
+
       await Auth.setSessionToken(sessionToken);
       await Auth.setUserInfo({
         id: user.id,
@@ -146,15 +184,76 @@ export default function LoginScreen() {
       router.replace("/");
     } catch (error: any) {
       if (error?.code === "ERR_REQUEST_CANCELED") {
-        // User canceled — no action needed
+        // Annulation utilisateur — silencieux
         console.log("[Login] Apple Sign In canceled by user");
+      } else if (error?.message === "APPLE_SIGNIN_TIMEOUT") {
+        Alert.alert(
+          "Délai dépassé",
+          "La connexion avec Apple prend trop de temps. Essayez la connexion par email ou continuez sans compte.",
+          [
+            { text: "Connexion par email", onPress: () => setShowEmailForm(true) },
+            { text: "Réessayer", style: "cancel" },
+          ],
+        );
       } else {
         console.error("[Login] Apple Sign In error:", error);
         Alert.alert(
           "Erreur de connexion",
-          "La connexion avec Apple a échoué. Veuillez réessayer.",
+          "La connexion avec Apple a échoué. Utilisez la connexion par email ou continuez sans compte.",
+          [
+            { text: "Connexion par email", onPress: () => setShowEmailForm(true) },
+            { text: "OK", style: "cancel" },
+          ],
         );
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ─── Connexion email / password via Supabase (chemin utilisé par App Review) ──
+  const handleEmailSignIn = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert("Champs requis", "Veuillez renseigner votre email et votre mot de passe.");
+      return;
+    }
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) {
+        console.error("[Login] Email sign-in error:", error);
+        Alert.alert(
+          "Connexion impossible",
+          error.message === "Invalid login credentials"
+            ? "Email ou mot de passe incorrect."
+            : "Impossible de se connecter. Vérifiez votre connexion internet et réessayez.",
+        );
+        return;
+      }
+      if (data.session?.user) {
+        const u = data.session.user;
+        await Auth.setUserInfo({
+          id: 0,
+          openId: `supabase_${u.id}`,
+          name: u.user_metadata?.name || u.user_metadata?.full_name || u.email?.split("@")[0] || null,
+          email: u.email ?? null,
+          loginMethod: u.app_metadata?.provider ?? "email",
+          lastSignedIn: new Date(),
+        });
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        router.replace("/");
+      }
+    } catch (e: any) {
+      console.error("[Login] Email sign-in exception:", e);
+      Alert.alert("Erreur", e?.message ?? "Une erreur est survenue. Réessayez.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -220,7 +319,7 @@ export default function LoginScreen() {
         {/* ── Boutons de connexion ───────────────────────────────────────── */}
         <View style={styles.actions}>
           {/* Apple Sign In (iOS uniquement) — bouton officiel Apple */}
-          {Platform.OS === "ios" && (
+          {Platform.OS === "ios" && appleAvailable && (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -230,38 +329,89 @@ export default function LoginScreen() {
             />
           )}
 
-          {/* Connexion par OAuth (web/Android ou fallback iOS) */}
-          <TouchableOpacity
-            onPress={handleLogin}
-            disabled={isLoading}
-            style={[
-              styles.loginBtn,
-              { backgroundColor: Platform.OS === "ios" ? "transparent" : colors.foreground, borderWidth: Platform.OS === "ios" ? 1 : 0, borderColor: colors.border },
-            ]}
-            activeOpacity={0.85}
-          >
-            {isLoading ? (
-              <ActivityIndicator color={Platform.OS === "ios" ? colors.foreground : colors.background} />
-            ) : (
-              <>
-                <IconSymbol name="person.fill" size={18} color={Platform.OS === "ios" ? colors.foreground : colors.background} />
-                <Text style={[styles.loginBtnText, { color: Platform.OS === "ios" ? colors.foreground : colors.background }]}>
-                  SE CONNECTER
+          {/* ── Bloc connexion email/password (toggle) ──────────────────── */}
+          {showEmailForm ? (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+              keyboardVerticalOffset={20}
+            >
+              <View style={[styles.emailForm, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  placeholderTextColor={colors.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  autoComplete="email"
+                  returnKeyType="next"
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                />
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Mot de passe"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry
+                  textContentType="password"
+                  autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleEmailSignIn}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border, marginTop: 8 }]}
+                />
+                <TouchableOpacity
+                  onPress={handleEmailSignIn}
+                  disabled={isLoading}
+                  style={[styles.loginBtn, { backgroundColor: colors.foreground, marginTop: 12 }]}
+                  activeOpacity={0.85}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={colors.background} />
+                  ) : (
+                    <Text style={[styles.loginBtnText, { color: colors.background }]}>
+                      SE CONNECTER
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowEmailForm(false)} style={{ marginTop: 8 }}>
+                  <Text style={[styles.skipBtnText, { color: colors.muted, textAlign: "center" }]}>
+                    Retour
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          ) : (
+            <>
+              {/* Connexion par email (Supabase password) */}
+              <TouchableOpacity
+                onPress={() => setShowEmailForm(true)}
+                disabled={isLoading}
+                style={[
+                  styles.loginBtn,
+                  { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.border },
+                ]}
+                activeOpacity={0.85}
+              >
+                <IconSymbol name="envelope.fill" size={18} color={colors.foreground} />
+                <Text style={[styles.loginBtnText, { color: colors.foreground }]}>
+                  CONTINUER AVEC UN EMAIL
                 </Text>
-              </>
-            )}
-          </TouchableOpacity>
+              </TouchableOpacity>
 
-          {/* Continuer sans compte */}
-          <TouchableOpacity
-            onPress={handleSkip}
-            style={[styles.skipBtn, { borderColor: colors.border }]}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.skipBtnText, { color: colors.muted }]}>
-              Continuer sans compte
-            </Text>
-          </TouchableOpacity>
+              {/* Continuer sans compte */}
+              <TouchableOpacity
+                onPress={handleSkip}
+                style={[styles.skipBtn, { borderColor: colors.border }]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.skipBtnText, { color: colors.muted }]}>
+                  Continuer sans compte
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* ── Mentions légales ──────────────────────────────────────────── */}
@@ -446,6 +596,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: "center",
     lineHeight: 18,
+    letterSpacing: 0.2,
+  },
+  emailForm: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    gap: 0,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
     letterSpacing: 0.2,
   },
 });

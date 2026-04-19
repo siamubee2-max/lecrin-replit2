@@ -278,3 +278,71 @@ export async function sendPartnerApplicationEmails(data: {
 
   return { success: results.candidate || results.team, ...results };
 }
+
+// ─── Modération UGC — Apple Guideline 1.2 + 5.1.1(x) ─────────────────────────
+// Alerte interne envoyée à l'équipe quand un post est signalé, pour permettre
+// la revue sous 24h (délai imposé par Apple pour les apps UGC).
+export async function sendModerationAlert(data: {
+  postId: number;
+  reason: string;
+  details?: string;
+  reporterName: string;
+}): Promise<{ success: boolean }> {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.warn("[Moderation] Transporter non disponible — alerte ignorée");
+    return { success: false };
+  }
+
+  const fromAddress = `"L'Écrin Virtuel – Modération" <${process.env.SMTP_USER || "inferencevision@inferencevision.store"}>`;
+  const notificationEmail = process.env.SMTP_MODERATION_EMAIL
+    || process.env.SMTP_NOTIFICATION_EMAIL
+    || "inferencevision@inferencevision.store";
+  const reportedAt = new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" });
+
+  const reasonLabels: Record<string, string> = {
+    spam: "Spam / publicité",
+    harassment: "Harcèlement",
+    hate_speech: "Propos haineux / discrimination",
+    nudity_sexual: "Nudité / contenu sexuel",
+    violence: "Violence",
+    illegal_content: "Contenu illégal",
+    intellectual_property: "Violation de propriété intellectuelle",
+    misinformation: "Désinformation",
+    other: "Autre",
+  };
+
+  const subject = `⚠️ [Modération] Post #${data.postId} signalé : ${reasonLabels[data.reason] ?? data.reason}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #0A1A3B; padding: 24px; max-width: 600px;">
+  <h2 style="color: #C9A96E; border-bottom: 1px solid #C9A96E; padding-bottom: 8px;">Modération — Nouveau signalement</h2>
+  <p><strong>Post ID :</strong> #${data.postId}</p>
+  <p><strong>Motif :</strong> ${reasonLabels[data.reason] ?? data.reason}</p>
+  <p><strong>Signalé par :</strong> ${data.reporterName}</p>
+  <p><strong>Reçu le :</strong> ${reportedAt}</p>
+  ${data.details ? `<p><strong>Détails :</strong><br><em>${data.details.replace(/</g, "&lt;")}</em></p>` : ""}
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+  <p style="font-size: 12px; color: #666;">
+    Apple exige que les signalements UGC soient traités sous 24h (Guideline 1.2 + 5.1.1(x)).
+    Connectez-vous à l'admin pour revoir et modérer ce post.
+  </p>
+</body>
+</html>`;
+
+  try {
+    await transporter.sendMail({
+      from: fromAddress,
+      to: notificationEmail,
+      subject,
+      html,
+    });
+    console.log(`[Moderation] Alerte envoyée pour post #${data.postId} (${data.reason})`);
+    return { success: true };
+  } catch (err) {
+    console.error("[Moderation] Erreur envoi alerte:", err);
+    return { success: false };
+  }
+}

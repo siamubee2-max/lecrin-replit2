@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Platform,
   StyleSheet,
+  Alert,
+  ActionSheetIOS,
 } from "react-native";
 import { useState, useCallback, useMemo } from "react";
 import { Image } from "expo-image";
@@ -120,6 +122,124 @@ export default function CommunityScreen() {
     onSuccess: () => postsQuery.refetch(),
   });
   const likePostMutation = trpc.community.like.useMutation();
+
+  // ── Modération UGC (Apple 1.2 + 5.1.1(x))
+  const reportPostMutation = trpc.community.report.useMutation();
+  const blockUserMutation = trpc.community.block.useMutation({
+    onSuccess: () => postsQuery.refetch(),
+  });
+
+  const REPORT_REASONS: Array<{ key: "spam" | "harassment" | "hate_speech" | "nudity_sexual" | "violence" | "illegal_content" | "intellectual_property" | "misinformation" | "other"; label: string }> = [
+    { key: "spam",                  label: "Spam ou publicité" },
+    { key: "harassment",            label: "Harcèlement" },
+    { key: "hate_speech",           label: "Propos haineux / discrimination" },
+    { key: "nudity_sexual",         label: "Nudité ou contenu sexuel" },
+    { key: "violence",              label: "Violence" },
+    { key: "illegal_content",       label: "Contenu illégal" },
+    { key: "intellectual_property", label: "Violation de propriété intellectuelle" },
+    { key: "misinformation",        label: "Désinformation" },
+    { key: "other",                 label: "Autre" },
+  ];
+
+  const submitReport = useCallback(async (post: Post, reasonKey: (typeof REPORT_REASONS)[number]["key"]) => {
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const numId = parseInt(post.id, 10);
+    if (isNaN(numId)) return;
+    try {
+      await reportPostMutation.mutateAsync({ postId: numId, reason: reasonKey });
+      Alert.alert(
+        "Signalement envoyé",
+        "Merci. Ce contenu sera examiné par notre équipe sous 24 heures. Vous pouvez également bloquer cet utilisateur.",
+        [{ text: "OK" }],
+      );
+    } catch (err: any) {
+      Alert.alert("Erreur", err?.message ?? "Impossible d'envoyer le signalement. Réessayez plus tard.");
+    }
+  }, [reportPostMutation]);
+
+  const promptReportReason = useCallback((post: Post) => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: "Motif du signalement",
+          message: "Sélectionnez la raison pour laquelle vous signalez ce contenu.",
+          options: [...REPORT_REASONS.map(r => r.label), "Annuler"],
+          cancelButtonIndex: REPORT_REASONS.length,
+          userInterfaceStyle: "light",
+        },
+        (idx) => {
+          if (idx < REPORT_REASONS.length) submitReport(post, REPORT_REASONS[idx].key);
+        },
+      );
+    } else {
+      // Android/Web : fallback Alert
+      Alert.alert(
+        "Motif du signalement",
+        "Choisissez la catégorie :",
+        [
+          ...REPORT_REASONS.slice(0, 3).map(r => ({ text: r.label, onPress: () => submitReport(post, r.key) })),
+          { text: "Autre motif",        onPress: () => submitReport(post, "other") },
+          { text: "Annuler", style: "cancel" as const },
+        ],
+      );
+    }
+  }, [submitReport]);
+
+  const handleBlock = useCallback(async (post: Post) => {
+    if (!user) {
+      Alert.alert("Connexion requise", "Connectez-vous pour bloquer un utilisateur.");
+      return;
+    }
+    Alert.alert(
+      `Bloquer ${post.user.name} ?`,
+      "Vous ne verrez plus ses publications. Vous pourrez le débloquer dans Réglages → Utilisateurs bloqués.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Bloquer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await blockUserMutation.mutateAsync({ blockedAuthorName: post.user.name });
+              if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert("Utilisateur bloqué", `${post.user.name} ne sera plus visible dans votre fil.`);
+            } catch (err: any) {
+              Alert.alert("Erreur", err?.message ?? "Impossible de bloquer cet utilisateur.");
+            }
+          },
+        },
+      ],
+    );
+  }, [user, blockUserMutation]);
+
+  const handleMorePress = useCallback((post: Post) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const options = ["Signaler ce post", "Bloquer cet utilisateur", "Annuler"];
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          destructiveButtonIndex: 0,
+          cancelButtonIndex: 2,
+          userInterfaceStyle: "light",
+        },
+        (idx) => {
+          if (idx === 0) promptReportReason(post);
+          else if (idx === 1) handleBlock(post);
+        },
+      );
+    } else {
+      Alert.alert(
+        "Options",
+        `Que souhaitez-vous faire avec le post de ${post.user.name} ?`,
+        [
+          { text: "Signaler ce post",         style: "destructive", onPress: () => promptReportReason(post) },
+          { text: "Bloquer cet utilisateur",  style: "destructive", onPress: () => handleBlock(post) },
+          { text: "Annuler",                  style: "cancel" },
+        ],
+      );
+    }
+  }, [promptReportReason, handleBlock]);
 
   // Charger les posts depuis le serveur uniquement (pas de posts démo)
   const serverPosts: Post[] = (postsQuery.data ?? []).map(dbPostToPost);
@@ -261,6 +381,7 @@ export default function CommunityScreen() {
       onShare={(shares) => triggerShareMilestone(item.id, shares)}
       rank={activeTab === "trending" ? (posts.indexOf(item) + 1) : undefined}
       onAvatarPress={() => openProfile(item)}
+      onMorePress={() => handleMorePress(item)}
     />
   );
 
@@ -605,6 +726,7 @@ function PostCard({
   onShare,
   rank,
   onAvatarPress,
+  onMorePress,
 }: {
   post: Post;
   colors: ReturnType<typeof useColors>;
@@ -617,6 +739,7 @@ function PostCard({
   onShare?: (shares: number) => void;
   rank?: number;
   onAvatarPress?: () => void;
+  onMorePress?: () => void;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -684,6 +807,20 @@ function PostCard({
           <Text style={[commStyles.brandBadge, { color: colors.primary }]}>
             {post.jewelryBrand}
           </Text>
+        ) : null}
+        {/* Menu Signaler / Bloquer — Apple Guideline 1.2 + 5.1.1(x) */}
+        {onMorePress ? (
+          <TouchableOpacity
+            onPress={onMorePress}
+            accessibilityLabel="Plus d'options"
+            accessibilityHint="Ouvre un menu pour signaler ce post ou bloquer cet utilisateur"
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={commStyles.moreBtn}
+            activeOpacity={0.6}
+          >
+            <IconSymbol name="ellipsis" size={18} color={colors.muted} />
+          </TouchableOpacity>
         ) : null}
       </View>
 
@@ -883,6 +1020,13 @@ const commStyles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "500",
     letterSpacing: 1.5,
+  },
+  moreBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    marginLeft: 4,
   },
   postActions: {
     flexDirection: "row",

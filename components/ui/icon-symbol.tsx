@@ -82,6 +82,12 @@ const MAPPING = {
   "building.2.fill": "business",
   "map.fill": "map",
   "phone.fill": "phone",
+  // Community / moderation icons
+  "ellipsis": "more-horiz",
+  "bubble.left": "chat-bubble-outline",
+  "flag": "flag",
+  "flag.fill": "flag",
+  "nosign": "block",
 } as IconMapping;
 
 /**

@@ -371,6 +371,10 @@ export const communityPosts = mysqlTable("communityPosts", {
   commentsCount: int("commentsCount").default(0).notNull(),
   /** Is pinned (featured) */
   isPinned: boolean("isPinned").default(false),
+  /** Apple Guideline 1.2 / 5.1.1(x) — Hidden by moderation (auto-hide ≥3 reports) */
+  isHidden: boolean("isHidden").default(false).notNull(),
+  /** Number of times this post has been reported */
+  reportCount: int("reportCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -390,3 +394,58 @@ export const communityPostLikes = mysqlTable("communityPostLikes", {
 
 export type CommunityPostLike = typeof communityPostLikes.$inferSelect;
 export type InsertCommunityPostLike = typeof communityPostLikes.$inferInsert;
+
+/**
+ * Community post reports — Apple Guideline 1.2 & 5.1.1(x)
+ * UGC doit disposer d'un mécanisme de signalement d'abus.
+ */
+export const communityReports = mysqlTable("communityReports", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Post being reported */
+  postId: int("postId").notNull(),
+  /** User who reported (null if anonymous) */
+  reporterUserId: int("reporterUserId"),
+  /** Reporter display name / identifier for anonymous */
+  reporterName: varchar("reporterName", { length: 255 }),
+  /** Reason enum */
+  reason: mysqlEnum("reason", [
+    "spam",
+    "harassment",
+    "hate_speech",
+    "nudity_sexual",
+    "violence",
+    "illegal_content",
+    "intellectual_property",
+    "misinformation",
+    "other",
+  ]).notNull(),
+  /** Optional free-text detail */
+  details: text("details"),
+  /** Review status — reviewed within 24h per Apple requirement */
+  status: mysqlEnum("status", ["pending", "reviewed", "removed", "dismissed"])
+    .default("pending")
+    .notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewedAt"),
+});
+
+export type CommunityReport = typeof communityReports.$inferSelect;
+export type InsertCommunityReport = typeof communityReports.$inferInsert;
+
+/**
+ * User blocks — Apple Guideline 1.2
+ * L'utilisateur doit pouvoir bloquer un autre utilisateur abusif.
+ */
+export const communityBlocks = mysqlTable("communityBlocks", {
+  id: int("id").autoincrement().primaryKey(),
+  /** User performing the block */
+  blockerUserId: int("blockerUserId").notNull(),
+  /** Display name of the blocked author (we store name because posts can be anonymous) */
+  blockedAuthorName: varchar("blockedAuthorName", { length: 255 }).notNull(),
+  /** Blocked user ID when resolvable */
+  blockedUserId: int("blockedUserId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CommunityBlock = typeof communityBlocks.$inferSelect;
+export type InsertCommunityBlock = typeof communityBlocks.$inferInsert;

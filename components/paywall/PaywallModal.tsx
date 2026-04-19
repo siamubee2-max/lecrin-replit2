@@ -6,11 +6,18 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+
+// iPad = "pageSheet" peut rogner les CTA en sandbox Apple. On force "fullScreen"
+// sur tablette pour garantir que les boutons sont 100 % dans la zone tappable.
+// Ref : rejet 2.1(b) build 19, iPad Air 11-inch M3 iPadOS 26.4.1.
+const IS_IPAD = Platform.OS === "ios" && Platform.isPad;
+const MODAL_PRESENTATION = IS_IPAD ? "fullScreen" : "pageSheet";
 
 // ─── Plans disponibles (alignés sur RevenueCat) ───────────────────────────────
 type Plan = "jewelry" | "premium_monthly" | "premium_yearly";
@@ -88,7 +95,20 @@ export function PaywallModal({
       if (success) {
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onClose();
+      } else {
+        // Feedback explicite au réviseur Apple — build 19 était silencieux en cas d'échec.
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+          "Achat impossible",
+          "La connexion à l'App Store n'a pas abouti. Vérifiez que vous êtes bien connecté à votre compte Apple et réessayez. Si le problème persiste, appuyez sur « Restaurer mes achats ».",
+          [{ text: "OK" }],
+        );
       }
+    } catch (e: any) {
+      Alert.alert(
+        "Erreur",
+        e?.message ?? "Une erreur inattendue est survenue. Réessayez dans un instant.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -124,8 +144,10 @@ export function PaywallModal({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle={MODAL_PRESENTATION}
       onRequestClose={onClose}
+      // Supporte toutes orientations sur iPad (demandé par iPadOS 26)
+      supportedOrientations={["portrait", "landscape"]}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}

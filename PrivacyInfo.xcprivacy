@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PrivacyInfo.xcprivacy — L'Écrin Virtuel (Bundle ID: com.ecrin.jewelry)
+  Build 21 — Conforme Apple ITMS-91053 (Required Reason API)
+  Source de vérité versionnée — identique au bloc privacyManifests d'app.config.ts.
+
+  Pour forcer l'injection de cette version statique au lieu de laisser Expo générer
+  le fichier au prebuild :
+    1. Retirer le bloc `privacyManifests: { ... }` de app.config.ts (lignes 76-147)
+    2. Lancer `expo prebuild --clean`
+    3. Copier ce fichier vers ios/EcrinVirtuel/PrivacyInfo.xcprivacy
+       (le nom exact du target dépend de l'app slug, typiquement "EcrinVirtuel"
+        ou "EcrinMobileApp")
+    4. Ouvrir ios/EcrinVirtuel.xcworkspace → ajouter PrivacyInfo.xcprivacy
+       au target principal (drag-drop, cocher "Copy items if needed" ✗,
+        cocher target membership ✓)
+    5. Vérifier dans Build Phases → Copy Bundle Resources que le fichier apparaît
+
+  Documentation Apple :
+    https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- L'app ne fait aucun tracking publicitaire cross-app (pas d'AdAttributionKit,
+         pas de SKAdNetwork, pas d'ATT). -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <!-- Aucun domaine de tracking déclaré (puisque NSPrivacyTracking = false). -->
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!-- ============================================================
+         API REQUIRING REASON — 4 catégories utilisées indirectement
+         via React Native + Expo (SystemBootTime, DiskSpace, FileTimestamp,
+         UserDefaults). Les codes de raison sont documentés par Apple.
+         ============================================================ -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- CA92.1 : Accéder à UserDefaults pour lire/écrire des préférences
+                     propres à l'app (AsyncStorage, settings utilisateur). -->
+                <string>CA92.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- C617.1 : Afficher les timestamps de fichiers à l'utilisateur
+                     (cache images, collection "Mon Écrin"). -->
+                <string>C617.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- 35F9.1 : Mesurer des intervalles de temps pour l'UI / animations
+                     (hermes, reanimated). -->
+                <string>35F9.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- E174.1 : Vérifier l'espace disque avant d'écrire un cache
+                     (images générées par IA, téléchargements). -->
+                <string>E174.1</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- ============================================================
+         DATA TYPES COLLECTED — 6 types collectés par l'app
+         ============================================================ -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <!-- Email : Sign in with Apple / email signup -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+                <string>NSPrivacyCollectedDataTypePurposeAuthentication</string>
+            </array>
+        </dict>
+
+        <!-- User ID : identifiant interne Supabase -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeUserID</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- Purchase History : tracker les achats IAP pour afficher l'historique
+             et gérer les abonnements Fondateur -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePurchaseHistory</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- Photos : images uploadées par l'utilisateur pour l'essayage IA -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePhotos</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- Crash Data : non linked, non tracking (Sentry / Expo) -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeCrashData</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- Performance Data : analytics anonymes d'usage -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePerformanceData</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

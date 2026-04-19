@@ -26,6 +26,7 @@ import { initIframeRuntime, subscribeSafeAreaInsets } from "@/lib/_core/iframe-r
 import { initSentry } from "@/lib/sentry";
 import { WelcomeBackModal } from "@/components/WelcomeBackModal";
 import { scheduleWelcomeNotification } from "@/services/notification-service";
+import { preInitRevenueCat } from "@/hooks/use-subscription";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -45,6 +46,9 @@ export default function RootLayout() {
   useEffect(() => {
     initIframeRuntime();
     initSentry();
+    // Pre-init RevenueCat au lancement : évite que la paywall attende l'init SDK
+    // et que le premier clic sur "S'abonner" soit un no-op (bug 2.1(b) build 19).
+    preInitRevenueCat();
   }, []);
 
   // Check if onboarding has been completed

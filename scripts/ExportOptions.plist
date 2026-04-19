@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Store distribution (sera uploadé vers ASC) -->
+    <key>method</key>
+    <string>app-store</string>
+
+    <!-- Apple Team ID (Christophe Weber) -->
+    <key>teamID</key>
+    <string>SPLML3CN76</string>
+
+    <!-- Upload des symboles (dSYM) pour les crashlogs Apple — important pour diagnostic -->
+    <key>uploadSymbols</key>
+    <true/>
+
+    <!-- Signing automatique via Xcode + Apple ID connecté -->
+    <key>signingStyle</key>
+    <string>automatic</string>
+
+    <!-- Export (pas direct upload par xcodebuild, on upload via altool ensuite) -->
+    <key>destination</key>
+    <string>export</string>
+
+    <!-- Inclut bitcode seulement si nécessaire (déprécié depuis Xcode 14, laissé false) -->
+    <key>compileBitcode</key>
+    <false/>
+
+    <!-- Bundle identifier + provisioning profile — en auto signing Xcode gère seul -->
+    <key>stripSwiftSymbols</key>
+    <true/>
+
+    <!-- Notifier l'équipe après validation Apple (par défaut oui, on laisse true) -->
+    <key>uploadBitcode</key>
+    <false/>
+</dict>
+</plist>

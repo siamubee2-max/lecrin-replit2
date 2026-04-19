@@ -2,9 +2,24 @@ import { useState, useEffect, useCallback } from "react";
 import { Platform } from "react-native";
 
 // ─── RevenueCat Configuration ─────────────────────────────────────────────────
-// SDK public key (offering ID = ofrnga01c25df3f)
-export const RC_API_KEY_IOS = "ofrnga01c25df3f";
-export const RC_API_KEY_ANDROID = "ofrnga01c25df3f";
+// ⚠️ BUILD 19 BUG CORRIGÉ : "ofrnga01c25df3f" était un OFFERING ID, pas une
+// API key SDK. `Purchases.configure()` rejetait silencieusement la valeur →
+// `getOfferings()` retournait null → les boutons de paywall ne faisaient rien
+// (rejet 2.1(b) sur iPad M3).
+//
+// ACTION REQUISE AVANT BUILD 20 :
+// 1. Aller sur https://app.revenuecat.com/projects/<project>/api-keys
+// 2. Copier la "Public app-specific API key" iOS  → format "appl_xxxxxxxxxxxxx"
+// 3. Copier la "Public app-specific API key" Android → format "goog_xxxxxxxxx"
+// 4. Les mettre dans le .env :
+//      EXPO_PUBLIC_REVENUECAT_IOS_KEY=appl_xxxxxxxxxxxxxxxxxxxxxxxx
+//      EXPO_PUBLIC_REVENUECAT_ANDROID_KEY=goog_xxxxxxxxxxxxxxxxxxxxx
+// 5. L'offering ID "ofrnga01c25df3f" reste utilisable côté RevenueCat dashboard
+//    mais ne sert PAS à initialiser le SDK.
+export const RC_API_KEY_IOS =
+  process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? "appl_REPLACE_ME_PUBLIC_IOS_KEY";
+export const RC_API_KEY_ANDROID =
+  process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? "goog_REPLACE_ME_PUBLIC_ANDROID_KEY";
 
 // ─── Entitlements (lookup_key dans RevenueCat) ────────────────────────────────
 export const ENTITLEMENT_JEWELRY = "jewelry_access";   // Jewelry Mensuel
@@ -18,6 +33,22 @@ export const PRODUCT_CREDITS_50      = "ecrin.credits.50";
 export const PRODUCT_CREDITS_100     = "ecrin.credits.100";
 export const PRODUCT_CREDITS_250     = "ecrin.credits.250";
 export const PRODUCT_CREDITS_500     = "ecrin.credits.500";
+
+// ─── Résultat d'achat (utilisé par PaywallModal pour message d'erreur clair) ──
+export type PurchaseResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason:
+        | "user_cancelled"
+        | "package_not_found"
+        | "no_current_offering"
+        | "offerings_unreachable"
+        | "purchase_error"
+        | "unsupported_platform";
+      message?: string;
+      storeId?: string;
+    };
 
 // ─── Tiers ────────────────────────────────────────────────────────────────────
 // free       → aucun abonnement actif
@@ -49,17 +80,50 @@ const PREMIUM_MONTHLY_LIMIT = 150;   // essayages Premium mensuel/mois
 const PREMIUM_YEARLY_LIMIT = 1500;   // essayages Premium annuel/an
 
 let purchasesInitialized = false;
+let purchasesInitPromise: Promise<void> | null = null;
 
 async function initRevenueCat() {
-  if (purchasesInitialized || Platform.OS === "web") return;
-  try {
-    const Purchases = (await import("react-native-purchases")).default;
-    const apiKey = Platform.OS === "ios" ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
-    await Purchases.configure({ apiKey });
-    purchasesInitialized = true;
-  } catch (e) {
-    console.warn("[RevenueCat] Init failed:", e);
-  }
+  if (Platform.OS === "web") return;
+  if (purchasesInitialized) return;
+  // Évite double init concurrent (paywall + écran settings ouvrent le hook en parallèle)
+  if (purchasesInitPromise) return purchasesInitPromise;
+
+  purchasesInitPromise = (async () => {
+    try {
+      const Purchases = (await import("react-native-purchases")).default;
+      const apiKey = Platform.OS === "ios" ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
+
+      // Garde-fou : refuse explicitement le placeholder pour éviter un init silent
+      if (apiKey.startsWith("appl_REPLACE_ME") || apiKey.startsWith("goog_REPLACE_ME")) {
+        throw new Error(
+          "[RevenueCat] EXPO_PUBLIC_REVENUECAT_IOS_KEY/ANDROID_KEY non configurée. " +
+          "Voir hooks/use-subscription.ts pour la procédure."
+        );
+      }
+
+      // Verbose logs uniquement en dev
+      if (__DEV__) {
+        await Purchases.setLogLevel((await import("react-native-purchases")).LOG_LEVEL.DEBUG);
+      }
+
+      await Purchases.configure({ apiKey });
+      // Pre-fetch des offerings pour que le 1er rendu de la paywall ait déjà la liste en cache
+      try { await Purchases.getOfferings(); } catch {}
+      purchasesInitialized = true;
+    } catch (e) {
+      console.error("[RevenueCat] Init failed:", e);
+      throw e;
+    } finally {
+      purchasesInitPromise = null;
+    }
+  })();
+
+  return purchasesInitPromise;
+}
+
+// Pré-init exposé pour appel au démarrage de l'app (dans app/_layout.tsx)
+export function preInitRevenueCat() {
+  initRevenueCat().catch(() => {});
 }
 
 export function useSubscription(): SubscriptionState & {
@@ -113,35 +177,73 @@ export function useSubscription(): SubscriptionState & {
   }, [loadCustomerInfo]);
 
   // ─── Achats abonnements ──────────────────────────────────────────────────
-  const purchaseByStoreId = useCallback(async (storeId: string): Promise<boolean> => {
-    if (Platform.OS === "web") return false;
+  // Retourne un PurchaseResult explicite plutôt qu'un simple boolean pour que
+  // la paywall puisse afficher un message d'erreur clair au réviseur Apple.
+  const purchaseByStoreId = useCallback(async (storeId: string): Promise<PurchaseResult> => {
+    if (Platform.OS === "web") return { ok: false, reason: "unsupported_platform" };
     try {
+      await initRevenueCat();
       const Purchases = (await import("react-native-purchases")).default;
-      const offerings = await Purchases.getOfferings();
-      const pkg = offerings.current?.availablePackages.find(
+
+      // 1) Pre-check : le SDK répond-il ?
+      let offerings;
+      try {
+        offerings = await Purchases.getOfferings();
+      } catch (err) {
+        console.error("[RevenueCat] getOfferings failed:", err);
+        return { ok: false, reason: "offerings_unreachable", message: String(err) };
+      }
+
+      // 2) Pre-check : offering actif présent ?
+      if (!offerings.current) {
+        console.error("[RevenueCat] No current offering configured on dashboard");
+        return { ok: false, reason: "no_current_offering" };
+      }
+
+      // 3) Résolution du package — on essaie par identifier d'abord puis par product id
+      let pkg = offerings.current.availablePackages.find(
         (p) => p.product.identifier === storeId
       );
       if (!pkg) {
-        console.warn("[RevenueCat] Package not found:", storeId);
-        return false;
+        pkg = offerings.current.availablePackages.find(
+          (p) => p.identifier === storeId
+        );
       }
+      if (!pkg) {
+        console.error(
+          "[RevenueCat] Package not found in current offering:",
+          storeId,
+          "available=",
+          offerings.current.availablePackages.map((p) => p.product.identifier)
+        );
+        return { ok: false, reason: "package_not_found", storeId };
+      }
+
+      // 4) Achat réel
       await Purchases.purchasePackage(pkg);
       await loadCustomerInfo();
-      return true;
+      return { ok: true };
     } catch (e: any) {
-      if (!e.userCancelled) console.warn("[RevenueCat] purchase failed:", e);
-      return false;
+      if (e?.userCancelled) return { ok: false, reason: "user_cancelled" };
+      console.error("[RevenueCat] purchase failed:", e);
+      return { ok: false, reason: "purchase_error", message: e?.message ?? String(e) };
     }
   }, [loadCustomerInfo]);
 
+  // Adaptateur boolean pour les callers historiques (PaywallModal)
+  const purchaseByStoreIdBool = useCallback(
+    async (storeId: string) => (await purchaseByStoreId(storeId)).ok,
+    [purchaseByStoreId]
+  );
+
   const purchaseJewelry = useCallback(() =>
-    purchaseByStoreId(PRODUCT_JEWELRY_MONTHLY), [purchaseByStoreId]);
+    purchaseByStoreIdBool(PRODUCT_JEWELRY_MONTHLY), [purchaseByStoreIdBool]);
 
   const purchasePremiumMonthly = useCallback(() =>
-    purchaseByStoreId(PRODUCT_PREMIUM_MONTHLY), [purchaseByStoreId]);
+    purchaseByStoreIdBool(PRODUCT_PREMIUM_MONTHLY), [purchaseByStoreIdBool]);
 
   const purchasePremiumYearly = useCallback(() =>
-    purchaseByStoreId(PRODUCT_PREMIUM_YEARLY), [purchaseByStoreId]);
+    purchaseByStoreIdBool(PRODUCT_PREMIUM_YEARLY), [purchaseByStoreIdBool]);
 
   // ─── Achats crédits consommables ─────────────────────────────────────────
   const purchaseCredits = useCallback(async (pack: "50" | "100" | "250" | "500"): Promise<boolean> => {
@@ -151,12 +253,12 @@ export function useSubscription(): SubscriptionState & {
       "250": PRODUCT_CREDITS_250,
       "500": PRODUCT_CREDITS_500,
     };
-    const success = await purchaseByStoreId(storeIdMap[pack]);
+    const success = await purchaseByStoreIdBool(storeIdMap[pack]);
     if (success) {
       setCredits((prev) => prev + parseInt(pack, 10));
     }
     return success;
-  }, [purchaseByStoreId]);
+  }, [purchaseByStoreIdBool]);
 
   // ─── Restauration ────────────────────────────────────────────────────────
   const restorePurchases = useCallback(async () => {
