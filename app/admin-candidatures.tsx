@@ -52,7 +52,7 @@ export default function AdminCandidaturesScreen() {
       setSelectedApp(null);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
-    onError: (err) => {
+    onError: (err: { message: string }) => {
       Alert.alert("Erreur", err.message);
     },
   });
