@@ -34,8 +34,13 @@ export default function LoginScreen() {
   // Build 19 : seul « Sign in with Apple » était exposé. Apple App Review ne pouvait
   // donc PAS utiliser le compte démo `appreview@ecrinvirtuel.app / EcrinReview2026!`
   // fourni dans les notes → rejet 2.1(a). On ajoute ici une connexion par email.
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  //
+  // Build 21 — Auto-fill dev-mode : en DEV/TestFlight uniquement, les champs sont
+  // pré-remplis avec le compte démo pour accélérer le QA et la review Apple.
+  // `__DEV__` est une globale Metro remplacée par `false` au bundle production,
+  // donc les strings sont tree-shakées — aucune fuite en App Store.
+  const [email, setEmail] = useState(__DEV__ ? "appreview@ecrinvirtuel.app" : "");
+  const [password, setPassword] = useState(__DEV__ ? "EcrinReview2026!" : "");
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(Platform.OS === "ios");
 
@@ -257,6 +262,42 @@ export default function LoginScreen() {
     }
   };
 
+  // ─── Mot de passe oublié — envoi d'un magic link Supabase ──────────────────
+  // Build 21 — Le bouton "Mot de passe oublié ?" sous le champ password ouvre
+  // un flow de reset par email (Supabase resetPasswordForEmail). Nécessaire
+  // pour les users créés via email/password et conforme Guideline 4.8.
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert(
+        "Email requis",
+        "Saisissez d'abord votre email dans le champ ci-dessus, puis réappuyez sur « Mot de passe oublié ? ».",
+      );
+      return;
+    }
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsLoading(true);
+    try {
+      const redirectTo = Linking.createURL("/reset-password");
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        { redirectTo },
+      );
+      if (error) throw error;
+      Alert.alert(
+        "Email envoyé",
+        "Si un compte existe avec cet email, vous recevrez un lien pour réinitialiser votre mot de passe (vérifiez vos spams).",
+      );
+    } catch (e: any) {
+      console.error("[Login] Reset password error:", e);
+      Alert.alert(
+        "Erreur",
+        "Impossible d'envoyer l'email. Vérifiez votre connexion et réessayez.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSkip = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -336,6 +377,9 @@ export default function LoginScreen() {
               keyboardVerticalOffset={20}
             >
               <View style={[styles.emailForm, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <Text style={[styles.formHint, { color: colors.muted }]}>
+                  Pour comptes existants uniquement
+                </Text>
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
@@ -361,6 +405,16 @@ export default function LoginScreen() {
                   onSubmitEditing={handleEmailSignIn}
                   style={[styles.input, { color: colors.foreground, borderColor: colors.border, marginTop: 8 }]}
                 />
+                <TouchableOpacity
+                  onPress={handleForgotPassword}
+                  disabled={isLoading}
+                  style={styles.forgotPasswordBtn}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
+                    Mot de passe oublié ?
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleEmailSignIn}
                   disabled={isLoading}
@@ -603,6 +657,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     gap: 0,
+  },
+  formHint: {
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.3,
+    textAlign: "center",
+    marginBottom: 10,
+    textTransform: "uppercase",
+  },
+  forgotPasswordBtn: {
+    marginTop: 10,
+    paddingVertical: 4,
+    alignSelf: "flex-end",
+  },
+  forgotPasswordText: {
+    fontSize: 13,
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
   input: {
     borderWidth: 1,
