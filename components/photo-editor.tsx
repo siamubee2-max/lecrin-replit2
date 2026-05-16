@@ -1,12 +1,14 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, type CSSProperties } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   Platform,
+  type ViewStyle,
+  type TextStyle,
 } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
@@ -18,9 +20,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const PREVIEW_SIZE = SCREEN_WIDTH - 48;
 
 /**
  * Types de filtres disponibles
@@ -139,6 +138,68 @@ const DEFAULT_RETOUCH: RetouchOptions = {
 };
 
 /**
+ * Styles pour le composant AdjustmentSlider (définis à l'extérieur car utilisé avant PhotoEditor)
+ */
+const sliderStyles = StyleSheet.create({
+  sliderContainer: {
+    marginBottom: 8,
+  },
+  sliderHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  sliderIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  sliderLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  sliderValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    minWidth: 40,
+    textAlign: "right",
+  },
+  sliderTrackContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  sliderButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  sliderTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    position: "relative",
+  },
+  sliderFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 3,
+  },
+  sliderThumb: {
+    position: "absolute",
+    top: -5,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+});
+
+/**
  * Composant de slider personnalisé pour les ajustements
  */
 interface SliderProps {
@@ -150,16 +211,16 @@ interface SliderProps {
   icon: string;
 }
 
-function AdjustmentSlider({ label, value, min, max, onChange, icon }: SliderProps) {
+const AdjustmentSlider = React.memo(function AdjustmentSlider({ label, value, min, max, onChange, icon }: SliderProps) {
   const colors = useColors();
   const percentage = ((value - min) / (max - min)) * 100;
 
   const handlePress = (direction: "decrease" | "increase") => {
     const step = (max - min) / 20;
-    const newValue = direction === "decrease" 
+    const newValue = direction === "decrease"
       ? Math.max(min, value - step)
       : Math.min(max, value + step);
-    
+
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -167,58 +228,61 @@ function AdjustmentSlider({ label, value, min, max, onChange, icon }: SliderProp
   };
 
   return (
-    <View style={styles.sliderContainer}>
-      <View style={styles.sliderHeader}>
-        <Text style={styles.sliderIcon}>{icon}</Text>
-        <Text style={[styles.sliderLabel, { color: colors.foreground }]}>{label}</Text>
-        <Text style={[styles.sliderValue, { color: colors.primary }]}>
+    <View style={sliderStyles.sliderContainer}>
+      <View style={sliderStyles.sliderHeader}>
+        <Text style={sliderStyles.sliderIcon}>{icon}</Text>
+        <Text style={[sliderStyles.sliderLabel, { color: colors.foreground }]}>{label}</Text>
+        <Text style={[sliderStyles.sliderValue, { color: colors.primary }]}>
           {value > 0 ? `+${value}` : value}
         </Text>
       </View>
-      <View style={styles.sliderTrackContainer}>
+      <View style={sliderStyles.sliderTrackContainer}>
         <TouchableOpacity
           onPress={() => handlePress("decrease")}
-          style={[styles.sliderButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[sliderStyles.sliderButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <IconSymbol name="minus" size={16} color={colors.foreground} />
         </TouchableOpacity>
-        <View style={[styles.sliderTrack, { backgroundColor: colors.surface }]}>
-          <View 
+        <View style={[sliderStyles.sliderTrack, { backgroundColor: colors.surface }]}>
+          <View
             style={[
-              styles.sliderFill, 
-              { 
+              sliderStyles.sliderFill,
+              {
                 backgroundColor: colors.primary,
                 width: `${percentage}%`,
               }
-            ]} 
+            ]}
           />
-          <View 
+          <View
             style={[
-              styles.sliderThumb, 
-              { 
+              sliderStyles.sliderThumb,
+              {
                 backgroundColor: colors.primary,
                 left: `${percentage}%`,
                 marginLeft: -8,
               }
-            ]} 
+            ]}
           />
         </View>
         <TouchableOpacity
           onPress={() => handlePress("increase")}
-          style={[styles.sliderButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[sliderStyles.sliderButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <IconSymbol name="plus" size={16} color={colors.foreground} />
         </TouchableOpacity>
       </View>
     </View>
   );
-}
+});
 
 /**
  * Composant principal d'édition photo
  */
 export function PhotoEditor({ imageUri, onSave, onCancel, visible }: PhotoEditorProps) {
   const colors = useColors();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const PREVIEW_SIZE = SCREEN_WIDTH - 48;
+
   const [activeTab, setActiveTab] = useState<"filters" | "retouch">("filters");
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("original");
   const [retouchOptions, setRetouchOptions] = useState<RetouchOptions>(DEFAULT_RETOUCH);
@@ -295,6 +359,192 @@ export function PhotoEditor({ imageUri, onSave, onCancel, visible }: PhotoEditor
     };
   }, [retouchOptions.vignette]);
 
+  // Styles defined inside component to access SCREEN_WIDTH
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+    },
+    headerButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+    },
+    headerButtonText: {
+      fontSize: 16,
+      fontWeight: "500",
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+    },
+    previewContainer: {
+      alignItems: "center",
+      paddingVertical: 16,
+    },
+    previewWrapper: {
+      width: PREVIEW_SIZE,
+      height: PREVIEW_SIZE,
+      borderRadius: 16,
+      overflow: "hidden",
+      position: "relative",
+    },
+    previewImage: {
+      width: "100%",
+      height: "100%",
+    },
+    vignetteOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "transparent",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 1,
+      shadowRadius: 100,
+    },
+    comparisonButton: {
+      position: "absolute",
+      bottom: 12,
+      left: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    comparisonText: {
+      fontSize: 12,
+      fontWeight: "500",
+    },
+    resetButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+    },
+    resetText: {
+      fontSize: 14,
+      marginLeft: 6,
+    },
+    tabContainer: {
+      flexDirection: "row",
+      marginHorizontal: 24,
+      borderRadius: 12,
+      padding: 4,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 10,
+      alignItems: "center",
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 16,
+      paddingBottom: 32,
+    },
+    filtersGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
+    filterItem: {
+      width: (SCREEN_WIDTH - 48 - 12) / 4,
+      marginBottom: 12,
+      borderRadius: 12,
+      overflow: "hidden",
+    },
+    filterPreview: {
+      width: "100%",
+      aspectRatio: 1,
+      position: "relative",
+    },
+    filterThumbnail: {
+      width: "100%",
+      height: "100%",
+    },
+    filterIcon: {
+      position: "absolute",
+      bottom: 4,
+      right: 4,
+      fontSize: 16,
+    },
+    filterName: {
+      fontSize: 11,
+      textAlign: "center",
+      paddingVertical: 6,
+    },
+    retouchContainer: {
+      gap: 20,
+    },
+    sliderContainer: {
+      marginBottom: 8,
+    } as ViewStyle,
+    sliderHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 8,
+    } as ViewStyle,
+    sliderIcon: {
+      fontSize: 16,
+      marginRight: 8,
+    } as TextStyle,
+    sliderLabel: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: "500",
+    } as TextStyle,
+    sliderValue: {
+      fontSize: 14,
+      fontWeight: "600",
+      minWidth: 40,
+      textAlign: "right",
+    } as TextStyle,
+    sliderTrackContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    } as ViewStyle,
+    sliderButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+    } as ViewStyle,
+    sliderTrack: {
+      flex: 1,
+      height: 6,
+      borderRadius: 3,
+      position: "relative",
+    } as ViewStyle,
+    sliderFill: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      bottom: 0,
+      borderRadius: 3,
+    } as ViewStyle,
+    sliderThumb: {
+      position: "absolute",
+      top: -5,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+    } as ViewStyle,
+  });
+
   if (!visible) return null;
 
   return (
@@ -316,13 +566,14 @@ export function PhotoEditor({ imageUri, onSave, onCancel, visible }: PhotoEditor
           <View
             style={[
               styles.previewImage,
-              Platform.OS === "web" && { filter: webFilterStyle } as any,
+              ...(Platform.OS === "web" && webFilterStyle ? [{ filter: webFilterStyle } as any] : []),
             ]}
           >
             <Image
               source={{ uri: imageUri }}
               style={StyleSheet.absoluteFillObject}
               contentFit="contain"
+              cachePolicy="memory-disk"
             />
           </View>
           
@@ -414,6 +665,7 @@ export function PhotoEditor({ imageUri, onSave, onCancel, visible }: PhotoEditor
                     source={{ uri: imageUri }}
                     style={styles.filterThumbnail}
                     contentFit="cover"
+                    cachePolicy="memory-disk"
                   />
                   <Text style={styles.filterIcon}>{filter.icon}</Text>
                 </View>
@@ -479,190 +731,5 @@ export function PhotoEditor({ imageUri, onSave, onCancel, visible }: PhotoEditor
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  headerButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  headerButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  previewContainer: {
-    alignItems: "center",
-    paddingVertical: 16,
-  },
-  previewWrapper: {
-    width: PREVIEW_SIZE,
-    height: PREVIEW_SIZE,
-    borderRadius: 16,
-    overflow: "hidden",
-    position: "relative",
-  },
-  previewImage: {
-    width: "100%",
-    height: "100%",
-  },
-  vignetteOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "transparent",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 100,
-  },
-  comparisonButton: {
-    position: "absolute",
-    bottom: 12,
-    left: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  comparisonText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  resetButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  resetText: {
-    fontSize: 14,
-    marginLeft: 6,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    marginHorizontal: 24,
-    borderRadius: 12,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  filtersGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  filterItem: {
-    width: (SCREEN_WIDTH - 48 - 12) / 4,
-    marginBottom: 12,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  filterPreview: {
-    width: "100%",
-    aspectRatio: 1,
-    position: "relative",
-  },
-  filterThumbnail: {
-    width: "100%",
-    height: "100%",
-  },
-  filterIcon: {
-    position: "absolute",
-    bottom: 4,
-    right: 4,
-    fontSize: 16,
-  },
-  filterName: {
-    fontSize: 11,
-    textAlign: "center",
-    paddingVertical: 6,
-  },
-  retouchContainer: {
-    gap: 20,
-  },
-  sliderContainer: {
-    marginBottom: 8,
-  },
-  sliderHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  sliderIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  sliderLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  sliderValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    minWidth: 40,
-    textAlign: "right",
-  },
-  sliderTrackContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  sliderButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  sliderTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    position: "relative",
-  },
-  sliderFill: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: 3,
-  },
-  sliderThumb: {
-    position: "absolute",
-    top: -5,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-});
 
 export default PhotoEditor;

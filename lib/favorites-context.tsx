@@ -106,7 +106,14 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const mergeServerFavorites = (serverFavs: any[]) => {
+  const mergeServerFavorites = (serverFavs: Array<{
+    id: string | number;
+    jewelryType: string;
+    jewelryIcon?: string | null;
+    modelName?: string | null;
+    createdAt?: string | Date | null;
+    imageUri?: string | null;
+  }>) => {
     // Convert server favorites to local format
     const serverFormatted: FavoriteTryOn[] = serverFavs.map(f => ({
       id: f.id.toString(),
@@ -114,7 +121,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       jewelryIcon: f.jewelryIcon || "",
       modelName: f.modelName || "",
       createdAt: f.createdAt?.toString() || new Date().toISOString(),
-      imageUri: f.imageUri,
+      imageUri: f.imageUri ?? undefined,
     }));
 
     // Merge with local favorites (avoid duplicates)

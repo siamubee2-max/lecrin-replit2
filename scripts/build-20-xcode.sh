@@ -23,8 +23,15 @@ R='\033[0;31m'; G='\033[0;32m'; Y='\033[1;33m'; B='\033[0;34m'; N='\033[0m'
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-ARCHIVE_PATH="$HOME/Desktop/EcrinVirtuel-b20.xcarchive"
-IPA_EXPORT_PATH="$HOME/Desktop/EcrinVirtuel-b20-ipa"
+# Extrait dynamiquement le buildNumber depuis app.config.ts (ligne `buildNumber: "NN"`)
+BUILD_NUMBER="$(grep -oE 'buildNumber: "[0-9]+"' "$PROJECT_ROOT/app.config.ts" | head -1 | grep -oE '[0-9]+' || echo '?')"
+if [[ -z "$BUILD_NUMBER" || "$BUILD_NUMBER" == "?" ]]; then
+  echo -e "\033[0;31m✗ Impossible d'extraire buildNumber depuis app.config.ts\033[0m"
+  exit 1
+fi
+
+ARCHIVE_PATH="$HOME/Desktop/EcrinVirtuel-b${BUILD_NUMBER}.xcarchive"
+IPA_EXPORT_PATH="$HOME/Desktop/EcrinVirtuel-b${BUILD_NUMBER}-ipa"
 EXPORT_OPTIONS_PLIST="$PROJECT_ROOT/scripts/ExportOptions.plist"
 
 MODE="${1:-all}"
@@ -95,12 +102,8 @@ preflight() {
   fi
   echo -e "${G}✓${N} Supabase URL présente"
 
-  # app.config.ts buildNumber
-  if ! grep -q 'buildNumber: "20"' app.config.ts; then
-    echo -e "${R}✗ app.config.ts : buildNumber n'est pas 20.${N}"
-    exit 1
-  fi
-  echo -e "${G}✓${N} buildNumber = 20"
+  # app.config.ts buildNumber (auto-détecté)
+  echo -e "${G}✓${N} buildNumber = $BUILD_NUMBER (auto-détecté)"
 
   # PrivacyInfo
   if ! grep -q 'privacyManifests' app.config.ts; then
@@ -135,8 +138,8 @@ do_prebuild() {
     BV="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO" 2>/dev/null || echo '?')"
     SV="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO" 2>/dev/null || echo '?')"
     echo -e "${G}✓${N} Info.plist : version=$SV build=$BV"
-    if [[ "$BV" != "20" ]]; then
-      echo -e "${R}✗ Build number dans Info.plist = $BV, attendu 20.${N}"
+    if [[ "$BV" != "$BUILD_NUMBER" ]]; then
+      echo -e "${R}✗ Build number dans Info.plist = $BV, attendu $BUILD_NUMBER.${N}"
       exit 1
     fi
   fi
@@ -193,15 +196,15 @@ do_archive() {
     -allowProvisioningUpdates \
     DEVELOPMENT_TEAM="$TEAM_ID" \
     CODE_SIGN_STYLE=Automatic \
-    archive 2>&1 | tee /tmp/xcodebuild-b20.log | xcpretty 2>/dev/null
+    archive 2>&1 | tee /tmp/xcodebuild-b${BUILD_NUMBER}.log | xcpretty 2>/dev/null
   RC=${PIPESTATUS[0]}
   set -e
 
   if [[ $RC -ne 0 ]]; then
     echo -e "${R}✗ xcodebuild archive a échoué (code $RC).${N}"
     echo -e "${Y}  Extract des erreurs :${N}"
-    grep -E '(error:|fatal error|ld: |Undefined symbol|FAILED)' /tmp/xcodebuild-b20.log | head -20 || true
-    echo -e "${Y}  Log complet : /tmp/xcodebuild-b20.log${N}"
+    grep -E '(error:|fatal error|ld: |Undefined symbol|FAILED)' /tmp/xcodebuild-b${BUILD_NUMBER}.log | head -20 || true
+    echo -e "${Y}  Log complet : /tmp/xcodebuild-b${BUILD_NUMBER}.log${N}"
     exit 1
   fi
 
